@@ -41,12 +41,3 @@ To locally run the debugger, run `gradlew :debugger:run` in the root folder.
 
 Both of these tasks are also included as *IntelliJ Run Configurations*, i.e., if you import this project in IntelliJ you can start both projects from within your IDE without 
 using the command line.
-
-## Publishing
-
-Please make sure that the current version is already marked as "released" on Youtrack before publishing so that `CHANGELOG.md` can correctly be updated during `./prepublish.sh`.
-
-To publish, navigate into the `vsc-extension` folder and run `python publish.py <youtrack username> <youtrack password>` there.
-This will execute `'./prepublish.py`, `vsce publish` (without another `vscode:prepublish` task defined in `package.json`) as well as `./postpublish.sh`.
-
-Attention: This may run quite some time without visible output!
