@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/javawiz-frontend/javawiz.javawiz-frontend.iml" filepath="$PROJECT_DIR$/.idea/modules/javawiz-frontend/javawiz.javawiz-frontend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/shared/javawiz.shared.iml" filepath="$PROJECT_DIR$/.idea/modules/shared/javawiz.shared.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/vsc-extension/javawiz.vsc-extension.iml" filepath="$PROJECT_DIR$/.idea/modules/vsc-extension/javawiz.vsc-extension.iml" />
+    </modules>
+  </component>
+</project>

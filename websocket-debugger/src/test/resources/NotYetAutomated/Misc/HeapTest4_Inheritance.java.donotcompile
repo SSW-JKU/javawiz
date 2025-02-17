@@ -1,0 +1,19 @@
+public class HeapTest4_Inheritance {
+  public static void main(String[] args) {
+    Person[] personArr = new Person[] {new Person("test"), new Woman("testine")};
+  }
+}
+
+class Person {
+	String name;
+	
+	Person(String name) {
+		this.name = name;
+	}
+}
+
+class Woman extends Person {
+	Woman(String name) {
+		super(name);
+	}
+}

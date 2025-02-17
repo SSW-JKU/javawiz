@@ -1,0 +1,12 @@
+.vscode/**
+.vscode-test/**
+out/test/**
+out/**/*.map
+src/**
+.gitignore
+tsconfig.json
+vsc-extension-quickstart.md
+*.gradle
+*.py
+.gradle/**
+HOW_TO_RELEASE.md

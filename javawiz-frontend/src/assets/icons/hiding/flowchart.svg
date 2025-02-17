@@ -1,0 +1,10 @@
+<svg viewBox="0 0 500 500" style="" xmlns="http://www.w3.org/2000/svg">
+  <rect x="120.312" y="155.469" width="150" height="150" style="fill: none; stroke: rgb(255, 255, 255); stroke-linejoin: round; stroke-width: 40px;" transform="matrix(0.707107, 0.707107, -0.707107, 0.707107, 205.117996, -144.353912)"></rect>
+  <g transform="matrix(1, 0, 0, 1, -69.742264, 36.566193)">
+    <rect x="132.982" y="273.288" width="234.037" height="60" style="stroke: rgb(255, 255, 255); stroke-linejoin: round; stroke-width: 16px; fill: none;" rx="14.231" ry="14.231"></rect>
+  </g>
+  <polyline style="fill: none; stroke-linecap: round; stroke-linejoin: round; stroke: rgb(255, 255, 255); stroke-width: 23px;" points="335.421 156.25 391.227 156.25 391.227 391.933"></polyline>
+  <g transform="matrix(0.706453, 0, 0, 0.757118, 214.237076, 212.932266)" style="">
+    <rect x="132.982" y="273.288" width="234.037" height="60" style="stroke: rgb(255, 255, 255); stroke-linejoin: round; stroke-width: 16px; fill: none;" rx="14.231" ry="14.231"></rect>
+  </g>
+</svg>

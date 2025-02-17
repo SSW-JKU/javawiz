@@ -1,0 +1,144 @@
+plugins {
+  /*
+  https://gitlab.com/barfuin/gradle-taskinfo#gradle-taskinfo
+  For a given task, this plugin can:
+    display the task dependencies as a tree (tiTree),
+    display the execution queue, i.e. the order in which tasks would be executed (tiOrder), and
+    export this information as a JSON file (tiJson).
+  */
+  id 'org.barfuin.gradle.taskinfo' version '2.2.0'
+}
+
+// This is executed on all subprojects
+subprojects {
+
+    // This is executed on all subprojects that use the NodeJS plugin (https://github.com/node-gradle/gradle-node-plugin - npm_<...> (e.g., npm_install))
+    plugins.withId('com.github.node-gradle.node') {
+        node {
+            download = true
+        }
+
+        build {
+            dependsOn("npmInstall")
+        }
+    }
+
+    // This is executed on all subprojects that use the application plugin (https://docs.gradle.org/current/userguide/application_plugin.html - run, startScripts, installDist,
+    // distZip, distTar)
+    plugins.withId('application') {
+        // Both apply to Java as well as Kotlin
+        // https://kotlinlang.org/docs/gradle.html#gradle-java-toolchains-support: "Note that setting a toolchain via the kotlin extension will update the toolchain for Java compile
+        // tasks as well."
+        java { // This should work too, but we follow the example given in the link
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(17)
+            }
+        }
+
+        tasks.register('copyRuntimeLibrariesToLib', Copy) {
+            doFirst {
+                println "copyRuntimeClasspathToLib:"
+                println "copy project.configurations.runtimeClasspath.files -> buildDir\\libs"
+                println "[${project.configurations.runtimeClasspath.files.collect { it.getName() }.join(', ')}] -> $buildDir\\libs"
+            }
+            into "$buildDir/libs"
+            from project.configurations.runtimeClasspath
+            exclude "tools.jar"
+        }
+        startScripts.dependsOn(":${project.name}:copyRuntimeLibrariesToLib")
+
+        build {
+            dependsOn('copyRuntimeLibrariesToLib')
+            doFirst {
+                println "Build Java (Toolchain specification): " + java.toolchain.displayName
+                JavaCompiler compiler = javaToolchains.compilerFor(java.toolchain).get()
+                println "Build Java (Compiler): ${compiler.metadata.languageVersion}, ${compiler.metadata.jvmVersion}, ${compiler.metadata.javaRuntimeVersion}, ${compiler.metadata.vendor}"
+                println "Build Java (Compiler - Installation path): ${compiler.metadata.installationPath}"
+                println "Build Java (Compiler - Executable path): " + compiler.executablePath
+            }
+        }
+        run {
+            doFirst {
+                println "Run Java (Toolchain specification): " + java.toolchain.displayName
+                JavaLauncher compiler = javaToolchains.launcherFor(java.toolchain).get()
+                println "Run Java (Compiler): ${compiler.metadata.languageVersion}, ${compiler.metadata.jvmVersion}, ${compiler.metadata.javaRuntimeVersion}, ${compiler.metadata.vendor}"
+                println "Run Java (Compiler - Installation path): ${compiler.metadata.installationPath}"
+                println "Run Java (Compiler - Executable path): " + compiler.executablePath
+            }
+        }
+        tasks.register('jarSettings') {
+            doFirst {
+                println("Main-Class: " + application.mainClass.get())
+                println("Class-Path: " + configurations.runtimeClasspath.files.toSet().collect { it.getName() }.join(' '))
+                println("Version: " + project.version)
+                jar {
+                    manifest {
+                        attributes(
+                                "Main-Class": application.mainClass.get(),
+                                'Class-Path': configurations.runtimeClasspath.files.toSet().collect { it.getName() }.join(' '),
+                                'Version': project.version
+                        )
+                    }
+                }
+            }
+        }
+        jar {
+            dependsOn('jarSettings')
+        }
+        test {
+            failFast = false
+        }
+        // specify that all files from the dist and out folder should be zipped
+        distZip {
+            dependsOn('copyRuntimeLibrariesToLib')
+            from("$projectDir\\out")
+            from("$projectDir\\dist")
+            archiveFileName = "dist.zip"
+            destinationDirectory = file("$projectDir")
+        }
+        distTar.enabled = false
+
+        tasks.register('runJar', JavaExec) {
+            dependsOn('jar')
+            doFirst {
+                println "Run Java (Toolchain specification): " + java.toolchain.displayName
+                JavaLauncher compiler = javaToolchains.launcherFor(java.toolchain).get()
+                println "Run Java (Compiler): ${compiler.metadata.languageVersion}, ${compiler.metadata.jvmVersion}, ${compiler.metadata.javaRuntimeVersion}, ${compiler.metadata.vendor}"
+                println "Run Java (Compiler - Installation path): ${compiler.metadata.installationPath}"
+                println "Run Java (Compiler - Executable path): " + compiler.executablePath
+                println "Run Java (jar location) " + jar.archiveFile.get().asFile.absolutePath
+            }
+            classpath = files(jar.archiveFile)
+            // ignoreExitValue = true
+            // classpath += sourceSets.main.runtimeClasspath // not needed since it is specified in the jar manifest
+            // main = full.package.classname // not needed since it is specified in the jar manifest
+        }
+        // for task runJar and all other tasks of type JavaExec, use the specified toolchain to run
+        tasks.withType(JavaExec).configureEach {
+            javaLauncher = javaToolchains.launcherFor(java.toolchain)
+        }
+    }
+
+    // This is executed on all subprojects that use the application plugin (https://docs.gradle.org/current/userguide/java_plugin.html - compileJava, jar, ...)
+    plugins.withId("java") {
+        tasks.withType(JavaExec) {
+            standardInput = System.in
+        }
+    }
+
+    // This is executed on all subprojects that use the base plugin (https://docs.gradle.org/current/userguide/base_plugin.html - clean, check, assemble, build,
+    // build<Configuration>, clean<Task>)
+    plugins.withId("base") {
+        // Extended clean
+        clean.doFirst {
+            // group 'Build'
+            // description 'Deletes the project\'s out, dist and build folder, as well as build.zip and dist.zip'
+            delete "$projectDir\\out"
+            delete "$projectDir\\dist"
+            delete "$projectDir\\dist.zip"
+            delete "$projectDir\\build"
+            delete "$projectDir\\build.zip"
+        }
+    }
+}
+

@@ -1,0 +1,22 @@
+public class HeapTest1 {
+  public static void main(String[] args) {
+    System.out.println("Hello world!");
+    int a = 10;
+    int b = 20;
+    Object[] x = new Object[]{new Person("X"), new Person("Y")};
+    int[] test = new int[]{1,2,3,4};
+    x[1] = new Person("Z");
+    test[0] = 2;
+    a = 20;
+    System.out.println("Hello world again!");
+    int c = 30;
+  }
+}
+
+class Person {
+	String name;
+	
+	Person(String name) {
+		this.name = name;
+	}
+}

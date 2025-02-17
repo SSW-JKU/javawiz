@@ -1,0 +1,98 @@
+public class SampleInput {
+    // Static primitive
+    static int static_i;
+
+    // Static string
+    static String static_s = "STATIC";
+
+    // Static reference
+    static List static_list = new List(0);
+
+    // Static primitve array
+    static int[] static_i_arr = new int[]{101, 102, 103};
+
+    // Static reference array
+    static List[] static_list_arr = new List[]{new List(17), null, new List(37)};
+
+    // Static null
+    static List static_list2 = null;
+
+    public static void main(String[] args) {
+        System.out.println("Hello world!");
+        int paramToPass = 1;
+        a(paramToPass, 0);
+
+        // Modify statics
+        static_i = 113;
+        static_i += 10;
+        List.x = 17;
+        List.x *= 17;
+        static_list2 = new List(0);
+        static_list2.item = 2222;
+
+        // Local primitive
+        int local_i;
+        local_i = 5;
+        local_i *= 2;
+
+        // Local strings
+        String ss = null;
+        ss = "test";
+        ss = "test2";
+
+        // Local reference
+        List l1 = new List(1);
+        List l2 = new List(2);
+        l1.next(l2);
+        static_list2.next(l1);
+        l1 = new List(17);
+        List iStayNull = null;
+
+        // Local primitiveArrays
+        int[] intArr = new int[3];
+        intArr[0] = 17;
+
+        // Local reference array
+        List[] listArr = new List[2];
+        listArr[0] = l1;
+        listArr[1] = l2;
+    }
+
+    static void a(int n1, int n2) {
+        n1++;
+        int sum = n1 + n2;
+        b(sum);
+    }
+
+    static void b(int x) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < x; i++) {
+            sb.append("x");
+        }
+        c(sb.toString());
+    }
+
+    static void c(String x) {
+        String prefix = "I come first ";
+        System.out.println(prefix + x);
+    }
+}
+
+class List {
+    static int x;
+
+    public int item;
+    private List next;
+
+    public List(int item) {
+        this.item = item;
+    }
+
+    public void next(List next) {
+    	this.next = next;
+	}
+
+    void deleteNext() {
+        next = null;
+    }
+}

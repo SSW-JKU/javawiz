@@ -1,0 +1,133 @@
+HOW_TO_RELEASE.md
+Meeting_Protocols.md
+print_changelog_from_youtrack.py
+print_version_from_changelog.py
+send_changelog_to_discord.py
+TODO.md
+update_versions_from_changelog.py
+postpublish.py
+prepublish.py
+publish.py
+
+HELP.md
+target/
+!**/src/main/**
+!**/src/test/**
+**/testFiles/**
+**/websocket-debugger/compilation/**
+**/websocket-debugger/bin/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+
+### NetBeans ###
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+build/
+
+### VS Code ###
+# .vscode/ # we share .vscode/ because everybody should have "ESLint check + fix on save" in VSCode
+
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# https://github.com/takari/maven-wrapper#usage-without-binary-jar
+.mvn/wrapper/maven-wrapper.jar
+
+### Java ###
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+log/
+
+### Gradle ###
+.gradle
+**/build/
+!src/**/build/
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
+# gradle/wrapper/gradle-wrapper.properties
+debug-visualizer/node_modules/
+
+# vue CLI
+.DS_Store
+node_modules
+/dist
+
+.env.local
+.env.*.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+!.idea
+
+## vsc-extension
+vsc-extension/out
+vsc-extension/*.vsix
+!vsc-extension/.vscode
+javawiz-frontend/src/helpers/data.js
+.idea/discord.xml

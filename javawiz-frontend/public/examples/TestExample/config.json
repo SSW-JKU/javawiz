@@ -1,0 +1,9 @@
+{
+  "sources": [
+    "HelloWorld.java",
+    "output/Printer.java"
+  ],
+  "files": [
+    "Input.txt"
+  ]
+}

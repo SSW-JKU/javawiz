@@ -1,0 +1,165 @@
+{
+  "name": "javawiz",
+  "displayName": "JavaWiz",
+  "description": "Visualize the execution of your Java programs",
+  "version": "1.7.2",
+  "publisher": "ssw-jku",
+  "engines": {
+    "vscode": "^1.64.0"
+  },
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "categories": [
+    "Debuggers",
+    "Visualization",
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "Visual Debugger",
+    "Trace-based Time-Travel Debugger",
+    "Software Education and Visualization",
+    "Visual Teaching",
+    "Program Comprehension and Understanding"
+  ],
+  "homepage": "https://ssw.jku.at/Research/Projects/JavaWiz/",
+  "bugs": {
+    "url": "https://ssw.jku.at/General/Staff/Weninger/",
+    "email": "markus.weninger@jku.at"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SSW-JKU/javawiz"
+  },
+  "galleryBanner": {
+    "color": "#163150",
+    "theme": "dark"
+  },
+  "preview": false,
+  "pricing": "Free",
+  "activationEvents": [
+    "onCommand:javawiz.start",
+    "onCommand:enableIntelliSense",
+    "onCommand:disableIntelliSense",
+    "onLanguage:java",
+    "onWebviewPanel:javawiz"
+  ],
+  "main": "./out/vsc-extension/src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "javawiz.start",
+        "title": "Run in JavaWiz",
+        "category": "JavaWiz"
+      },
+      {
+        "command": "javawiz.enableJavaFeatures",
+        "title": "Enable Advanced Java Support",
+        "category": "JavaWiz"
+      },
+      {
+        "command": "javawiz.disableJavaFeatures",
+        "title": "Disable Advanced Java Support",
+        "category": "JavaWiz"
+      },
+      {
+        "command": "javawiz.createIn",
+        "title": "Create In.java",
+        "category": "JavaWiz"
+      },
+      {
+        "command": "javawiz.createOut",
+        "title": "Create Out.java",
+        "category": "JavaWiz"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceLangId == java",
+          "command": "javawiz.start"
+        },
+        {
+          "when": "resourceLangId == java",
+          "command": "javawiz.enableJavaFeatures"
+        },
+        {
+          "when": "resourceLangId == java",
+          "command": "javawiz.disableJavaFeatures"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "when": "resourceLangId == java",
+          "command": "javawiz.start"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "explorerViewletVisible",
+          "command": "javawiz.createIn"
+        },
+        {
+          "when": "explorerViewletVisible",
+          "command": "javawiz.createOut"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "when": "resourceLangId == java",
+        "command": "javawiz.start",
+        "key": "ctrl+shift+j"
+      }
+    ],
+    "configuration": {
+      "title": "Hidden JavaWiz classes",
+      "properties": {
+        "javawiz.hideClassPatterns": {
+          "type": "array",
+          "default": [
+            "java.*",
+            "javax.*",
+            "javafx.*",
+            "sun.*",
+            "com.sun.*",
+            "jdk.*",
+            "*.In",
+            "*.Out",
+            "*.Rand",
+            "In",
+            "Out",
+            "Rand"
+          ],
+          "description": "Use glob patterns to prevent JavaWiz from stepping into classes. Changing this configuration might break functionality."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "lint": "eslint . --ext .ts,.tsx",
+    "watch": "cd .. && gradlew.bat clean && gradlew.bat build -x test -x check && cd vsc-extension && tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/http-server": "^0.12.1",
+    "@types/lodash": "^4.17.0",
+    "@types/node": "^12.20.45",
+    "@types/vscode": "^1.64.0",
+    "@types/websocket": "^1.0.5",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.55.0",
+    "typescript": "~4.9.5"
+  },
+  "dependencies": {
+    "child-process": "^1.0.2",
+    "http-server": "^14.1.1",
+    "lodash": "^4.17.21",
+    "tree-kill": "^1.2.2",
+    "websocket": "^1.0.34"
+  },
+  "extensionDependencies": [
+    "redhat.java",
+    "vscjava.vscode-java-debug"
+  ]
+}

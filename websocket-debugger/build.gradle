@@ -1,0 +1,123 @@
+import org.gradle.internal.jvm.Jvm
+
+plugins {
+    id 'base'
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.10'
+}
+
+def jvm = Jvm.current()
+println("Gradle Configuration Java (Jvm.current()): " + jvm)
+
+def javaHome = System.getProperty('java.home')
+println("System property java.home: " + javaHome)
+
+def jdkExports = [
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+]
+
+version '1.7.2'
+group 'at.jku.ssw'
+
+application {
+    mainClass = "at.jku.ssw.wsdebug.MainKt"
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+// kotlin {
+//     js {
+//         binaries.executable()
+//     }
+// }
+
+dependencies {
+    // # Kotlin coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+
+    // # WebSocket
+    implementation group: 'org.java-websocket', name: 'Java-WebSocket', version: '1.5.1'
+    // ## WebSocket logging dependency
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
+    implementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.30'
+
+    // # JSON
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3'
+    // implementation 'com.google.code.gson:gson:2.9.0'
+
+    // # JavaParser
+    // (no longer needed as jdk.compiler is used instead)
+    // implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.24.2'
+
+    // # tools.jar
+    // Seems to be not needed since the Compiler classes are now (as of Java 17) stored
+    // in the default module jdk.compiler
+    // implementation files("${System.getProperty('java.home')}/../lib/tools.jar")
+
+    // # JUnit
+    implementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+    // testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+
+    // # Unicode converter
+    implementation 'com.github.michaelgantman:MgntUtils:1.6.0.3'
+
+    // # Java Version Printing
+    implementation 'com.github.NeonMika:neon-util:v0.0.5'
+}
+
+/*
+ since we use non-public features of java.compiler, we must test against all jdk versions the user might have.
+ */
+def jdks = [
+        "JDK17": JavaLanguageVersion.of(17),
+        "JDK18": JavaLanguageVersion.of(18),
+        "JDK19": JavaLanguageVersion.of(19),
+        "JDK20": JavaLanguageVersion.of(20),
+        "JDK21": JavaLanguageVersion.of(21),
+        "JDK22": JavaLanguageVersion.of(22),
+        "JDK23": JavaLanguageVersion.of(23)
+]
+def ltsJdks = [ "JDK17", "JDK21"]
+def latestJdk = "JDK23"
+
+tasks.withType(Test) {
+    jvmArgs = jdkExports
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+    useJUnitPlatform()
+}
+
+jdks.each { key, version ->
+    tasks.register("testOn$key", Test) {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion.set(version)
+        }
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        description = "Runs the tests using JDK $version"
+    }
+}
+
+test { // Tests only with current jdk
+    jvmArgs = jdkExports
+    useJUnitPlatform()
+}
+
+tasks.run {
+    jvmArgs = jdkExports
+}
+
+check { // test all LTS jdks
+    dependsOn tasks.withType(Test).matching(task -> ltsJdks.any(lts -> task.name.contains(lts)) || task.name.contains(latestJdk))
+}
+
+tasks.register("testAll") {
+  dependsOn tasks.withType(Test)
+}

@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "strict": true,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
+    // "rootDir": "src", // we do not use src as rootDir here because we have shared data in the "shared" project (e.g., Protocol.js)
+    "baseUrl": ".",
+    "types": [
+      "webpack-env",
+      "resize-observer-browser"
+    ],
+    // vue.config.js and tsconfig.json must be in sync!
+    // https://stackoverflow.com/questions/54561799/vue-typescript-error-with-webpack-alias-path-not-found:
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@Shared/*": [
+        "../shared/src/*"
+      ]
+    },
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable",
+      "scripthost"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "../shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

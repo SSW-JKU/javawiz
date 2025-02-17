@@ -1,0 +1,39 @@
+// https://github.com/node-gradle/gradle-node-plugin
+plugins {
+    id 'base'
+    id "com.github.node-gradle.node" version "3.4.0"
+}
+
+task copyBackendToVscExtension(type: Copy) {
+    dependsOn(':backend:build')
+    from(rootDir.toPath().resolve('websocket-debugger/build/')) {
+        include 'libs/**/*'
+        include 'resources/main/additionalclasses/*.java'
+    }
+
+    destinationDir(rootDir.toPath().resolve('vsc-extension/out/assets/backend').toFile())
+    doLast {
+        println(source.files.collect { it.path }.join("\n"))
+        println("copied to")
+        println(destinationDir)
+    }
+}
+
+task copyFrontendToVscExtension(type: Copy) {
+    dependsOn(':frontend:build')
+    from(rootDir.toPath().resolve('javawiz-frontend/dist/'))
+
+    destinationDir(rootDir.toPath().resolve('vsc-extension/out/assets/frontend').toFile())
+    doLast {
+        println(source.files.collect { it.path }.join("\n"))
+        println("copied to")
+        println(destinationDir)
+    }
+}
+
+build {
+    dependsOn(":shared:build")
+    dependsOn('copyBackendToVscExtension')
+    dependsOn('copyFrontendToVscExtension')
+    dependsOn("npm_run_compile")
+}

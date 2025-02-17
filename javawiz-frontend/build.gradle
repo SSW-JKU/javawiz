@@ -1,0 +1,16 @@
+// https://github.com/node-gradle/gradle-node-plugin
+plugins {
+    id 'base'
+    id "com.github.node-gradle.node" version "3.4.0"
+}
+
+build {
+    dependsOn(":shared:build")
+    dependsOn("npm_run_build")
+}
+
+tasks.register('run') {
+    group 'Run'
+    description 'Installs npm if needed and then runs "npm run serve"'
+    dependsOn("npm_run_serve")
+}

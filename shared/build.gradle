@@ -1,0 +1,11 @@
+// https://github.com/node-gradle/gradle-node-plugin
+plugins {
+    id 'base'
+    id "com.github.node-gradle.node" version "3.4.0"
+}
+
+build {
+    doLast {
+      println "Nothing to build, but existing build task ensures that npm install will be executed"
+    }
+}

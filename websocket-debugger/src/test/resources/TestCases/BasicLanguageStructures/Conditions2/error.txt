@@ -1,0 +1,2 @@
+java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at Conditions2.main(Conditions2.java:2)

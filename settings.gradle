@@ -1,0 +1,20 @@
+plugins {
+    id("org.gradle.toolchains.foojay-resolver") version "0.8.0"
+}
+
+rootProject.name = "javawiz"
+
+include ":shared", ":websocket-debugger", ":javawiz-frontend", ":vsc-extension"
+// Rename subproject to more easy names
+project(":websocket-debugger").name = "backend"
+project(":javawiz-frontend").name = "frontend"
+
+toolchainManagement {
+    jvm {
+        javaRepositories {
+            repository("foojay") {
+                resolverClass = org.gradle.toolchains.foojay.FoojayToolchainResolver
+            }
+        }
+    }
+}
