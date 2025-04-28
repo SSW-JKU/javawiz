@@ -14,17 +14,15 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent } from 'vue'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 
-export default defineComponent({
-  name: 'TheStateArea',
-  computed: {
-    ...mapStores(useGeneralStore)
-  }
+defineComponent({
+  name: 'TheStateArea'
 })
+
+const generalStore = useGeneralStore()
 </script>
 
 <style>

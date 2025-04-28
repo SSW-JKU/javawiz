@@ -1,8 +1,7 @@
 import { ArrayIndex, ArrayNode } from './types'
 import { getArrayCoordinates, getArrayLength } from './array-utils'
 import { LAYOUT } from './constants'
-import { SelectionOrTransition } from 'd3'
-import { BaseType } from 'd3-selection'
+import { BaseType, Selection } from 'd3'
 import { SVG } from '../constants'
 
 // calculates index coordinates
@@ -102,7 +101,7 @@ export function calculateIndexOffsetCoordinates (index: { array: ArrayNode, valu
 }
 
 // sets the index' text field attributes (mainly handles rotation)
-export function indexForeignObjectAttributes (foreignObject: SelectionOrTransition<any, ArrayIndex, BaseType, unknown>) {
+export function indexForeignObjectAttributes (foreignObject: Selection<any, ArrayIndex, BaseType, unknown>) {
   foreignObject.attr('height', LAYOUT.indexes.height)
   foreignObject.filter(d => d.array.kind === 'TwoDimArrayNode')
     .attr('x', LAYOUT.indexes.row.text.xOffset)

@@ -140,6 +140,7 @@ export interface LoadedClass {
 }
 
 export type LatestMethod =
+  '' |
   'no method called' |
   'read()' |
   'readChar()'|
@@ -148,7 +149,7 @@ export type LatestMethod =
   'readWord()' |
   'readLine()' |
   'readFile()' |
-  'readString()' |
+  'readQuoted()' |
   'readInt()' |
   'readLong()' |
   'readFloat()' |

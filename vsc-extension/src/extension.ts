@@ -151,8 +151,6 @@ export async function getAllFilesWithContents(): Promise<{
     } else {
       localUri = path.parse(textDocument.fileName).base
     }
-    console.log('sending document: ')
-    console.log(uri.fsPath)
     return {
       localUri,
       content: textDocument.getText() 

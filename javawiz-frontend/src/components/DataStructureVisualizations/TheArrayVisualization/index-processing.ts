@@ -2,7 +2,7 @@ import { REGEX } from './constants'
 import { ProcessedIndex, SettingsIndex } from './types'
 
 // checks if the string of a settings index has the correct format
-export function checkIndexString (index: String) {
+export function checkIndexString (index: string) {
   const match = index.match(REGEX.index)
   if (!match) {
     return undefined

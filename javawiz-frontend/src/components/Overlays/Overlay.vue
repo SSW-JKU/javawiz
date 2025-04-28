@@ -3,7 +3,7 @@
     <div class="header">
       <img class="wizard-img" src="../../assets/icons/wizard.svg" alt="Image of Wizard">
       <span class="title">{{ title }}</span>
-      <button class="close-button" @click="closeDialog">
+      <button class="close-button" @click="() => emit('closeDialog')">
         <span>&times;</span>
       </button>
     </div>
@@ -14,34 +14,23 @@
   </dialog>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
+<script setup lang = "ts">
+import { defineComponent, ref, watch } from 'vue'
 
-export default defineComponent({
-  name: 'TheHelpOverlay',
-  props: {
-    show: {
-      type: Boolean,
-      required: true
-    },
-    title: {
-      type: String,
-      required: true
-    },
-    closeDialog: {
-      type: Function,
-      required: true
-    }
-  },
-  watch: {
-    show: function (newVal, _oldVal) {
-      const vm = this
-      if (newVal) {
-        vm.$refs.dialog.showModal()
-      } else {
-        vm.$refs.dialog.close()
-      }
-    }
+defineComponent({
+  name: 'TheHelpOverlay'
+})
+
+const props = defineProps<{ show: boolean, title: string }>()
+const emit = defineEmits<{ closeDialog: [] }>()
+
+const dialog = ref<InstanceType<typeof HTMLDialogElement> | null>(null)
+
+watch(() => props.show, () => {
+  if (props.show) {
+    dialog.value?.showModal()
+  } else {
+    dialog.value?.close()
   }
 })
 </script>

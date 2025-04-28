@@ -1,7 +1,7 @@
 <template>
   <!-- relative position needed to be able to place the tooltip absolutely relative to the icon */ -->
   <div class="icon-container">
-    <a @click="{if (enabled) { action(); }}">
+    <a @click="() => {if (enabled) { emit('action') }}">
       <img
         class="toolbar-icon"
         :src="icon"
@@ -19,7 +19,7 @@
           <img v-if="shortcut.iconPath" class="icon key-icon" :src="shortcut.iconPath" alt="Toolbar tooltip icon">
         </div>
         <!-- Shortcut visualized as text -->
-        <div v-if="'firstKey' in shortcut">
+        <div v-if="'firstKey' in shortcut && 'secondKey' in shortcut">
           <span class="key-symbol">{{ shortcut.firstKey }}</span>
           <span>+</span>
           <span class="key-symbol">{{ shortcut.secondKey }}</span>
@@ -29,129 +29,107 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue'
+<script setup lang="ts">
+import { computed, defineComponent } from 'vue'
 
 /**
  * Component for icons with Tooltip. When the icon is clicked, the given action is executed.
  */
-export default defineComponent({
-  name: 'IconWithTooltip',
-  props: {
-    /**
+defineComponent({
+  name: 'IconWithTooltip'
+})
+
+type Props = {
+  /**
      * The function which is executed when the icon is clicked.
      */
-    action: {
-      type: Function,
-      required: true
-    },
-    enabled: {
-      type: Boolean,
-      required: false,
-      default: true
-    },
-    icon: {
-      type: String,
-      required: true
-    },
-    semitransparent: {
-      type: Boolean,
-      required: false,
-      default: false
-    },
-    /**
+  enabled?: boolean
+  icon: string
+  semitransparent?: boolean
+  /**
      *  Contains the tooltip text, its placement ('above' (or 'up' or 'north'), 'right' (or 'east'),
      *  'below' (or 'down' or 'south'), or 'left' (or 'west') of the icon), and the arrow
      *  location ('left', 'right', 'middle') along the tooltip.
      *  For right and left placements, only possible arrow location is 'middle'.
      *  Example: `{text: 'I'm a tooltip', placement: 'below', arrow: 'left'}`
      */
-    tooltip: {
-      type: Object as PropType<{
-        text?: string,
-        arrow?: 'left' | 'right' | 'middle',
-        placement?: 'above' | 'up' | 'north' | 'right' | 'east' | 'below' | 'down' | 'south' | 'left' | 'west',
-      }>,
-      required: false,
-      default: null
-    },
-    /**
+  tooltip?: {
+    text?: string,
+    arrow?: 'left' | 'right' | 'middle',
+    placement?: 'above' | 'up' | 'north' | 'right' | 'east' | 'below' | 'down' | 'south' | 'left' | 'west',
+  } | null
+  /**
      * Contains either the key string representations or the path to a key icon.<br>
      * Examples:<br>
      * `{ firstKey: "Alt", secondKey: "P" })`<br>
      * `{ iconPath: require(someURL) }`
      */
-    shortcut: {
-      type: Object as PropType<{ firstKey: string, secondKey: string } | { iconPath: string } | { kbdTag: string }>,
-      required: false,
-      default: function () {
-        return {}
-      }
-    },
-    width: {
-      type: String,
-      required: false,
-      default: function () {
-        return '120px'
-      }
-    }
-  },
-  computed: {
-    filterVal: function (): string {
-      const vm = this
-      if (vm.semitransparent) {
-        return 'opacity(.5)'
-      }
-      if (!vm.enabled) {
-        return 'invert(.5)'
-      }
-      return 'invert(0)'
-    },
-    cleanedPlacement: function (): 'above' | 'below' | 'left' | 'right' {
-      const vm = this
-      switch (vm.tooltip?.placement) {
-        case 'above':
-          return 'above'
-        case 'up':
-          return 'above'
-        case 'north':
-          return 'above'
-        case 'below':
-          return 'below'
-        case 'down':
-          return 'below'
-        case 'south':
-          return 'below'
-        case 'right':
-          return 'right'
-        case 'east':
-          return 'right'
-        case 'left':
-          return 'left'
-        case 'west':
-          return 'left'
-        default:
-          return 'below'
-      }
-    },
-    cleanedArrow: function (): 'left' | 'right' | 'middle' {
-      const vm = this
-      switch (vm.tooltip?.arrow) {
-        case 'left':
-          return 'left'
-        case 'right':
-          return 'right'
-        case 'middle':
-          return 'middle'
-        default:
-          return 'middle'
-      }
-    },
-    cssClass: function (): string {
-      const vm = this
-      return `tt-${vm.cleanedPlacement}-${vm.cleanedArrow}arrow`
-    }
+  shortcut?: { firstKey: string, secondKey: string } | { iconPath: string } | { kbdTag: string } | undefined
+  width?: string
+}
+
+const {
+  enabled = true,
+  icon,
+  semitransparent = false,
+  tooltip = null,
+  shortcut,
+  width = '120px'
+} = defineProps<Props>()
+
+const emit = defineEmits<{ action: [] }>()
+
+const filterVal = computed(() => {
+  if (semitransparent) {
+    return 'opacity(.5)'
   }
+  if (!enabled) {
+    return 'invert(.5)'
+  }
+  return 'invert(0)'
+})
+const cleanedPlacement = computed(() => {
+  switch (tooltip?.placement) {
+    case 'above':
+      return 'above'
+    case 'up':
+      return 'above'
+    case 'north':
+      return 'above'
+    case 'below':
+      return 'below'
+    case 'down':
+      return 'below'
+    case 'south':
+      return 'below'
+    case 'right':
+      return 'right'
+    case 'east':
+      return 'right'
+    case 'left':
+      return 'left'
+    case 'west':
+      return 'left'
+    default:
+      return 'below'
+  }
+})
+
+const cleanedArrow = computed(() => {
+  switch (tooltip?.arrow) {
+    case 'left':
+      return 'left'
+    case 'right':
+      return 'right'
+    case 'middle':
+      return 'middle'
+    default:
+      return 'middle'
+  }
+})
+
+const cssClass = computed(() => {
+  return `tt-${cleanedPlacement.value}-${cleanedArrow.value}arrow`
 })
 </script>
 

@@ -117,7 +117,7 @@ export function toggleLifeLine (
     }
     const isVisible = arrow.time !== timeIdx && arrow.from !== l && arrow.to !== l
     if (!found && isVisible) {
-      const newHiddenState = hiddenLifeLines.includes(l) || activeTimeIndices.includes(arrow.time!!)
+      const newHiddenState = hiddenLifeLines.includes(l) || activeTimeIndices.includes(arrow.time!)
       updateHiddenState(arrow, newHiddenState)
     }
   }
@@ -217,7 +217,7 @@ export function setHiddenBoxes (boxes: Box[], box: Box, timeIdx: number, hiddenI
       if (!inner.callArrow) {
         updateDrawnState(inner, activeTimeIndices.includes(inner.start))
       } else {
-        const fromBox = getBoxByIndex(inner.callArrow.fromBoxIndex!!, boxes)!!
+        const fromBox = getBoxByIndex(inner.callArrow.fromBoxIndex!, boxes)!
         if (fromBox.currState === 'expanded') {
           updateDrawnState(inner, true)
         }
@@ -242,10 +242,10 @@ export function setHiddenArrows ({ boxes, arrows, lifeLines }: Elements, activeT
       continue
     }
     const hidden = isHidden(box)
-    updateHiddenState(callArrow, hidden || !activeTimeIndices.includes(callArrow.time!!))
+    updateHiddenState(callArrow, hidden || !activeTimeIndices.includes(callArrow.time!))
     const returnArrow = box.returnArrow
     if (returnArrow) {
-      updateHiddenState(returnArrow, hidden || !activeTimeIndices.includes(returnArrow.time!!))
+      updateHiddenState(returnArrow, hidden || !activeTimeIndices.includes(returnArrow.time!))
     }
   }
   for (let i = 0; i < arrows.length; i++) {
@@ -253,15 +253,15 @@ export function setHiddenArrows ({ boxes, arrows, lifeLines }: Elements, activeT
     if (arrow.kind !== 'Constructor') {
       continue
     }
-    const boxState = getBoxByIndex(arrow.fromBoxIndex!!, boxes)?.currState
-    if (boxState === 'hidden' || boxState === 'collapsed' || !activeTimeIndices.includes(arrow.time!!)) {
+    const boxState = getBoxByIndex(arrow.fromBoxIndex!, boxes)?.currState
+    if (boxState === 'hidden' || boxState === 'collapsed' || !activeTimeIndices.includes(arrow.time!)) {
       updateHiddenState(arrow, true)
     } else {
       let found = false
       for (let j = 0; j < lifeLines.length; j++) {
         const lifeLine = lifeLines[j]
         const isWithinScope = hiddenLifeLines.some(hidden => isLifeLineWithinLifeLineScope(lifeLine, hidden, timeIdx))
-        if (lifeLine.start === arrow.time!! && lifeLine.currState !== 'expanded' && arrow.to !== lifeLine && isWithinScope) {
+        if (lifeLine.start === arrow.time! && lifeLine.currState !== 'expanded' && arrow.to !== lifeLine && isWithinScope) {
           found = true
           break
         }
@@ -285,17 +285,21 @@ export function setHiddenLifeLines ({ boxes, arrows, lifeLines }: Elements, acti
 
     const arrowHidden = arrow && arrow.isHidden
     updateDrawnState(lifeLine, !arrowHidden)
-    if (nVisibleBoxes === 0 && arrow) {
-      if (arrow.isHidden) {
-        if (lifeLine.currState === 'collapsed') {
+    if (nVisibleBoxes === 0) {
+      if (arrow) {
+        if (arrow.isHidden) {
+          if (lifeLine.currState === 'collapsed') {
+            updateElementState(lifeLine, 'collapsed')
+          } else {
+            updateElementState(lifeLine, 'hidden')
+          }
+        } else if (hiddenLifeLines.includes(lifeLine)) {
           updateElementState(lifeLine, 'collapsed')
         } else {
-          updateElementState(lifeLine, 'hidden')
+          updateElementState(lifeLine, 'expanded')
         }
-      } else if (hiddenLifeLines.includes(lifeLine)) {
-        updateElementState(lifeLine, 'collapsed')
-      } else {
-        updateElementState(lifeLine, 'expanded')
+      } else if (lifeLine.index !== 0) {
+        updateElementState(lifeLine, 'hidden')
       }
     } else if (nVisibleBoxes !== 0) {
       if (lifeLine.currState === 'collapsed') {
@@ -418,7 +422,7 @@ export function getActiveTimeIndices (hiddenLifeLines: LifeLine[], hiddenInterva
     for (let j = 0; j < arrows.length; j++) {
       const arrow = arrows[j]
       if (arrow.kind === 'Constructor' && arrow.to === hiddenLifeLines[i]) {
-        const box = getBoxByIndex(arrow.fromBoxIndex!!, boxes)
+        const box = getBoxByIndex(arrow.fromBoxIndex!, boxes)
         if (box) {
           const end = getBoxEnd(box, timeIdx)
           if (!hiddenIndices.includes(end) && isVisible(box)) {
@@ -460,8 +464,8 @@ export function updateHiddenLabelsForBoxes (boxes: Box[], activeTimeIndices: num
       } else if (box.currState === 'collapsed') {
         updateDrawnState(box, true)
       } else if (box.currState === 'hidden') {
-        const fromBoxIndex = box.callArrow!!.fromBoxIndex!!
-        const currState = getBoxByIndex(fromBoxIndex, boxes)!!.currState
+        const fromBoxIndex = box.callArrow!.fromBoxIndex!
+        const currState = getBoxByIndex(fromBoxIndex, boxes)!.currState
         if (box.start === timeIdx && fromBoxIndex !== 0 && (currState === 'collapsed' || currState === 'hidden')) {
           box.currState = 'hidden'
         } else {

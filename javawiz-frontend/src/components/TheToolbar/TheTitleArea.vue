@@ -3,7 +3,7 @@
     <img class="wizard-icon" src="../../assets/icons/wizard-hat.svg" alt="JavaWiz title icon">
 
     <span class="javawiz-title">
-      JavaWiz <span class="version">&nbsp;V{{ version }} </span>
+      JavaWiz <span class="version">&nbsp;V{{ package_.version }} </span>
     </span>
 
     <div class="dev-container" @click="showAbout">
@@ -13,30 +13,19 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent } from 'vue'
-import { version } from '../../../package.json'
+import package_ from '../../../package.json'
 import { useOverlayStore } from '@/store/OverlayStore'
-import { mapStores } from 'pinia'
 
-export default defineComponent({
-  name: 'TheTitleArea',
-  data: function () {
-    return {
-      version
-    }
-  },
-  computed: {
-    ...mapStores(useOverlayStore)
-  },
-  methods: {
-    showAbout: function () {
-      this.overlayStore.toggleAboutState()
-    }
-  }
+defineComponent({
+  name: 'TheTitleArea'
 })
+const overlayStore = useOverlayStore()
+function showAbout () {
+  overlayStore.toggleAboutState()
+}
 </script>
-
 <style>
 
 .title-area {

@@ -82,3 +82,20 @@ export function createHoverField (objId: number, name: string, reference: number
     reference
   }
 }
+
+export function createHoverMethodCall (name: string, methodCallId: number, time: number): HoverInfo {
+  return {
+    kind: 'MethodCall',
+    name,
+    methodCallId,
+    time
+  }
+}
+
+export function createHoverBox (index: number, start: number): HoverInfo {
+  return {
+    kind: 'Box',
+    index,
+    start
+  }
+}

@@ -1,14 +1,3 @@
-HOW_TO_RELEASE.md
-Meeting_Protocols.md
-print_changelog_from_youtrack.py
-print_version_from_changelog.py
-send_changelog_to_discord.py
-TODO.md
-update_versions_from_changelog.py
-postpublish.py
-prepublish.py
-publish.py
-
 HELP.md
 target/
 !**/src/main/**

@@ -20,6 +20,10 @@
       "path": "shared",
       "name": "Shared"
     },
+    {
+      "path": "pages",
+      "name": "Website"
+    },
   ],
   "settings": {
     "eslint.alwaysShowStatus": true,
@@ -58,6 +62,7 @@
       "node_modules",
       ".git",
       "resources"
-    ]
+    ],
+    "liveServer.settings.multiRootWorkspaceName": "Website"
   }
 }

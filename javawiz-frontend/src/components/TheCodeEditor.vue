@@ -25,19 +25,19 @@
 
 // tabs impl from https://www.w3schools.com/howto/howto_js_tabs.asp
 
-<script lang="ts">
-// Import Monaco editor (relies on MonacoWebpackPlugin in vue.config.js)
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+<script setup lang="ts">
+import * as monaco from 'monaco-editor'
+import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import * as d3 from 'd3'
-import { defineComponent } from 'vue'
-import { mapStores } from 'pinia'
+import { computed, defineComponent, onMounted, onUnmounted, watch } from 'vue'
 import { useHoverStore } from '@/store/HoverStore'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { getModel } from '@/file-manager/FileManager'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverInfo } from '@/hover/types'
 
-// moved this outside the components properties, so it's not reactive
+const generalStore = useGeneralStore()
+
 let editor: monaco.editor.IStandaloneCodeEditor | undefined
 let decorations: string[] = []
 const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
@@ -50,188 +50,178 @@ const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   minimap: { enabled: false }
 }
 
-export default defineComponent({
-  name: 'TheCodeEditor',
-  data () {
-    return {}
-  },
-  computed: {
-    hoveredLine: function (): number {
-      return this.hoverStore.hoveredLine
-    },
-    hoveredLineUri: function (): string {
-      return this.hoverStore.hoveredLineUri ?? ''
-    },
-    ...mapStores(useGeneralStore, useHoverStore)
-  },
-  watch: {
-    'generalStore.currentLine': function () {
-      const vm = this
-      if (editor) {
-        editor.revealLine(vm.generalStore.currentLine)
-        vm.highlightHoveredLineAndCurrentLine()
-      }
-    },
-    'generalStore.currentFileUri': function () {
-      const vm = this
-      if (editor) {
-        vm.generalStore.fileManager.changeToFile(vm.generalStore.currentFileUri, vm.getViewState())
-        editor.revealLine(vm.generalStore.currentLine)
-        vm.highlightHoveredLineAndCurrentLine()
-      }
-    },
-    'hoveredLine': function () {
-      const vm = this
-      vm.highlightHoveredLineAndCurrentLine()
-    },
-    'hoveredLineUri': function () {
-      const vm = this
-      vm.highlightHoveredLineAndCurrentLine()
-    },
-    'generalStore.fileManager.openFile': function () {
-      const vm = this
-      editor?.setModel(getModel(vm.generalStore.fileManager.openFileAsUriObject))
-      const previousViewState = vm.generalStore.fileManager.previousViewState
-      if (previousViewState) {
-        editor?.restoreViewState(previousViewState)
-      }
-      vm.highlightHoveredLineAndCurrentLine()
-    }
-  },
-  mounted () {
-    const vm = this
+// @ts-expect-error MonacoEnvironment is initialized here
+// glue code to initialize web worker https://github.com/vitejs/vite/discussions/1791
+window.MonacoEnvironment = {
+  getWorker(_: any, __: any) {
+    // no need for specific workers (e.g. json or typescript), because we use regular editorWorker with java as language
+    return new editorWorker()
+  }
+}
 
-    const editorDiv = document.getElementById('code-editor')!
+defineComponent({
+  name: 'TheCodeEditor'
+})
 
-    const initialUri = vm.generalStore.fileManager.openFileAsUriObject
-    if (initialUri) {
-      editorOptions.model = monaco.editor.getModel(initialUri)
-    }
+const hoverStore = useHoverStore()
+const hoveredLine = computed(() => hoverStore.hoveredLine)
+const hoveredLineUri = computed(() => hoverStore.hoveredLineUri ?? '')
 
-    editor = monaco.editor.create(
-      editorDiv,
-      editorOptions
-    )
+function onHover (hoverInfos: HoverInfo[]) {
+  hoverStore.hoveredLine = -1
 
-    d3.select('#code-editor')
-      .on('mouseenter', function () {
-        vm.hoverStore.hoversEditor = true
-      })
-      .on('mouseleave', function () {
-        vm.hoverStore.hoversEditor = false
-        vm.hoverStore.changeLine({ lineNr: -1, localUri: null })
-      })
-      .on('mouseover', function (event) {
-        // d3.pointer() retrieves the mouse position relative to the boundaries of the given DOM element
-        // <body> is used on purpose, see explanation for getTargetAtClientPoint(x,y) below
-        const x = d3.pointer(event, d3.select('body').node() as d3.ContainerElement)[0]
-        const y = d3.pointer(event, d3.select('body').node() as d3.ContainerElement)[1]
-
-        // getTargetAtClientPoint(x,y) returns the currently hovered position in the editor based
-        // on given x/y relative to the viewport (that's why <body> is used above for retrieving the mouse position)
-        const target = editor?.getTargetAtClientPoint(x, y)
-
-        // the retrieved lineNumber is then committed to the global store, DeskTest has a watcher on the lineNumber and can update the row highlight accordingly
-        vm.hoverStore.changeLine({
-          lineNr: target && target.position ? target.position.lineNumber : -1,
-          localUri: null
-        })
-      })
-
-    const splitpane = editorDiv.parentElement!.parentElement!
-    const tabs = document.getElementById('tabs')!
-
-    const ro = new ResizeObserver(entries => {
-      const width = entries[entries.length - 1].contentRect.width
-      const height = entries[entries.length - 1].contentRect.height - tabs.offsetHeight
-      editor?.layout({ width, height })
-    })
-
-    ro.observe(splitpane)
-
-    HoverSynchronizer.onHover(vm.onHover)
-  },
-  unmounted () {
-    const vm = this
-    HoverSynchronizer.removeOnHover(vm.onHover)
-  },
-  methods: {
-    onHover: function (hoverInfos: HoverInfo[]) {
-      const vm = this
-      vm.hoverStore.hoveredLine = -1
-
-      for (const hInfo of hoverInfos) {
-        if (hInfo.kind === 'Line') {
-          vm.hoverStore.hoveredLine = hInfo.lineNr
-          vm.hoverStore.hoveredLineUri = hInfo.localUri
-        }
-      }
-    },
-    highlightHoveredLineAndCurrentLine: function () {
-      const vm = this
-
-      if (!editor) {
-        return
-      }
-
-      if (vm.generalStore.currentLine < 0) {
-        decorations = editor.deltaDecorations(decorations, [])
-        return
-      }
-
-      const noDecoration = { range: new monaco.Range(1, 1, 1, 1), options: {} }
-
-      let hoveredDecoration = noDecoration
-      if (vm.hoveredLine >= 0 && vm.hoveredLineUri === vm.generalStore.fileManager.openFile) {
-        hoveredDecoration = {
-          range: new monaco.Range(vm.hoveredLine, 1, vm.hoveredLine, 1),
-          options: {
-            isWholeLine: true,
-            className: 'editor-highlighted-hovered-line',
-            zIndex: 1
-          }
-        }
-      }
-
-      let currentLineDecoration = noDecoration
-      if (vm.generalStore.currentFileUri === vm.generalStore.fileManager.openFile) {
-        currentLineDecoration = {
-          range: new monaco.Range(vm.generalStore.currentLine, 1, vm.generalStore.currentLine, 1),
-          options: {
-            isWholeLine: true,
-            className: 'editor-highlighted-line',
-            zIndex: 0
-          }
-        }
-      }
-
-      decorations = editor.deltaDecorations(decorations, [hoveredDecoration, currentLineDecoration])
-    },
-    addFile: function () {
-      const vm = this
-
-      const fileName = window.prompt('Please enter the name of the file:', '.java')
-      // should match a valid Java class name and should end with '.java'
-      const validFileNamePattern = '^[a-zA-Z_$][a-zA-Z\\d_$/]*\\.java$'
-      if (fileName) {
-        if (fileName.match(validFileNamePattern)) {
-          vm.generalStore.fileManager.addFile(fileName)
-        } else {
-          this.generalStore.notifications.show({ kind: 'InvalidFileName' })
-        }
-      }
-    },
-    deleteFile: function (file: string) {
-      const vm = this
-      vm.generalStore.fileManager.deleteFile(file)
-    },
-    getViewState: function () {
-      if (editor) {
-        return editor.saveViewState()
-      }
-      return null
+  for (const hInfo of hoverInfos) {
+    if (hInfo.kind === 'Line') {
+      hoverStore.hoveredLine = hInfo.lineNr
+      hoverStore.hoveredLineUri = hInfo.localUri
     }
   }
+}
+
+function getViewState () {
+  if (editor) {
+    return editor.saveViewState()
+  }
+  return null
+}
+
+function deleteFile (file: string) {
+  generalStore.fileManager.deleteFile(file)
+}
+
+function addFile () {
+  const fileName = window.prompt('Please enter the name of the file:', '.java')
+  // should match a valid Java class name and should end with '.java'
+  const validFileNamePattern = '^[a-zA-Z_$][a-zA-Z\\d_$/]*\\.java$'
+  if (fileName) {
+    if (fileName.match(validFileNamePattern)) {
+      generalStore.fileManager.addFile(fileName)
+    } else {
+      generalStore.notifications.show({ kind: 'InvalidFileName' })
+    }
+  }
+}
+
+function highlightHoveredLineAndCurrentLine () {
+  if (!editor) {
+    return
+  }
+
+  if (generalStore.currentLine < 0) {
+    decorations = editor.deltaDecorations(decorations, [])
+    return
+  }
+
+  const noDecoration = { range: new monaco.Range(1, 1, 1, 1), options: {} }
+
+  let hoveredDecoration = noDecoration
+  if (hoveredLine.value >= 0 && hoveredLineUri.value === generalStore.fileManager.openFile) {
+    hoveredDecoration = {
+      range: new monaco.Range(hoveredLine.value, 1, hoveredLine.value, 1),
+      options: {
+        isWholeLine: true,
+        className: 'editor-highlighted-hovered-line',
+        zIndex: 1
+      }
+    }
+  }
+
+  let currentLineDecoration = noDecoration
+  if (generalStore.currentFileUri === generalStore.fileManager.openFile) {
+    currentLineDecoration = {
+      range: new monaco.Range(generalStore.currentLine, 1, generalStore.currentLine, 1),
+      options: {
+        isWholeLine: true,
+        className: 'editor-highlighted-line',
+        zIndex: 0
+      }
+    }
+  }
+
+  decorations = editor.deltaDecorations(decorations, [hoveredDecoration, currentLineDecoration])
+}
+
+onMounted(() => {
+  const editorDiv = document.getElementById('code-editor')!
+
+  const initialUri = generalStore.fileManager.openFileAsUriObject
+  if (initialUri) {
+    editorOptions.model = monaco.editor.getModel(initialUri)
+  }
+
+  editor = monaco.editor.create(
+    editorDiv,
+    editorOptions
+  )
+
+  d3.select('#code-editor')
+    .on('mouseenter', function () {
+      hoverStore.hoversEditor = true
+    })
+    .on('mouseleave', function () {
+      hoverStore.hoversEditor = false
+      hoverStore.changeLine({ lineNr: -1, localUri: null })
+    })
+    .on('mouseover', function (event) {
+      // d3.pointer() retrieves the mouse position relative to the boundaries of the given DOM element
+      // <body> is used on purpose, see explanation for getTargetAtClientPoint(x,y) below
+      const x = d3.pointer(event, d3.select('body').node() as d3.ContainerElement)[0]
+      const y = d3.pointer(event, d3.select('body').node() as d3.ContainerElement)[1]
+
+      // getTargetAtClientPoint(x,y) returns the currently hovered position in the editor based
+      // on given x/y relative to the viewport (that's why <body> is used above for retrieving the mouse position)
+      const target = editor?.getTargetAtClientPoint(x, y)
+
+      // the retrieved lineNumber is then committed to the global store, DeskTest has a watcher on the lineNumber and can update the row highlight accordingly
+      hoverStore.changeLine({
+        lineNr: target && target.position ? target.position.lineNumber : -1,
+        localUri: null
+      })
+    })
+
+  const splitpane = editorDiv.parentElement!.parentElement!
+  const tabs = document.getElementById('tabs')!
+
+  const ro = new ResizeObserver(entries => {
+    const width = entries[entries.length - 1].contentRect.width
+    const height = entries[entries.length - 1].contentRect.height - tabs.offsetHeight
+    editor?.layout({ width, height })
+  })
+
+  ro.observe(splitpane)
+
+  HoverSynchronizer.onHover(onHover)
+})
+
+watch(() => generalStore.currentLine, () => {
+  if (editor) {
+    editor.revealLine(generalStore.currentLine)
+    highlightHoveredLineAndCurrentLine()
+  }
+})
+
+watch(() => generalStore.currentFileUri, () => {
+  if (editor) {
+    generalStore.fileManager.changeToFile(generalStore.currentFileUri, getViewState())
+    editor.revealLine(generalStore.currentLine)
+    highlightHoveredLineAndCurrentLine()
+  }
+})
+watch(hoveredLine, highlightHoveredLineAndCurrentLine)
+watch(hoveredLineUri, highlightHoveredLineAndCurrentLine)
+
+watch(() => generalStore.fileManager.openFile, () => {
+  if(editor) {
+    editor.setModel(getModel(generalStore.fileManager.openFileAsUriObject))
+    const previousViewState = generalStore.fileManager.previousViewState
+    if (previousViewState) {
+      editor.restoreViewState(previousViewState)
+    }
+  }
+  highlightHoveredLineAndCurrentLine()
+})
+onUnmounted(() => {
+  HoverSynchronizer.removeOnHover(onHover)
 })
 </script>
 

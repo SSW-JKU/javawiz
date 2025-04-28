@@ -1,6 +1,6 @@
 # JavaWiz
 
-Visualization tool / Graphical debugger *JavaWiz*.
+Visualization tool / Graphical debugger ***JavaWiz***.
 
 Find us on https://javawiz.net
 

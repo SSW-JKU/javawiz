@@ -1,10 +1,10 @@
 <template>
   <div class="toolbar float-container-center-aligned">
     <TheToolbarButtons
-      :connect="connect"
-      :start-compilation="startCompilation"
-      :trigger-open-file="triggerOpenFile"
-      :trigger-save="triggerSave" />
+      @connect="() => emit('connect')"
+      @start-compilation="() => emit('startCompilation')"
+      @open-file="() => emit('openFile')"
+      @download="() => emit('download')" />
     <VerticalSpacer v-if="generalStore.debugger.compiled" />
     <TheStateArea />
     <VerticalSpacer />
@@ -14,7 +14,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent } from 'vue'
 import TheLayoutSelector from '@/components/TheToolbar/TheLayoutSelector.vue'
 import TheStateArea from '@/components/TheToolbar/TheStateArea.vue'
@@ -22,40 +22,14 @@ import TheToolbarButtons from '@/components/TheToolbar/TheToolbarButtons.vue'
 import TheTitleArea from '@/components/TheToolbar/TheTitleArea.vue'
 import VerticalSpacer from '@/components/TheToolbar/VerticalSpacer.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 
-export default defineComponent({
+defineComponent({
   name: 'TheToolbar',
-  components: { VerticalSpacer, TheTitleArea, TheToolbarButtons, TheStateArea, TheLayoutSelector },
-  props: {
-    hideToggelsInTopToolbar: {
-      type: Boolean,
-      required: true
-    },
-    connect: {
-      type: Function,
-      required: true
-    },
-    triggerOpenFile: {
-      type: Function,
-      required: true
-    },
-    triggerSave: {
-      type: Function,
-      required: true
-    },
-    startCompilation: {
-      type: Function,
-      required: true
-    }
-  },
-  data: function () {
-    return { }
-  },
-  computed: {
-    ...mapStores(useGeneralStore)
-  }
+  components: { VerticalSpacer, TheTitleArea, TheToolbarButtons, TheStateArea, TheLayoutSelector }
 })
+
+const emit = defineEmits<{ connect: [], openFile: [], download: [], startCompilation: []}>()
+const generalStore = useGeneralStore()
 </script>
 
 <style>

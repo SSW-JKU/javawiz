@@ -1,10 +1,10 @@
 <template>
-  <Overlay :show="show" title="About" :close-dialog="hide">
+  <Overlay :show="overlayStore.showAbout" title="About" @close-dialog="hide">
     <p class="heading">
       Version
     </p>
     <div class="divider" />
-    Version {{ version }}, released on {{ releaseDate }}
+    Version {{ package_.version }}, released on {{ releaseDate }}
     <div class="divider" />
 
     <p class="heading">
@@ -60,41 +60,28 @@
   </Overlay>
 </template>
 
-<script>
+<script setup lang="ts">
 import { defineComponent } from 'vue'
-import { version } from '../../../package.json'
+import package_ from '../../../package.json'
 import Overlay from '@/components/Overlays/Overlay.vue'
 import { useOverlayStore } from '@/store/OverlayStore'
-import { mapStores } from 'pinia'
 
 /**
  * Overlay containing descriptions of the JavaWiz team.
  * Hidden/shown via a flag in the store
  */
-export default defineComponent({
+defineComponent({
   name: 'TheHelpOverlay',
-  components: { Overlay },
-  props: {
-    show: {
-      type: Boolean,
-      required: true
-    }
-  },
-  data: function () {
-    return {
-      version,
-      releaseDate: '2025-02-03-16-29'
-    }
-  },
-  computed: {
-    ...mapStores(useOverlayStore)
-  },
-  methods: {
-    hide () {
-      this.overlayStore.showAbout = false
-    }
-  }
+  components: { Overlay }
 })
+
+// releaseDate is modified by build script
+const releaseDate = '2025-04-28-22-00'
+const overlayStore = useOverlayStore()
+
+function hide () {
+  overlayStore.showAbout = false
+}
 </script>
 
 <style scoped>

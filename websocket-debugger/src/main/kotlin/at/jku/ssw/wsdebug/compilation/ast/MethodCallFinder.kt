@@ -26,16 +26,23 @@ class MethodCallFinder(
             scope = meth.selected
         }
         var name = CONSTRUCTOR_NAME
-        if (meth.toString() != "this" && meth.toString() != "super") {
+        val length: Int
+        val methodString = meth.toString()
+        if (methodString != "this" && methodString != "super") {
             val scopeLength = if (scope !== null) scope.toString().dropWhile { c -> c.isWhitespace() }.length + 1 else 0
-            name = meth.toString().substring(scopeLength)
+            name = methodString.substring(scopeLength)
+            length = name.length
+            maxOffset = containingDisplayString.indexOf(name, maxOffset)
+        } else {
+            length = methodString.length
+            maxOffset = containingDisplayString.indexOf(methodString, maxOffset)
         }
-        maxOffset = containingDisplayString.indexOf(name, maxOffset)
 
         val methodCall = MethodCallExpr(
             pos.getBeginLine(methodInvocation),
             Math.max(pos.getEndLine(methodInvocation), pos.getBeginLine(methodInvocation)), // endLine is zero for artificially added super calls
             maxOffset,
+            length,
             name,
         )
         callFixup.tryRegisterCall(methodInvocation, methodCall)
@@ -46,10 +53,13 @@ class MethodCallFinder(
 
     override fun visitNewClass(tree: JCTree.JCNewClass) {
         maxOffset = containingDisplayString.indexOf("new", maxOffset)
+        val endOffset = containingDisplayString.indexOf("(", maxOffset)
+        val boxLength = endOffset - maxOffset
         val constructorCall = MethodCallExpr(
             pos.getBeginLine(tree),
             pos.getEndLine(tree),
             maxOffset,
+            boxLength,
             CONSTRUCTOR_NAME,
         )
         methodCalls.add(

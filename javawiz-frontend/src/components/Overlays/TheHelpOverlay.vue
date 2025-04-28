@@ -1,5 +1,5 @@
 <template>
-  <Overlay :show="show" title="Guide" :close-dialog="hide">
+  <Overlay :show="overlayStore.showHelp" title="Guide" @close-dialog="hide">
     <p class="help-title">
       Controls
     </p>
@@ -51,34 +51,24 @@
   </Overlay>
 </template>
 
-<script>
+<script setup lang="ts">
 import { defineComponent } from 'vue'
 import Overlay from '@/components/Overlays/Overlay.vue'
 import { useOverlayStore } from '@/store/OverlayStore'
-import { mapStores } from 'pinia'
 
 /**
  * Overlay containing descriptions of the JavaWiz functionality.
  * Hidden/shown via a flag in the store
  */
-export default defineComponent({
+defineComponent({
   name: 'TheHelpOverlay',
-  components: { Overlay },
-  props: {
-    show: {
-      type: Boolean,
-      required: true
-    }
-  },
-  computed: {
-    ...mapStores(useOverlayStore)
-  },
-  methods: {
-    hide () {
-      this.overlayStore.showHelp = false
-    }
-  }
+  components: { Overlay }
 })
+const overlayStore = useOverlayStore()
+
+function hide () {
+  overlayStore.showHelp = false
+}
 </script>
 
 <style scoped>

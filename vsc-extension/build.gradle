@@ -1,7 +1,11 @@
 // https://github.com/node-gradle/gradle-node-plugin
 plugins {
     id 'base'
-    id "com.github.node-gradle.node" version "3.4.0"
+    id "com.github.node-gradle.node" version "7.1.0"
+}
+
+node {
+    version = '22.13.1'
 }
 
 task copyBackendToVscExtension(type: Copy) {

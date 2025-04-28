@@ -2,6 +2,7 @@ package at.jku.ssw.wsdebug.debugger.vm.jdi
 
 import at.jku.ssw.wsdebug.debugger.recording.*
 import at.jku.ssw.wsdebug.outerClassMatchesOuterClassPattern
+import com.sun.jdi.AbsentInformationException
 import com.sun.jdi.Method
 import com.sun.jdi.ReferenceType
 import com.sun.jdi.event.LocatableEvent
@@ -117,7 +118,13 @@ private fun buildStaticClassComponent(
 }
 
 private fun buildDisplaySignature(method: Method): String {
-    return "${removePackageOrOuterClass(method.returnTypeName())} ${method.name()} (${method.arguments().map {"${removePackageOrOuterClass(it.typeName())} ${it.name()}"}.joinToString(", ")})"
+    try {
+        val s = "${removePackageOrOuterClass(method.returnTypeName())} ${method.name()} (${method.arguments().map {"${removePackageOrOuterClass(it.typeName())} ${it.name()}"}
+            .joinToString(", ")})"
+        return s
+    } catch (e: AbsentInformationException) {
+        return method.signature()
+    }
 }
 
 private fun removePackageOrOuterClass (typeName: String): String {

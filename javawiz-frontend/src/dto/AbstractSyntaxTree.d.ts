@@ -6,6 +6,7 @@ interface AstItem {
 
 export interface MethodCallExpr extends AstItem {
   deltaBegin: number,
+  length: number,
   name: string,
   candidates: string[] // uuids of possible methods
 }
@@ -20,7 +21,6 @@ export interface Statement extends AstItem {
 
 export interface Block extends AstItem {
   readonly kind: 'Block',
-  // eslint-disable-next-line no-use-before-define
   statements: AstElement[]
 }
 

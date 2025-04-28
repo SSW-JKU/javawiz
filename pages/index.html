@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JavaWiz - Educational Graphical Debugger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <!-- Navigation (Optional) -->
+      <nav class="container mx-auto px-4 py-4">
+        <img src="img/wizard-hat.svg" alt="JavaWiz Logo" class="h-12" />
+      </nav>
+
+      <!-- Main Hero Content -->
+      <div class="container mx-auto px-4 pb-10">
+        <h1 class="text-4xl md:text-5xl font-bold mb-6">JavaWiz: An Educational Graphical Debugger</h1>
+        <div class="grid md:grid-cols-12 gap-12 items-center">
+          <!-- Left Column: Text Content -->
+          <div class="md:col-span-4 text-left">
+            <p class="text-xl mb-8">Visualize and understand your Java code execution like never before</p>
+            <div class="flex flex-wrap gap-4">
+              <a href="#features-section" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"> Explore Features </a>
+              <a href="#video-section" class="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition"> Watch Demo </a>
+              <a href="#research-section" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"> Read the Paper </a>
+            </div>
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-4 mt-12">
+              <div class="text-center">
+                <div class="text-3xl font-bold">6+</div>
+                <div class="text-sm opacity-80">Visualization Views</div>
+              </div>
+              <div class="text-center">
+                <div class="text-3xl font-bold">VS Code</div>
+                <div class="text-sm opacity-80">Integration</div>
+              </div>
+              <div class="text-center">
+                <div class="text-3xl font-bold">Free</div>
+                <div class="text-sm opacity-80">Open Source</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Middle Column: Hero Image -->
+          <div class="md:col-span-5 relative">
+            <img src="img/hero-preview.png" alt="JavaWiz Interface Preview" class="rounded-lg shadow-2xl" />
+            <!-- Decorative Elements -->
+            <div class="absolute -top-4 -right-4 w-20 h-20 bg-blue-400 rounded-full opacity-20"></div>
+            <div class="absolute -bottom-4 -left-4 w-32 h-32 bg-blue-400 rounded-full opacity-20"></div>
+          </div>
+
+          <!-- Right Column: Attribution -->
+          <div class="md:col-span-3 p-4 space-y-4">
+            <a href="https://ssw.jku.at/" class="block text-black text-center m-y-1 rounded-lg p-4 bg-white/90 hover:bg-white/50 transition">
+              <p class="font-semibold">Developed at</p>
+              <br />
+              <img src="https://ssw.jku.at/sswstyle/sswlogo.png" alt="SSW Logo" class="mx-auto w-36" />
+            </a>
+
+            <a href="https://www.graalvm.org/" class="block text-white text-center m-y-1 rounded-lg p-4 bg-white/90 hover:bg-white/50 transition">
+              <img src="https://github.com/oracle/graal/raw/master/.github/assets/logo_320x64.svg" alt="GraalVM Logo" class="mx-auto w-36" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How to Get Section -->
+    <section id="how-to-get-section" class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-8">How to Get</h2>
+        <div class="flex flex-col md:flex-row justify-center gap-6 text-center">
+          <a href="https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz" class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 transition flex flex-col items-center w-72">
+            <!-- https://code.visualstudio.com/assets/images/code-stable.png -->
+            <img src="https://code.visualstudio.com/assets/images/code-stable-white.png" alt="VS Code Logo" class="h-8 mb-2" />
+            <span class="font-bold">Install JavaWiz</span>
+            <span class="">Visual Studio Code Extension</span>
+          </a>
+          <a href="#how-to-get-section" class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 transition flex flex-col items-center w-72">
+            <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_icon.png" alt="IntelliJ Logo" class="h-8 mb-2" />
+            <span class="font-bold italic">Install JavaWiz</span>
+            <span class="italic">Coming Soon: IntelliJ Plugin</span>
+          </a>
+          <a href="https://github.com/SSW-JKU/javawiz" class="bg-gray-800 text-white px-8 py-4 rounded-lg hover:bg-gray-700 transition flex flex-col items-center w-72">
+            <img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Logo" class="h-8 mb-2" />
+            <span class="font-bold">View Source Code</span>
+            GitHub Repository
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- JavaWiz in Action (Video) Section -->
+    <section id="video-section" class="py-16 bg-gray-100">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-8">Demo Video</h2>
+        <div class="max-w-4xl mx-auto text-center">
+          <div class="relative rounded-xl overflow-hidden shadow-lg">
+            <video class="w-full" controls preload="auto">
+              <source src="http://ssw.jku.at/General/Staff/Weninger/Projects/JavaWiz/video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features-section" class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12">Features</h2>
+        <div class="grid md:grid-cols-2 gap-8">
+          <!-- Flowchart View Card -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-4">
+              <img src="img/flowchart-view.png" alt="Flowchart View" class="w-full h-48 object-cover" />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Flowchart View</h3>
+              <p class="text-gray-600">A dynamic flowchart representation of your program's control flow. It highlights the active statement, displays current variable values, and allows collapsing/expanding elements and method calls for better overview.</p>
+            </div>
+          </div>
+
+          <!-- Memory View Card -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-4">
+              <img src="img/memory-view.png" alt="Memory View" class="w-full h-48 object-cover" />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Memory View</h3>
+              <p class="text-gray-600">Visualizes the program's memory state including stack, static variables, and heap. Perfect for understanding reference semantics and object relationships in memory.</p>
+            </div>
+          </div>
+
+          <!-- Tabular View Card -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-4">
+              <img src="img/tabular-view.png" alt="Tabular View" class="w-full h-48 object-cover" />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Tabular View</h3>
+              <p class="text-gray-600">Displays program execution history in a table format, focusing on primitive value manipulations. Shows executed statements, stack variable values, and conditions of control structures.</p>
+            </div>
+          </div>
+
+          <!-- List and Tree View Card -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-4">
+              <img src="img/list-tree-view.png" alt="List and Tree View" class="w-full h-48 object-cover" />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">List and Tree View</h3>
+              <p class="text-gray-600">Specialized views for list and tree data structures with smooth animations for operations such as insertions and deletions. Shows local node variables alongside referenced nodes, making traversal algorithms easier to understand.</p>
+            </div>
+          </div>
+
+          <!-- Array View Card -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-4">
+              <img src="img/array-view.png" alt="Array View" class="w-full h-48 object-cover" />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Array View</h3>
+              <p class="text-gray-600">Visualizes arrays as interactive tables with animated index expressions and assignments. Perfect for understanding array operations and data flow between array elements and variables.</p>
+            </div>
+          </div>
+
+          <!-- Input View Card -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-4">
+              <img src="img/input-view.png" alt="Input View" class="w-full h-48 object-cover" />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Input View</h3>
+              <p class="text-gray-600">Visualizes the input buffer's state using a special <code>In.java</code> class, showing consumed and unconsumed parts. Displays the latest operation's return value and success status, helping beginners understand input operations.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Research Paper Section (NEW) -->
+    <section id="research-section" class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-8">Research Paper</h2>
+        <div class="max-w-6xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8">
+          <div class="flex flex-col md:flex-row gap-6">
+            <!-- Paper Icon/Image -->
+            <div class="flex-shrink-0">
+              <div class="bg-blue-100 p-4 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Paper Information -->
+            <div class="flex-grow">
+              <h3 class="text-2xl font-bold text-blue-800 mb-4">JavaWiz: A Trace-Based Graphical Debugger for Software Development Education</h3>
+
+              <p class="italic text-gray-700 mb-4">Weninger, Markus; Grünbacher, Simon; Prähofer, Herbert</p>
+
+              <p class="text-gray-700 mb-6">Proceedings of the 33rd IEEE/ACM International Conference on Program Comprehension (ICPC 2025), April 27-28, 2025, Ottawa, Canada.</p>
+
+              <div class="mb-6">
+                <h4 class="font-semibold text-gray-800 mb-2">Abstract</h4>
+                <p class="text-gray-600">
+                  Software development education faces challenges in teaching abstract and complex programming concepts. Since problems in comprehension can lead to decreased student engagement, we introduce JavaWiz: an educational graphical debugger that addresses these challenges by combining traditional debugging functionality with intuitive, dynamic visualizations of program state and run-time behavior.
+                  <br /><br />
+                  JavaWiz's key features include real-time visualization of heap, stack, and static fields; automatically generated flow charts; interactive representations of data structures; and unique time-travel debugging capabilities. Its step-by-step visual exploration of code execution, including the ability to step backward, bridges the gap between abstract concepts and concrete program understanding.
+                  <br /><br />
+                  We present the tool's visualization components in detail and discuss its applications in teaching. Lecturers report positive influence on their in-class demonstrations and initial student feedback reinforces the tool's usefulness for program comprehension.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-4">
+                <a href="https://ssw.jku.at/General/Staff/Weninger/Papers/Weninger_ICPC_25_Preprint.pdf" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Preprint
+                </a>
+                <a href="https://conf.researchr.org/home/icpc-2025" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center"> Conference Website </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- How to Cite -->
+          <div class="mt-8 border-t border-gray-200 pt-6">
+            <h4 class="font-semibold text-gray-800 mb-3">How to Cite</h4>
+            <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+              <p>
+                Weninger, M., Grünbacher, S., & Prähofer, H. (2025). JavaWiz: A Trace-Based Graphical Debugger for Software Development Education.
+                <i>In Proceedings of the 33rd IEEE/ACM International Conference on Program Comprehension (ICPC 2025)</i>. Ottawa, Canada.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bg-gray-900 text-gray-300 py-16">
+      <div class="container mx-auto px-4">
+        <!-- Version Info -->
+        <!-- Has to be dynamically fetched from GitHub to be useful -->
+        <!--
+			<div class="mb-12 text-center">
+				<h3 class="text-2xl font-bold text-white mb-2">Version</h3>
+				<p>Version 1.7.2, released on 2025-02-03-16-29</p>
+			</div>
+			--!>
+
+			<!-- About Project -->
+        <div class="mb-12 max-w-3xl mx-auto text-center">
+          <h3 class="text-2xl font-bold text-white mb-4">About the Project</h3>
+          <p class="mb-4">JavaWiz is a visualization tool ("visual debugger") for Java programs targeted at programming novices. Users can step through their programs line by line and follow the execution in different visualization panels.</p>
+          <p class="mb-4">
+            JavaWiz is developed and maintained by the
+            <a href="https://ssw.jku.at/" class="text-blue-400 hover:text-blue-300"> Institute for System Software at the Johannes Kepler University Linz, Austria </a>.
+          </p>
+          <p>
+            If you have bug reports, feature requests or just want to have a talk about JavaWiz, please get in touch with
+            <a href="mailto:markus.weninger@jku.at" class="text-blue-400 hover:text-blue-300"> markus.weninger@jku.at </a>
+          </p>
+        </div>
+
+        <!-- Team Grid -->
+        <div class="grid md:grid-cols-3 gap-8 mb-12">
+          <!-- Project Lead -->
+          <div class="text-center">
+            <h3 class="text-xl font-bold text-white mb-4">Project Lead</h3>
+            <ul>
+              <li>Herbert Prähofer</li>
+              <li>Markus Weninger</li>
+            </ul>
+          </div>
+
+          <!-- Student Contributors -->
+          <div class="text-center">
+            <h3 class="text-xl font-bold text-white mb-4">SSW Team</h3>
+            <ul>
+              <li>Alexander Do</li>
+              <li>Simon Grünbacher</li>
+              <li>Valentin Jochinger</li>
+              <li>Katrin Kern</li>
+              <li>Felix Schenk</li>
+              <li>Melissa Sen</li>
+            </ul>
+          </div>
+
+          <!-- Thesis Contributors -->
+          <div class="text-center">
+            <h3 class="text-xl font-bold text-white mb-4">Student Contributors</h3>
+            <ul>
+              <li>Sonja Cao</li>
+              <li>Florian Gatzweiler</li>
+              <li>Andreas Schlömicher</li>
+            </ul>
+            <p class="text-sm mt-2 text-gray-400">* ordered by last name</p>
+          </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="text-center text-sm text-gray-500 border-t border-gray-800 pt-8">
+          <p>&copy; 2025 JavaWiz - Institute for System Software, Johannes Kepler University Linz</p>
+        </div>
+        <!-- Icon notice -->
+        <div class="text-center text-sm text-gray-500 pt-2">
+          <p>
+            Icons taken from <a href="https://www.flaticon.com/" title="Flaticon">Flaticon</a>, for detailed attribution
+            <a href="https://github.com/SSW-JKU/javawiz/blob/main/javawiz-frontend/src/assets/sources.txt">see here</a>
+          </p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

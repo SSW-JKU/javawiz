@@ -17,6 +17,9 @@ import {
 } from '@/components/TheSequenceDiagram/data-utils'
 import { Selection, BaseType } from 'd3-selection'
 import { easeCubic } from 'd3-ease'
+import { DEFINITIONS } from '@/helpers/SvgDefinitions.vue'
+import { isHighlightedArrow, isHighlightedRefArrow } from '@/components/TheSequenceDiagram/hover'
+import { HoverInfo } from '@/hover/types'
 
 // checks whether a cross of a lifeline is visible or not and returns the according opacity
 export function getCrossOpacity (l: LifeLine, timeIdx: number) {
@@ -45,7 +48,7 @@ export function getLifeLineOpacity (lifeLine: LifeLine) {
 }
 
 export function getCoordinatesForArrow (arrow: Arrow): [number, number] {
-  return [arrow.from!!.index * LAYOUT.xMultiplier + LAYOUT.xOffset, arrow.time!! * LAYOUT.yMultiplier + LAYOUT.yOffset]
+  return [arrow.from!.index * LAYOUT.xMultiplier + LAYOUT.xOffset, arrow.time! * LAYOUT.yMultiplier + LAYOUT.yOffset]
 }
 
 export function getCoordinatesForLifeLine (lifeLine: LifeLine, activeTimeIndices: number[]): [number, number] {
@@ -96,15 +99,15 @@ export function getYForVerticalLine (l: LifeLine, activeTimeIndices: number[]) {
 export function getNewLifeLineEnd (l: LifeLine, timeIdx: number, activeTimeIndices: number[]) {
   if (l.end && !l.programEnd) {
     if (l.currState === 'expanded' && activeTimeIndices.indexOf(l.end) === -1) {
-      const max = Math.max(0, ...activeTimeIndices.filter(i => i < l.end!!))
+      const max = Math.max(0, ...activeTimeIndices.filter(i => i < l.end!))
       return activeTimeIndices.indexOf(max)
     }
-    const end = activeTimeIndices.indexOf(l.end!!)
-    return Math.min(activeTimeIndices.indexOf(timeIdx), (l.currState === 'collapsed' || (l.end && end !== -1)) ? end : activeTimeIndices.indexOf(l.end!! - 1))
+    const end = activeTimeIndices.indexOf(l.end!)
+    return Math.min(activeTimeIndices.indexOf(timeIdx), (l.currState === 'collapsed' || (l.end && end !== -1)) ? end : activeTimeIndices.indexOf(l.end! - 1))
   }
 
   if (l.programEnd && l.end) {
-    if (activeTimeIndices.indexOf(l.end) >= 0) return activeTimeIndices.indexOf(l.end)
+    if (activeTimeIndices.indexOf(l.end) >= 0 && l.end !== timeIdx + 1) return activeTimeIndices.indexOf(l.end)
     if (activeTimeIndices.indexOf(l.end - 1) >= 0) return activeTimeIndices.indexOf(l.end - 1)
   }
   return activeTimeIndices.indexOf(timeIdx)
@@ -115,7 +118,7 @@ export function getYCoordsForCross (l: LifeLine, id: string, timeIdx: number, ac
   let y1: number
   let y2: number
   let result = getSecondYForVerticalLine(l, activeTimeIndices, boxes, timeIdx)
-  if (isMainLifeLine(l) && getFirstBox(boxes, l)!!.currState === 'collapsed') {
+  if (isMainLifeLine(l) && getFirstBox(boxes, l)!.currState === 'collapsed') {
     result = LAYOUT.line.mainY2
   }
   if (id === HTML.ids.firstCrossLine) {
@@ -149,7 +152,7 @@ export function getSecondXBaseForArrow (a: Arrow): number {
     result = LAYOUT.xMultiplier + LAYOUT.width / 2 - LAYOUT.shift
   }
   result += LAYOUT.shift * a.toDepth
-  const indexDelta = a.to!!.index - a.from!!.index
+  const indexDelta = a.to!.index - a.from!.index
   if (a.direction === 'Left') {
     result += (LAYOUT.xMultiplier - LAYOUT.width / 2 + 20) * (indexDelta + 1)
   } else if (a.direction === 'Right') {
@@ -166,7 +169,7 @@ export function getXBaseForArrowText (a: Arrow): number {
   } else if (a.direction === 'Right') {
     result = LAYOUT.width / 2 + 9
   }
-  const deltaLifeLineIdx = a.from!!.index - a.to!!.index
+  const deltaLifeLineIdx = a.from!.index - a.to!.index
   if (a.direction === 'Right' && (deltaLifeLineIdx === 1 || a.fromDepth > 0)) {
     result += LAYOUT.shift * a.fromDepth
   } else if (a.direction === 'Left' && deltaLifeLineIdx === 1) {
@@ -198,23 +201,23 @@ export function getYForArrow (y: number, activeTimeIndices: number[], arrow: Arr
     for (let i = 0; i < hiddenLifeLines.length; i++) {
       const hiddenLifeLine = hiddenLifeLines[i]
       for (let j = 0; j < arrows.length; j++) {
-        const fromBox = getBoxByIndex(arrows[j].fromBoxIndex!!, boxes)!!
+        const fromBox = getBoxByIndex(arrows[j].fromBoxIndex!, boxes)!
         if (arrows[j].kind === 'Constructor' && arrows[j].to === hiddenLifeLine && fromBox.returnArrow === arrow) {
-          let time = arrow.time!!
+          let time = arrow.time!
           if (hiddenLifeLine.end && arrow.time === hiddenLifeLine.end - 1) {
             time = hiddenLifeLine.end
           }
-          return y - (LAYOUT.yMultiplier * (arrow.time!! - activeTimeIndices.indexOf(time)))
+          return y - (LAYOUT.yMultiplier * (arrow.time! - activeTimeIndices.indexOf(time)))
         }
       }
     }
   }
-  if (activeTimeIndices.includes(arrow.time!!)) {
-    return y - (LAYOUT.yMultiplier * (arrow.time!! - activeTimeIndices.indexOf(arrow.time!!)))
+  if (activeTimeIndices.includes(arrow.time!)) {
+    return y - (LAYOUT.yMultiplier * (arrow.time! - activeTimeIndices.indexOf(arrow.time!)))
   }
   for (let i = 1; i < activeTimeIndices.length; i++) {
-    if (activeTimeIndices[i] > arrow.time!!) {
-      return y - (LAYOUT.yMultiplier * (arrow.time!! - activeTimeIndices.indexOf(activeTimeIndices[i])))
+    if (activeTimeIndices[i] > arrow.time!) {
+      return y - (LAYOUT.yMultiplier * (arrow.time! - activeTimeIndices.indexOf(activeTimeIndices[i])))
     }
   }
   return y
@@ -239,7 +242,7 @@ export function getNewBoxHeight (
   let boxDelta = getNewBoxEnd(box, timeIdx, activeTimeIndices, hiddenLifeLines) - activeTimeIndices.indexOf(box.start)
   for (let i = 0; i < hiddenLifeLines.length; i++) {
     const hiddenLifeLine = hiddenLifeLines[i]
-    if (hiddenLifeLine.end && box.end && box.end >= hiddenLifeLine.start && activeTimeIndices.includes(hiddenLifeLine.end) && activeTimeIndices.at(-2)!! < box.end) {
+    if (hiddenLifeLine.end && box.end && box.end >= hiddenLifeLine.start && activeTimeIndices.includes(hiddenLifeLine.end) && activeTimeIndices.at(-2)! < box.end) {
       for (let j = 0; j < arrows.length; j++) {
         const arrow = arrows[j]
         if (arrow.kind === 'Constructor' && arrow.to === hiddenLifeLine && arrow.fromBoxIndex === box.index) {
@@ -265,7 +268,7 @@ export function getNewBoxEnd (box: Box, timeIdx: number, activeTimeIndices: numb
   if (!box.end) {
     const lifeLine = box.lifeLine
     if (isMainLifeLine(lifeLine) && lifeLine.programEnd && hiddenLifeLines.length > 0) {
-      return activeTimeIndices.indexOf(lifeLine.end!!)
+      return activeTimeIndices.indexOf(lifeLine.end! - 1)
     }
     return activeTimeIndices.indexOf(timeIdx)
   }
@@ -372,7 +375,7 @@ function arrowOffsetX (lifeLine: LifeLine, lifeLines: LifeLine[]) {
 export function getXForArrowText (arrow: Arrow, lifeLines: LifeLine[]) {
   let x = getXBaseForArrowText(arrow)
   if (arrow.direction === 'Left' && !arrow.isHidden) {
-    x -= arrowOffsetX(arrow.from!!, lifeLines)
+    x -= arrowOffsetX(arrow.from!, lifeLines)
   }
   return x
 }
@@ -380,7 +383,7 @@ export function getXForArrowText (arrow: Arrow, lifeLines: LifeLine[]) {
 // returns the x-coordinate of an arrow depending on possibly hidden lifelines
 export function getXForArrow (x: number, arrow: Arrow, lifeLines: LifeLine[]) {
   if (!arrow.isHidden) {
-    x -= arrowOffsetX(arrow.from!!, lifeLines)
+    x -= arrowOffsetX(arrow.from!, lifeLines)
   }
   return x
 }
@@ -388,7 +391,7 @@ export function getXForArrow (x: number, arrow: Arrow, lifeLines: LifeLine[]) {
 // returns the x-coordinate of an arrow depending on possibly hidden lifelines
 export function getX2ForArrow (x: number, arrow: Arrow, lifeLines: LifeLine[]) {
   if (!arrow.isHidden) {
-    x -= arrowOffsetX(arrow.to!!, lifeLines)
+    x -= arrowOffsetX(arrow.to!, lifeLines)
   }
   return x
 }
@@ -566,11 +569,13 @@ export function updateArrows (
   u: Selection<BaseType, Arrow, BaseType, unknown>,
   activeTimeIndices: number[],
   hiddenLifeLines: LifeLine[],
-  elems: Elements
+  elems: Elements,
+  hoveredInfos: HoverInfo[],
+  timeIdx: number
 ) {
-  updateCallArrows(u, activeTimeIndices, hiddenLifeLines, elems)
-  updateSelfCallArrows(u, activeTimeIndices, hiddenLifeLines, elems)
-  updateReturnArrows(u, activeTimeIndices, hiddenLifeLines, elems)
+  updateCallArrows(u, activeTimeIndices, hiddenLifeLines, elems, hoveredInfos, timeIdx)
+  updateSelfCallArrows(u, activeTimeIndices, hiddenLifeLines, elems, hoveredInfos, timeIdx)
+  updateReturnArrows(u, activeTimeIndices, hiddenLifeLines, elems, hoveredInfos, timeIdx)
 }
 
 // updates the call arrows
@@ -578,10 +583,12 @@ function updateCallArrows (
   u: Selection<BaseType, Arrow, BaseType, unknown>,
   activeTimeIndices: number[],
   hiddenLifeLines: LifeLine[],
-  { arrows, boxes, lifeLines }: Elements
+  { arrows, boxes, lifeLines }: Elements,
+  hoveredInfos: HoverInfo[],
+  timeIdx: number
 ) {
   u.select(`#${HTML.ids.callArrowLine}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x1', d => getXForArrow(getFirstXForArrow(d), d, lifeLines))
     .attr('x2', d => getX2ForArrow(getSecondXBaseForArrow(d), d, lifeLines))
     .attr('y1', d => getYForArrow(LAYOUT.arrow.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
@@ -590,8 +597,9 @@ function updateCallArrows (
     .duration(DURATION)
     .ease(easeCubic)
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.callArrowLine}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -600,8 +608,9 @@ function updateCallArrows (
     .attr('y1', d => getYForArrow(LAYOUT.arrow.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .attr('y2', d => getYForArrow(LAYOUT.arrow.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.callTextLabel}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x', d => getXForArrowText(d, lifeLines))
     .attr('y', d => getYForArrow(LAYOUT.arrowText.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) - 1)
     .transition()
@@ -612,7 +621,7 @@ function updateCallArrows (
       return '1'
     })
   u.select(`#${HTML.ids.callTextLabel}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -620,7 +629,7 @@ function updateCallArrows (
     .attr('y', d => getYForArrow(LAYOUT.arrowText.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) - 1)
     .style('opacity', '1')
   u.select(`#${HTML.ids.constructorLine}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x1', d => getXForArrow(getFirstXForArrow(d), d, lifeLines))
     .attr('x2', d => getX2ForArrow(getSecondXBaseForArrow(d), d, lifeLines) - LAYOUT.constructorOffset)
     .attr('y1', d => getYForArrow(LAYOUT.arrow.constructor, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.constructorOffset)
@@ -629,8 +638,9 @@ function updateCallArrows (
     .duration(DURATION)
     .ease(easeCubic)
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.constructorLine}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -639,8 +649,9 @@ function updateCallArrows (
     .attr('y1', d => getYForArrow(LAYOUT.arrow.constructor, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.constructorOffset)
     .attr('y2', d => getYForArrow(LAYOUT.arrow.constructor, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.constructorOffset)
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.constructorLabel}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x', d => getXForArrow(getXBaseForArrowText(d), d, lifeLines))
     .attr('y', d => getYForArrow(LAYOUT.arrowText.constructor, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.text.constructor)
     .transition()
@@ -651,7 +662,7 @@ function updateCallArrows (
       return '1'
     })
   u.select(`#${HTML.ids.constructorLabel}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -665,10 +676,12 @@ function updateSelfCallArrows (
   u: Selection<BaseType, Arrow, BaseType, unknown>,
   activeTimeIndices: number[],
   hiddenLifeLines: LifeLine[],
-  { arrows, boxes, lifeLines }: Elements
+  { arrows, boxes, lifeLines }: Elements,
+  hoveredInfos: HoverInfo[],
+  timeIdx: number
 ) {
   u.select(`#${HTML.ids.selfCallArrowLine1}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -678,7 +691,7 @@ function updateSelfCallArrows (
     .attr('y2', d => getYForArrow(LAYOUT.arrow.selfCall.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .style('opacity', '1')
   u.select(`#${HTML.ids.selfCallArrowLine1}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x1', d => getXForArrow(getCoordsForSelfCallArrow(d).line1.x1, d, lifeLines))
     .attr('x2', d => getXForArrow(getCoordsForSelfCallArrow(d).line1.x2, d, lifeLines))
     .attr('y1', d => getYForArrow(LAYOUT.arrow.selfCall.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
@@ -698,7 +711,7 @@ function updateSelfCallArrows (
     .attr('y2', d => getYForArrow(LAYOUT.arrow.secYOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .style('opacity', '1')
   u.select(`#${HTML.ids.selfCallArrowLine2}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x1', d => getXForArrow(getCoordsForSelfCallArrow(d).line2.x1, d, lifeLines))
     .attr('x2', d => getXForArrow(getCoordsForSelfCallArrow(d).line2.x2, d, lifeLines))
     .attr('y1', d => getYForArrow(LAYOUT.arrow.selfCall.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
@@ -717,8 +730,9 @@ function updateSelfCallArrows (
     .attr('y1', d => getYForArrow(LAYOUT.arrow.secYOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .attr('y2', d => getYForArrow(LAYOUT.arrow.secYOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.selfCallArrowLine3}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x1', d => getXForArrow(getCoordsForSelfCallArrow(d).line3.x1, d, lifeLines))
     .attr('x2', d => getXForArrow(getCoordsForSelfCallArrow(d).line3.x2, d, lifeLines))
     .attr('y1', d => getYForArrow(LAYOUT.arrow.secYOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
@@ -727,8 +741,9 @@ function updateSelfCallArrows (
     .duration(DURATION)
     .ease(easeCubic)
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.selfCallArrowText}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -736,7 +751,7 @@ function updateSelfCallArrows (
     .attr('y', d => getYForArrow(LAYOUT.arrowText.selfCall.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) - LAYOUT.text.selfCall)
     .style('opacity', '1')
   u.select(`#${HTML.ids.selfCallArrowText}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x', d => getXForArrow(getTextCoordinate(d), d, lifeLines))
     .attr('y', d => getYForArrow(LAYOUT.arrowText.selfCall.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) - LAYOUT.text.selfCall)
     .transition()
@@ -753,10 +768,12 @@ function updateReturnArrows (
   u: Selection<BaseType, Arrow, BaseType, unknown>,
   activeTimeIndices: number[],
   hiddenLifeLines: LifeLine[],
-  { arrows, boxes, lifeLines }: Elements
+  { arrows, boxes, lifeLines }: Elements,
+  hoveredInfos: HoverInfo[],
+  timeIdx: number
 ) {
   u.select(`#${HTML.ids.returnArrowLine}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -764,8 +781,9 @@ function updateReturnArrows (
     .attr('y1', d => getYForArrow(LAYOUT.arrow.return.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.returnOffset)
     .attr('y2', d => getYForArrow(LAYOUT.arrow.return.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.returnOffset)
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.returnArrowLine}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x1', d => getXForArrow(getFirstXForArrow(d), d, lifeLines))
     .attr('y1', d => getYForArrow(LAYOUT.arrow.return.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.returnOffset)
     .attr('y2', d => getYForArrow(LAYOUT.arrow.return.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes) + LAYOUT.returnOffset)
@@ -773,8 +791,9 @@ function updateReturnArrows (
     .duration(DURATION)
     .ease(easeCubic)
     .style('opacity', '1')
+    .attr('marker-end', d => chooseArrowType(d, hoveredInfos, { arrows, boxes, lifeLines }, timeIdx))
   u.select(`#${HTML.ids.returnTextLabel}`)
-    .filter(d => !d.wasHidden!! && !d.isHidden)
+    .filter(d => !d.wasHidden! && !d.isHidden)
     .transition()
     .duration(DURATION)
     .ease(easeCubic)
@@ -782,7 +801,7 @@ function updateReturnArrows (
     .attr('y', d => getYForArrow(LAYOUT.arrowText.return.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .style('opacity', '1')
   u.select(`#${HTML.ids.returnTextLabel}`)
-    .filter(d => d.wasHidden!! && !d.isHidden)
+    .filter(d => d.wasHidden! && !d.isHidden)
     .attr('x', d => getXForArrowText(d, lifeLines))
     .attr('y', d => getYForArrow(LAYOUT.arrowText.return.yOffset, activeTimeIndices, d, hiddenLifeLines, arrows, boxes))
     .transition()
@@ -811,7 +830,7 @@ export function updateLifeLines (
     .attr('x2', d => getXForVerticalLine(d, lifeLines))
     .attr('y1', d => getYForVerticalLine(d, activeTimeIndices))
     .attr('y2', d => {
-      if (isMainLifeLine(d) && getFirstBox(boxes, d)!!.currState === 'collapsed') {
+      if (isMainLifeLine(d) && getFirstBox(boxes, d)!.currState === 'collapsed') {
         return LAYOUT.line.mainY2
       }
       return getSecondYForVerticalLine(d, activeTimeIndices, boxes, timeIdx)
@@ -823,7 +842,7 @@ export function updateLifeLines (
     .attr('x2', d => getXForVerticalLine(d, lifeLines))
     .attr('y1', d => getYForVerticalLine(d, activeTimeIndices))
     .attr('y2', d => {
-      if (isMainLifeLine(d) && getFirstBox(boxes, d)!!.currState === 'collapsed') {
+      if (isMainLifeLine(d) && getFirstBox(boxes, d)!.currState === 'collapsed') {
         return LAYOUT.line.mainY2
       }
       return getSecondYForVerticalLine(d, activeTimeIndices, boxes, timeIdx)
@@ -922,4 +941,13 @@ export function updateCrosses (
       d.wasDrawn = d.isDrawn
       return getCrossOpacity(d, timeIdx)
     })
+}
+
+export function chooseArrowType (arrow: Arrow, hoveredInfos: HoverInfo[], elems: Elements, timeIdx: number) {
+  if (isHighlightedArrow(hoveredInfos, arrow, elems.boxes)) {
+    return `${DEFINITIONS.urls.thinHighlightedArrow}`
+  } else if (isHighlightedRefArrow(hoveredInfos, arrow, elems.arrows, elems.boxes, timeIdx)) {
+    return `${DEFINITIONS.urls.thinHighlightedRefArrow}`
+  }
+  return `${DEFINITIONS.urls.thinArrow}`
 }

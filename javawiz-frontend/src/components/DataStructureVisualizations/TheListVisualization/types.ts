@@ -12,7 +12,6 @@ export interface ListNode {
   index: number,
   lists: HeapTreeNode[],
   level: number,
-  // eslint-disable-next-line no-use-before-define
   referenceValue?: ReferenceNode,
   height: number,
   valFieldIndex: number,

@@ -45,10 +45,10 @@
               <IconWithTooltip
                 :tooltip="{ arrow: 'right', placement: 'below' }"
                 width="280px"
-                :icon="require('../../../assets/icons/controls/help.svg')"
-                :action="() => {}"
+                :icon="help"
                 style="white-space: pre-line; transform: translateX(-3px);"
-                class="small-text">
+                class="small-text"
+                @action="() => {}">
                 <table class="index-examples-table">
                   <thead>
                     <tr>
@@ -138,15 +138,12 @@
 
 <script lang="ts">
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
-import { defineComponent } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { BaseType, select, Selection } from 'd3-selection'
 import { zoom, zoomIdentity } from 'd3-zoom'
 import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
-// ValidProcessedIndex has to be imported, but the linter does not know about it (it is used in the template)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { ProcessedIndex, SettingsIndex, ValidProcessedIndex } from './types'
-import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
+import { SettingsIndex } from './types'
 import { getCoordinatesOfChange } from './utils'
 import { processIndex } from './index-processing'
 import { animateValueCopies, drawArrays, drawIndexes, drawPointers, drawTempVariables } from './drawing'
@@ -163,172 +160,131 @@ import { zoomToChange } from '../zooming'
 import { getHeapTree, removeChildren } from '../utils'
 import { ARRAY } from '@/store/PaneVisibilityStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 import { DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/helpers/constants'
+import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
+import help from '../../../assets/icons/controls/help.svg'
 
 let transform: any = zoomIdentity
 
-export let levelCoordinates: number[] = [] // y offsets of levels
+const levelCoordinates = ref<number[]>([]) // y offsets of levels
+export {
+  transform,
+  levelCoordinates
+}
 
 export default defineComponent({
   name: 'TheArrayVisualization',
-  components: { SvgDefinitions, NavigationBarWithSettings, IconWithTooltip },
-  data: function () {
-    return {
-      indexes: localStorage.getItem(LOCAL_STORAGE.indexes)
-        ? JSON.parse(localStorage.getItem(LOCAL_STORAGE.indexes)!) as SettingsIndex[]
-        : [] as SettingsIndex[],
-      showArgs: localStorage.getItem(LOCAL_STORAGE.showArgs) ? localStorage.getItem(LOCAL_STORAGE.showArgs) === 'true' : true,
-      onlyCurrentStackFrame: localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame)
-        ? localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame) === 'true'
-        : false,
-      highlightIndexes: localStorage.getItem(LOCAL_STORAGE.highlightIndexes) ? localStorage.getItem(LOCAL_STORAGE.highlightIndexes) === 'true' : false,
-      resizeObserver: null as unknown as ResizeObserver,
-      zoomCall: zoom().on('zoom', (event) => {
-        transform = event.transform
-        select(`#${HTML.ids.arrayViz}`).attr('transform', transform)
-      }),
-      svg: select(`#${HTML.ids.arraySvg}`),
-      ARRAY
-    }
-  },
-  computed: {
-    ...mapStores(useGeneralStore),
-    traceState () { return this.generalStore.currentTraceData!.processedTraceState },
-    firstState () { return this.generalStore.currentTraceData!.firstTraceState },
-    stateIndex () { return this.generalStore.currentTraceData!.stateIndex },
-    HTML () {
-      return HTML
-    },
-    cssVariables () {
-      return {
-        '--cell-font-size': CSS.cell.fontSize + 'px',
-        '--cell-name-font-family': CSS.cell.name.fontFamily,
-        '--cell-name-font-weight': CSS.cell.name.fontWeight,
-        '--cell-value-font-family': CSS.cell.value.fontFamily,
-        '--cell-value-font-weight': CSS.cell.value.fontWeight,
-        '--pointer-font-size': CSS.pointer.fontSize + 'px',
-        '--pointer-parent-font-size': CSS.pointer.parent.fontSize + 'px',
-        '--pointer-parent-font-style': CSS.pointer.parent.fontStyle,
-        '--pointer-parent-font-family': CSS.pointer.parent.fontFamily,
-        '--pointer-name-font-family': CSS.pointer.name.fontFamily
-      }
-    },
-    minCellWidth () {
-      return SVG.cellHeight * LAYOUT.arrays.cells.widthMultiplier.min
-    },
-    svgWidth () {
-      return this.minCellWidth * (LAYOUT.defaultNumberOrCells + 1) + LAYOUT.xOrigin
-    },
-    processedIndexes (): ProcessedIndex[] {
-      return this.indexes.map(index => processIndex(index))
-    }
-  },
-  watch: {
-    stateIndex: function () {
-      const vm = this
-      vm.redraw()
-    },
-    showArgs: function () {
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.showArgs, vm.showArgs ? 'true' : 'false')
-      vm.redraw()
-    },
-    onlyCurrentStackFrame: function () {
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.onlyCurrentStackFrame, vm.onlyCurrentStackFrame ? 'true' : 'false')
-      vm.redraw()
-    },
-    highlightIndexes: function () {
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.highlightIndexes, vm.highlightIndexes ? 'true' : 'false')
-    }
-  },
-  mounted () {
-    const vm = this
+  components: { NavigationBarWithSettings, IconWithTooltip, SvgDefinitions },
+  setup () {
+    const indexes = ref(localStorage.getItem(LOCAL_STORAGE.indexes) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE.indexes)!) as SettingsIndex[] : [] as SettingsIndex[])
+    const showArgs = ref(localStorage.getItem(LOCAL_STORAGE.showArgs) ? localStorage.getItem(LOCAL_STORAGE.showArgs) === 'true' : true)
+    const onlyCurrentStackFrame = ref(localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame)
+      ? localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame) === 'true'
+      : false)
+    const highlightIndexes = ref(localStorage.getItem(LOCAL_STORAGE.highlightIndexes) ? localStorage.getItem(LOCAL_STORAGE.highlightIndexes) === 'true' : false)
+    const resizeObserver = ref<ResizeObserver>(null as any)
+    const zoomCall = ref(zoom().on('zoom', (event) => {
+      transform = event.transform
+      select(`#${HTML.ids.arrayViz}`).attr('transform', transform)
+    }))
+    const svg = ref(select(`#${HTML.ids.arraySvg}`))
 
-    // selection was empty when component was created, since template was not inserted yet
-    vm.svg = select(`#${HTML.ids.arraySvg}`)
+    const generalStore = useGeneralStore()
+    const traceState = computed(() => generalStore.currentTraceData!.processedTraceState)
+    const firstState = computed(() => generalStore.currentTraceData!.firstTraceState)
+    const stateIndex = computed(() => generalStore.currentTraceData!.stateIndex)
+    const cssVariables = {
+      '--cell-font-size': CSS.cell.fontSize + 'px',
+      '--cell-name-font-family': CSS.cell.name.fontFamily,
+      '--cell-name-font-weight': CSS.cell.name.fontWeight,
+      '--cell-value-font-family': CSS.cell.value.fontFamily,
+      '--cell-value-font-weight': CSS.cell.value.fontWeight,
+      '--pointer-font-size': CSS.pointer.fontSize + 'px',
+      '--pointer-parent-font-size': CSS.pointer.parent.fontSize + 'px',
+      '--pointer-parent-font-style': CSS.pointer.parent.fontStyle,
+      '--pointer-parent-font-family': CSS.pointer.parent.fontFamily,
+      '--pointer-name-font-family': CSS.pointer.name.fontFamily
+    }
+    const minCellWidth = SVG.cellHeight * LAYOUT.arrays.cells.widthMultiplier.min
+    const svgWidth = minCellWidth * (LAYOUT.defaultNumberOrCells + 1) + LAYOUT.xOrigin
+    const processedIndexes = computed(() => indexes.value.map(index => processIndex(index)))
 
-    const div = document.getElementById(HTML.ids.parentDiv)
-    vm.resizeObserver = new ResizeObserver(() => {
-      if (div) {
-        const height = div.offsetHeight / div.offsetWidth * vm.svgWidth
-        if (height) {
-          vm.svg.attr('viewBox', `0 0 ${vm.svgWidth} ${height}`)
-        }
-      }
-    })
-    vm.resizeObserver.observe(div as any)
-    vm.deleteViz()
-    vm.redraw()
-  },
-  methods: {
-    inputTitle: function (i: number) {
-      const index = this.processedIndexes[i]
+    function inputTitle (i: number) {
+      const index = processedIndexes.value[i]
       if (!index.isValid) return 'invalid'
       return `array name: ${index.arrayName}` +
         `\nvariable name(s): ${index.variableNames}`
-    },
-    deleteViz: function () {
+    }
+
+    function deleteViz () {
       removeChildren(`#${HTML.ids.arrays}`)
       removeChildren(`#${HTML.ids.tempVariables}`)
       removeChildren(`#${HTML.ids.arrayIndexes}`)
       removeChildren(`#${HTML.ids.arrayPointers}`)
       removeChildren(`#${HTML.ids.arrayWriteAccesses.moving}`)
       removeChildren(`#${HTML.ids.arrayWriteAccesses.static}`)
-    },
-    addIndex: function () {
-      const vm = this
-      vm.indexes.push({ displayString: 'arr[i]', isDetected: false })
-      vm.saveIndexes()
-    },
-    saveIndexes: function () {
-      console.log('indexes saved')
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.indexes, JSON.stringify(vm.indexes.filter(index => !index.isDetected)))
-      vm.redraw()
-    },
-    redraw: function () {
-      const vm = this
+    }
 
+    function addIndex () {
+      indexes.value.push({ displayString: 'arr[i]', isDetected: false })
+      saveIndexes()
+    }
+    function saveIndexes () {
+      localStorage.setItem(LOCAL_STORAGE.indexes, JSON.stringify(indexes.value.filter(index => !index.isDetected)))
+      redraw()
+    }
+
+    function getTransition () {
+      return svg.value.transition().duration(TRANSFORMATION.duration)
+        .ease(TRANSFORMATION.ease) as any
+    }
+    function zoomIn () {
+      zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
+    }
+    function zoomOut () {
+      zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
+    }
+    function zoomReset () {
+      zoomCall.value.transform(getTransition(), zoomIdentity)
+    }
+
+    function redraw () {
       // process heap
-      const { root: heapTree } = getHeapTree(vm.stateIndex, vm.traceState, vm.firstState, vm.onlyCurrentStackFrame)
+      const { root: heapTree } = getHeapTree(stateIndex.value, traceState.value, firstState.value, onlyCurrentStackFrame.value)
 
       // reset detected indexes
-      const hiddenIndexes = vm.indexes.filter(index => index.isHidden)
-      vm.indexes = vm.indexes.filter(index => !index.isDetected)
+      const hiddenIndexes = indexes.value.filter(index => index.isHidden)
+      indexes.value = indexes.value.filter(index => !index.isDetected)
 
       // create structures
-      const tempVariables = createTempVariablesStructure(heapTree, vm)
-      const { arrays, arrayPointers } = createArrayAndPointerStructure(heapTree, vm)
-      levelCoordinates = createLevelCoordinates(arrayPointers, arrays)
+      const tempVariables = createTempVariablesStructure(heapTree, { traceState: traceState.value, minCellWidth, onlyCurrentStackFrame: onlyCurrentStackFrame.value })
+      const { arrays, arrayPointers } = createArrayAndPointerStructure(heapTree, { showArgs: showArgs.value, minCellWidth })
+      levelCoordinates.value = createLevelCoordinates(arrayPointers, arrays)
       // find writes
       let { ghostIndexes, copyAnimations, missingSources, changeCoordinates } = createGhostIdxAndTempVarsStruct(
         arrays,
         tempVariables,
-        vm.svg.select(`#${HTML.ids.arrayWriteAccesses.writeAccesses}`),
-        vm
+        svg.value.select(`#${HTML.ids.arrayWriteAccesses.writeAccesses}`),
+        {}
       )
       // detect indexes and add to settings
-      detectArrayAccesses(arrays, hiddenIndexes, vm)
+      detectArrayAccesses(arrays, hiddenIndexes, { traceState: traceState.value, processedIndexes: processedIndexes.value, indexes: indexes.value })
 
-      const indexes = createIndexesStructure(arrays, heapTree, ghostIndexes, vm)
+      const indices = createIndexesStructure(arrays, heapTree, ghostIndexes, { processedIndexes: processedIndexes.value })
 
       // visualize arrays
-      const svg = vm.svg as Selection<BaseType, unknown, HTMLElement, any>
-      drawTempVariables(svg, tempVariables, missingSources, copyAnimations)
-      drawArrays(svg, arrays)
-      drawPointers(svg, arrayPointers)
-      drawIndexes(svg, indexes)
+      drawTempVariables(svg.value, tempVariables, missingSources, copyAnimations)
+      drawArrays(svg.value, arrays)
+      drawPointers(svg.value, arrayPointers)
+      drawIndexes(svg.value, indices)
       animateValueCopies(copyAnimations)
 
       // add ability to zoom and pan
-      vm.svg.call(vm.zoomCall as any)
+      svg.value.call(zoomCall.value as any)
 
       // search changes
       if (!changeCoordinates) {
-        changeCoordinates = getCoordinatesOfChange(arrayPointers, indexes)
+        changeCoordinates = getCoordinatesOfChange(arrayPointers, indices)
       }
 
       // zoom to changes
@@ -337,28 +293,61 @@ export default defineComponent({
           changeCoordinates[0],
           changeCoordinates[1],
           transform,
-          vm.zoomCall,
+          zoomCall.value,
           HTML.ids.parentDiv,
-          vm.svgWidth,
-          vm.svg as Selection<BaseType, unknown, HTMLElement, any>)
+          svgWidth,
+          svg.value as Selection<BaseType, unknown, HTMLElement, any>)
       }
-    },
-    getTransition: function () {
-      const vm = this
-      return vm.svg.transition().duration(TRANSFORMATION.duration)
-        .ease(TRANSFORMATION.ease) as any
-    },
-    zoomIn: function () {
-      const vm = this
-      vm.zoomCall.scaleBy(vm.getTransition(), DEFAULT_ZOOM_FACTOR)
-    },
-    zoomOut: function () {
-      const vm = this
-      vm.zoomCall.scaleBy(vm.getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
-    },
-    zoomReset: function () {
-      const vm = this
-      vm.zoomCall.transform(vm.getTransition(), zoomIdentity)
+    }
+
+    watch(stateIndex, () => redraw())
+    watch(showArgs, () => {
+      localStorage.setItem(LOCAL_STORAGE.showArgs, showArgs.value ? 'true' : 'false')
+      redraw()
+    })
+    watch(onlyCurrentStackFrame, () => {
+      localStorage.setItem(LOCAL_STORAGE.onlyCurrentStackFrame, onlyCurrentStackFrame.value ? 'true' : 'false')
+      redraw()
+    })
+    watch(highlightIndexes, () => {
+      localStorage.setItem(LOCAL_STORAGE.highlightIndexes, highlightIndexes.value ? 'true' : 'false')
+    })
+
+    onMounted(() => {
+      // selection was empty when component was created, since template was not inserted yet
+      svg.value = select(`#${HTML.ids.arraySvg}`)
+
+      const div = document.getElementById(HTML.ids.parentDiv)
+      resizeObserver.value = new ResizeObserver(() => {
+        if (div) {
+          const height = div.offsetHeight / div.offsetWidth * svgWidth
+          if (height) {
+            svg.value.attr('viewBox', `0 0 ${svgWidth} ${height}`)
+          }
+        }
+      })
+      resizeObserver.value.observe(div!)
+      deleteViz()
+      redraw()
+    })
+
+    return {
+      ARRAY,
+      inputTitle,
+      addIndex,
+      zoomIn,
+      zoomOut,
+      zoomReset,
+      cssVariables,
+      HTML,
+      highlightIndexes,
+      indexes,
+      processedIndexes,
+      saveIndexes,
+      redraw,
+      showArgs,
+      onlyCurrentStackFrame,
+      help
     }
   }
 })

@@ -2,15 +2,13 @@
   <div class="app">
     <TheFileHandler ref="fileHandler" />
     <TheNotifications />
-    <TheHelpOverlay :show="overlayStore.showHelp" />
-    <TheAboutOverlay :show="overlayStore.showAbout" />
+    <TheHelpOverlay />
+    <TheAboutOverlay />
     <TheToolbar
-      :connect="connect"
-      :hide-toggels-in-top-toolbar="hideToggelsInTopToolbar"
-      :start-compilation="startCompilation"
-      :trigger-open-file="triggerOpenFile"
-      :trigger-save="triggerSave"
-      :vsc-extension-mode="generalStore.vscExtensionMode" />
+      @connect="connect"
+      @start-compilation="startCompilation"
+      @open-file="openFile"
+      @download="download" />
     <!--    main part of the front end -->
     <div class="main-row">
       <splitpanes :push-other-panes="false">
@@ -34,19 +32,18 @@
   </div>
 </template>
 
-<script lang='ts'>
+<script setup lang='ts'>
 import TheCodeEditor from '@/components/TheCodeEditor.vue'
 import TheConsole from '@/components/TheConsole.vue'
 import TheHelpOverlay from '@/components/Overlays/TheHelpOverlay.vue'
 import TheAboutOverlay from '@/components/Overlays/TheAboutOverlay.vue'
 import TheNotifications from '@/components/TheNotifications/TheNotifications.vue'
 import TheFileHandler from '@/components/TheFileHandler.vue'
-import Pane from 'splitpanes-raw/pane.vue'
-import Splitpanes from 'splitpanes-raw/splitpanes.vue'
+import { Pane, Splitpanes } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import * as d3 from 'd3'
 import { ExtensionCommunication } from '@/helpers/ExtensionCommunication'
-import { defineComponent } from 'vue'
+import { defineComponent, onMounted, ref } from 'vue'
 import shared from '@Shared/Shared'
 import {
   DEFAULT_FILE_NAME,
@@ -54,17 +51,11 @@ import {
 } from '@/helpers/constants'
 import TheToolbar from '@/components/TheToolbar/TheToolbar.vue'
 import FourViz from '@/components/VizLayouts/FourViz.vue'
-import { mapStores } from 'pinia'
 import { usePaneVisibilityStore } from '@/store/PaneVisibilityStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { useOverlayStore } from '@/store/OverlayStore'
+import { useRoute } from 'vue-router'
 
-type HomeData = {
-  hideToggelsInTopToolbar: boolean
-  vscCommunicationPort: number
-}
-
-export default defineComponent({
+defineComponent({
   name: 'Home',
   components: {
     FourViz,
@@ -77,185 +68,179 @@ export default defineComponent({
     TheHelpOverlay,
     TheAboutOverlay,
     TheNotifications
-  },
-  data: function () {
-    const data: HomeData = {
-      // communication
-      hideToggelsInTopToolbar: false,
-      vscCommunicationPort: -1
-    }
-    return data
-  },
-  computed: {
-    ...mapStores(useGeneralStore, usePaneVisibilityStore, useOverlayStore)
-  },
-  mounted: async function () {
-    const vm = this
-
-    if (vm.$route.name === 'Extension') {
-      vm.vscCommunicationPort = parseInt(String(vm.$route.params.vscExtensionPort))
-      vm.generalStore.debugger.setPort(parseInt(String(vm.$route.params.debuggerPort)))
-      vm.generalStore.vscExtensionMode = true
-      vm.paneVisibilityStore.hideEditorPane()
-      vm.paneVisibilityStore.hideConsolePane()
-
-      await ExtensionCommunication.connectToExtension(
-        () => vm.generalStore.debugger.sendInput(vm.generalStore.inputValue),
-        vm.vscCommunicationPort
-      )
-
-      vm.generalStore.debugger.shareInitialState()
-
-      const contents = await ExtensionCommunication.sendGetFileContents()
-      vm.generalStore.fileManager.setFileContents(contents.fileContents)
-      vm.generalStore.openEditorLocalUri = contents.openEditorLocalUri
-
-      shared.logDebug(`file contents: ${contents.fileContents}`)
-    } else {
-      vm.paneVisibilityStore.showEditorPane()
-      vm.paneVisibilityStore.showConsolePane()
-
-      if (vm.$route.name === 'Example') {
-        const dirName = vm.$route.params.dirName // filename of example in public/examples
-        if (dirName && typeof dirName === 'string') {
-          const success = await vm.generalStore.fileManager.openExample(dirName)
-          if (!success) {
-            this.generalStore.notifications.show({ kind: 'ExampleLoadingError' })
-          }
-        }
-      } else {
-        const oldEditorText = localStorage.getItem('EDITOR_TEXT')
-        if (oldEditorText) {
-          try {
-            const editorTextArray = JSON.parse(localStorage.getItem('EDITOR_TEXT')!) as Array<[string, string]>
-            vm.generalStore.fileManager.setFileContents(editorTextArray.map(([localUri, content]) => ({ localUri, content })))
-          } catch (_) {
-            this.generalStore.notifications.show({ kind: 'LocalStorageLoadingError' })
-          }
-        }
-      }
-    }
-
-    if (vm.generalStore.fileManager.fileContents.size === 0) {
-      vm.generalStore.fileManager.addFile(DEFAULT_FILE_NAME, DEFAULT_EDITOR_TEXT, 'java')
-    }
-
-    vm.generalStore.fileManager.addListener(_ => {
-      vm.generalStore.debugger.resetTrace()
-      if (!vm.generalStore.vscExtensionMode) {
-        localStorage.setItem('EDITOR_TEXT', JSON.stringify([...vm.generalStore.fileManager.fileContents]))
-      }
-    })
-
-    // reset event listeners to prevent adding multiple ones (e.g. after recompiling during development)
-    document.body.onkeydown = null
-    document.body.onkeyup = null
-    d3.select('body').on('keydown', null)
-    d3.select('body').on('keyup', null)
-
-    d3.select('body').on('keydown', function (event) {
-      if (!vm.isInputFieldOrEditorFocused() && (event.code === 'ArrowRight' || event.code === 'ArrowLeft')) {
-        event.preventDefault()
-      }
-    })
-
-    d3.select('body').on('keyup', function (event) {
-      vm.handleKeyboardInput(event)
-    })
-
-    await vm.connect()
-  },
-  methods: {
-    handleKeyboardInput: function (event: any) {
-      const vm = this
-      /*  only call next/previous if editor or input field are not focused - would step through the program while navigating the code or the input field otherwise */
-      if (vm.generalStore.debugger.compiled && !vm.isInputFieldOrEditorFocused()) {
-        event.preventDefault()
-        switch (event.code) {
-          case 'ArrowRight':
-            vm.generalStore.debugger.stepOver()
-            break
-          case 'ArrowLeft':
-            vm.generalStore.debugger.stepBack()
-            break
-          case 'ArrowUp':
-            vm.generalStore.debugger.stepOut()
-            break
-          case 'ArrowDown':
-            vm.generalStore.debugger.stepInto()
-            break
-        }
-      }
-
-      if (event.altKey) {
-        switch (event.code) {
-          case 'KeyO':
-            if (!vm.generalStore.vscExtensionMode) {
-              vm.triggerOpenFile()
-            }
-            break
-          case 'KeyS':
-            if (!vm.generalStore.vscExtensionMode) {
-              vm.triggerSave()
-            }
-            break
-          case 'KeyC':
-            vm.startCompilation()
-            break
-          default:
-            break
-        }
-      }
-    },
-    isInputFieldOrEditorFocused: function () {
-      const editor = d3.select('.monaco-editor')
-      const inputField = d3.select('#console-input-field')
-      const focusedInputs = d3.selectAll('.settings').selectAll('input:focus')
-
-      return (!editor.empty() && (editor.classed('focused') || inputField.node() === document.activeElement)) ||
-        !focusedInputs.empty()
-    },
-    connect: async function () {
-      const vm = this
-      try {
-        const connected = await vm.generalStore.debugger.connect()
-        if (connected) {
-          if (vm.generalStore.vscExtensionMode) {
-            vm.startCompilation()
-          }
-        }
-      } catch (ex) {
-        console.error(ex)
-        console.log('Retrying connection in 5 seconds...')
-        setTimeout(() => vm.connect(), 5000)
-      }
-    },
-    startCompilation: async function () {
-      const vm = this
-
-      let internalClassPatterns
-      const classContents = Array.from(vm.generalStore.fileManager.fileContents, ([localUri, content]) => ({ localUri, content }))
-
-      if (vm.generalStore.vscExtensionMode) {
-        // extension version
-        const contents = await ExtensionCommunication.sendGetFileContents()
-        internalClassPatterns = contents.internalClassPatterns
-
-        shared.logDebug(`file contents: ${contents}`)
-      }
-
-      vm.generalStore.debugger.startCompilation(classContents, internalClassPatterns)
-    },
-    triggerOpenFile: function () {
-      const vm = this;
-      (vm.$refs.fileHandler as any).openFileDialogue()
-    },
-    triggerSave: function () {
-      const vm = this;
-      (vm.$refs.fileHandler as any).saveFiles()
-    }
   }
 })
+
+const vscCommunicationPort = ref(-1)
+const generalStore = useGeneralStore()
+const paneVisibilityStore = usePaneVisibilityStore()
+
+const fileHandler = ref<InstanceType<typeof TheFileHandler> | null>(null)
+
+function openFile () {
+  fileHandler.value?.openFileDialogue()
+}
+function download () {
+  fileHandler.value?.download()
+}
+
+function isInputFieldOrEditorFocused () {
+  const editor = d3.select('.monaco-editor')
+  const inputField = d3.select('#console-input-field')
+  const focusedInputs = d3.selectAll('.settings').selectAll('input:focus')
+
+  return (!editor.empty() && (editor.classed('focused') || inputField.node() === document.activeElement)) ||
+    !focusedInputs.empty()
+}
+
+async function startCompilation () {
+  let internalClassPatterns
+  const classContents = Array.from(generalStore.fileManager.fileContents, ([localUri, content]) => ({ localUri, content }))
+
+  if (generalStore.vscExtensionMode) {
+    // extension version
+    const contents = await ExtensionCommunication.sendGetFileContents()
+    internalClassPatterns = contents.internalClassPatterns
+    generalStore.openEditorLocalUri = contents.openEditorLocalUri
+
+    shared.logDebug(`file contents: ${contents}`)
+  }
+
+  generalStore.debugger.startCompilation(classContents, internalClassPatterns)
+}
+
+function handleKeyboardInput (event: KeyboardEvent) {
+  /*  only call next/previous if editor or input field are not focused - would step through the program while navigating the code or the input field otherwise */
+  if (generalStore.debugger.compiled && !isInputFieldOrEditorFocused()) {
+    event.preventDefault()
+    switch (event.code) {
+      case 'ArrowRight':
+        generalStore.debugger.stepOver()
+        break
+      case 'ArrowLeft':
+        generalStore.debugger.stepBack()
+        break
+      case 'ArrowUp':
+        generalStore.debugger.stepOut()
+        break
+      case 'ArrowDown':
+        generalStore.debugger.stepInto()
+        break
+    }
+  }
+
+  if (event.altKey) {
+    switch (event.code) {
+      case 'KeyO':
+        if (!generalStore.vscExtensionMode) {
+          openFile()
+        }
+        break
+      case 'KeyS':
+        if (!generalStore.vscExtensionMode) {
+          download()
+        }
+        break
+      case 'KeyC':
+        startCompilation()
+        break
+      default:
+        break
+    }
+  }
+}
+
+async function connect () {
+  try {
+    const connected = await generalStore.debugger.connect()
+    if (connected) {
+      if (generalStore.vscExtensionMode) {
+        startCompilation()
+      }
+    }
+  } catch (ex) {
+    console.error(ex)
+    console.log('Retrying connection in 5 seconds...')
+    setTimeout(() => connect(), 5000)
+  }
+}
+
+const route = useRoute()
+
+onMounted(async () => {
+  if (route.name === 'Extension') {
+    vscCommunicationPort.value = parseInt(String(route.params.vscExtensionPort))
+    generalStore.debugger.setPort(parseInt(String(route.params.debuggerPort)))
+    generalStore.vscExtensionMode = true
+    paneVisibilityStore.hideEditorPane()
+    paneVisibilityStore.hideConsolePane()
+
+    await ExtensionCommunication.connectToExtension(
+      () => generalStore.debugger.sendInput(generalStore.inputValue),
+      vscCommunicationPort.value
+    )
+
+    generalStore.debugger.shareInitialState()
+
+    const contents = await ExtensionCommunication.sendGetFileContents()
+    generalStore.fileManager.setFileContents(contents.fileContents)
+
+    shared.logDebug(`file contents: ${contents.fileContents}`)
+  } else {
+    paneVisibilityStore.showEditorPane()
+    paneVisibilityStore.showConsolePane()
+
+    if (route.name === 'Example') {
+      const dirName = route.params.dirName // filename of example in public/examples
+      if (dirName && typeof dirName === 'string') {
+        const success = await generalStore.fileManager.openExample(dirName)
+        if (!success) {
+          generalStore.notifications.show({ kind: 'ExampleLoadingError' })
+        }
+      }
+    } else {
+      const oldEditorText = localStorage.getItem('EDITOR_TEXT')
+      if (oldEditorText) {
+        try {
+          const editorTextArray = JSON.parse(localStorage.getItem('EDITOR_TEXT')!) as Array<[string, string]>
+          generalStore.fileManager.setFileContents(editorTextArray.map(([localUri, content]) => ({ localUri, content })))
+        } catch (_) {
+          generalStore.notifications.show({ kind: 'LocalStorageLoadingError' })
+        }
+      }
+    }
+  }
+
+  if (generalStore.fileManager.fileContents.size === 0) {
+    generalStore.fileManager.addFile(DEFAULT_FILE_NAME, DEFAULT_EDITOR_TEXT, 'java')
+  }
+
+  generalStore.fileManager.addListener(_ => {
+    generalStore.debugger.resetTrace()
+    if (!generalStore.vscExtensionMode) {
+      localStorage.setItem('EDITOR_TEXT', JSON.stringify([...generalStore.fileManager.fileContents]))
+    }
+  })
+
+  // reset event listeners to prevent adding multiple ones (e.g. after recompiling during development)
+  document.body.onkeydown = null
+  document.body.onkeyup = null
+  d3.select('body').on('keydown', null)
+  d3.select('body').on('keyup', null)
+
+  d3.select('body').on('keydown', function (event) {
+    if (!isInputFieldOrEditorFocused() && (event.code === 'ArrowRight' || event.code === 'ArrowLeft')) {
+      event.preventDefault()
+    }
+  })
+
+  d3.select('body').on('keyup', function (event) {
+    handleKeyboardInput(event)
+  })
+
+  await connect()
+}
+)
 </script>
 
 <style>

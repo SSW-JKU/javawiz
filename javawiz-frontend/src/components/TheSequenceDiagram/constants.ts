@@ -106,6 +106,16 @@ export const HTML = {
   },
   class: {
     label: 'text-label'
+  },
+  classes: {
+    highlighted: {
+      arrow: 'highlighted-arrow',
+      box: 'highlighted-box',
+      lifeLine: 'highlighted-lifeline',
+      refArrow: 'highlighted-ref-arrow',
+      refBox: 'highlighted-ref-box',
+      refLifeLine: 'highlighted-ref-lifeline'
+    }
   }
 }
 

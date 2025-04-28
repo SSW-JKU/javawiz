@@ -21,7 +21,7 @@ export function updateDuration (coordinatesFrom: [number, number], coordinatesTo
 // adds a 'flying' rectangle and highlights the source's and the target's cell
 export function visualizeValueCopy (
   copyAnimations: CopyAnimations,
-  staticViz: Selection<BaseType, unknown, HTMLElement, any>,
+  staticViz: Selection<BaseType, unknown, HTMLElement, unknown>,
   animationInfo: {
     source: ArrayNode | TempVariable,
     target: ArrayNode | TempVariable | { kind: 'MissingSource', coordinates: [number, number], width: number },
@@ -55,7 +55,7 @@ export function visualizeValueCopy (
 
 // adds a highlighted cell
 function appendHighlightedCell (
-  viz: Selection<BaseType, unknown, HTMLElement, any>,
+  viz: Selection<BaseType, unknown, HTMLElement, unknown>,
   coordinates: [number, number],
   cellWidth: number,
   color: 'source' | 'target'
@@ -69,11 +69,11 @@ function appendHighlightedCell (
 }
 
 // returns a animation to animate along a path
-export function animateAlongPath (path: Selection<SVGPathElement, unknown, HTMLElement, any>) {
-  const length = path.node()!!.getTotalLength()
+export function animateAlongPath (path: Selection<SVGPathElement, unknown, HTMLElement, unknown>) {
+  const length = path.node()!.getTotalLength()
   return () => {
     return (x: number) => {
-      const p = path.node()!!.getPointAtLength(length * x)
+      const p = path.node()!.getPointAtLength(length * x)
       return `translate(${[p.x, p.y]})`
     }
   }

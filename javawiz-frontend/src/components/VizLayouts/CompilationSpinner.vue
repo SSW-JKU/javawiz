@@ -6,17 +6,9 @@
     alt="Spinner">
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { mapStores } from 'pinia'
+<script setup lang="ts">
 import { useGeneralStore } from '@/store/GeneralStore'
-
-export default defineComponent({
-  name: 'CompilationSpinner',
-  computed: {
-    ...mapStores(useGeneralStore)
-  }
-})
+const generalStore = useGeneralStore()
 </script>
 
 <style scoped>

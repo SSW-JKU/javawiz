@@ -1,7 +1,6 @@
 import { BaseType, Selection } from 'd3-selection'
 import { ArrayPointer } from './types'
 import { DEFINITIONS } from '@/helpers/SvgDefinitions.vue'
-import { Transition } from 'd3'
 import { HTML, LAYOUT } from './constants'
 import { getLevelYCoordinate } from './utils'
 import { SVG } from '../constants'
@@ -56,11 +55,11 @@ export function updatePointerLineAttributes (line: Selection<BaseType, ArrayPoin
 
 // sets attributes for null pointers
 export function nullPointerLineAttributes (line: Selection<any, ArrayPointer, BaseType, unknown>, update: boolean) {
-  let l: Selection<any, ArrayPointer, BaseType, unknown> | Transition<any, ArrayPointer, BaseType, unknown> = line
+  let l: Selection<any, ArrayPointer, BaseType, unknown> = line
   if (update) {
     l = l.transition()
       .duration(TRANSFORMATION.duration)
-      .ease(TRANSFORMATION.ease)
+      .ease(TRANSFORMATION.ease) as any
   }
   l.attr('opacity', d => d.isNull ? '1' : '0')
     .attr('x1', d => calculatePointerXOffset(d))

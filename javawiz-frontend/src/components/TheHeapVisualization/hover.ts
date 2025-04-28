@@ -353,7 +353,7 @@ export function isHighlightedEdge (sanitizedFrom: string, sanitizedTo: string, h
     const splitFrom = from.split('_')
     const name = splitFrom.slice(2).join('_')
     const classOfStaticField = from.split('_')[1]
-    const loadedClass = state.loadedClasses.find(loadedClass => loadedClass.class === classOfStaticField)!!
+    const loadedClass = state.loadedClasses.find(loadedClass => loadedClass.class === classOfStaticField)!
 
     for (const item of highlightedItems) {
       if (item.kind === 'Static' &&

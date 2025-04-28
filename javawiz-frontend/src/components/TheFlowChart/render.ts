@@ -19,7 +19,7 @@ import {
 import * as d3 from 'd3'
 import { ELEMENT } from './Element'
 import { dockingPosition, Position } from './position'
-import { EnterElement } from 'd3'
+import { BaseType, EnterElement } from 'd3'
 import { blockContinues } from './meta-utils'
 import { FullWidthManager } from './FullWidthManager'
 import { uuidToDomId } from './ast-utils'
@@ -602,7 +602,7 @@ function joinConditionals (selection: BeforJoinSelection<Conditional>,
     if (d.data.type === 'DO_WHILE') {
       blockAlignmentX = d.box.centerX -
         Math.max(
-          d.children!!.at(0)!!.box.centerX,
+          d.children!.at(0)!.box.centerX,
           EL.header.width(d.data.condition, fullWidthManager.hasFullWidth(d.data.uuid)) / 2 +
           EL.repeatLine.minWidth * 2 +
           EL.padding / 2 +
@@ -1051,10 +1051,10 @@ function joinCatchClauses (selection: BeforJoinSelection<CatchClause>, collapse:
     let bottom = d.box.height
     if (!d.meta.collapsed) {
       let finallyHeight = 0
-      if ((d.parent?.data as any as TryCatchFinally).finallyBlock) {
+      if ((d.parent?.data as unknown as TryCatchFinally).finallyBlock) {
         finallyHeight = ELEMENT.TryCatchFinally.finallyBlock.totalHeight((d.parent?.children?.at(-1)?.box.height) || 0)
       }
-      bottom = d.parent!!.box.height - finallyHeight
+      bottom = d.parent!.box.height - finallyHeight
     }
     return [
       [d.box.centerX, d.box.height - EL.arrowHeight],
@@ -1071,7 +1071,7 @@ function joinCatchClauses (selection: BeforJoinSelection<CatchClause>, collapse:
  * @returns vector AB
  */
 function vectorAdd ([ax, ay]: [number, number], [bx, by]: [number, number]): [number, number] {
-  const arr = [bx - ax, by - ay] as any
+  const arr = [bx - ax, by - ay] as [number, number]
   console.assert(Number.isNaN(arr[0]) === false, arr, ax, ay, bx, by)
   return arr
 }
@@ -1292,7 +1292,7 @@ function dToPoints (d: string): [number, number][] {
  * @param inlineFn toggle inline methods
  */
 function renderRichText<T extends Conditional | Statement> (
-  selection: d3.Selection<any, FullHierarchyNode<T>, any, any>,
+  selection: d3.Selection<BaseType, FullHierarchyNode<T>, BaseType, unknown>,
   fullTextFn: (d: FullHierarchyNode<T>) => string,
   fullWidthManager: FullWidthManager,
   options: Partial<{
@@ -1381,8 +1381,8 @@ function renderRichText<T extends Conditional | Statement> (
       return el
     })
     .attr('width', d => {
-      if (d.fullWidth) return textWidth(d.mce.name)
-      return Math.min(ELEMENT.Statement.maxWidth - d.mce.deltaBegin * singleCharWidth, textWidth(d.mce.name))
+      if (d.fullWidth) return singleCharWidth * d.mce.length
+      return Math.min(ELEMENT.Statement.maxWidth - d.mce.deltaBegin * singleCharWidth, singleCharWidth * d.mce.length)
     })
 
   g.filter(d => textWidth(fullTextFn(d)) > ELEMENT.Statement.maxWidth)
@@ -1393,14 +1393,14 @@ function renderRichText<T extends Conditional | Statement> (
       .attr('fill', 'grey')
       .attr('x', d => {
         const width = textWidth(fullTextFn(d))
-        if (width > ELEMENT.Statement.maxWidth && fullWidthManager.hasFullWidth(d.data.uuid) === false) {
+        if (width > ELEMENT.Statement.maxWidth && !fullWidthManager.hasFullWidth(d.data.uuid)) {
           return fullOptions.padding / 2 + ELEMENT.Statement.maxWidth - singleCharWidth
         } else {
           return fullOptions.padding / 2 + width
         }
       })
       .attr('y', fullOptions.padding / 2 + fullOptions.fontSize - 1)
-      .text(d => textWidth(fullTextFn(d)) > ELEMENT.Statement.maxWidth && fullWidthManager.hasFullWidth(d.data.uuid) === false ? '…' : '⊟')
+      .text(d => textWidth(fullTextFn(d)) > ELEMENT.Statement.maxWidth && !fullWidthManager.hasFullWidth(d.data.uuid) ? '…' : '⊟')
       .on('dblclick', (ev: MouseEvent, d) => {
         ev.stopPropagation()
         ev.preventDefault()

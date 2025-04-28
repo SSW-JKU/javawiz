@@ -11,7 +11,7 @@ import { getNodeString } from '../heap-tree-node-utils'
 
 // get level's Y coordinate
 export function getLevelYCoordinate (index: number) {
-  return levelCoordinates[index]
+  return levelCoordinates.value[index]
 }
 
 // calculates displayed text width

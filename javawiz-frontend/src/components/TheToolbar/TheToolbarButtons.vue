@@ -1,40 +1,40 @@
 <template>
   <div class="float-container-center-aligned">
     <div v-if="!generalStore.debugger.connected && !generalStore.debugger.talking" class="float-container-center-aligned">
-      <button class="btn btn-sm btn-primary connect-button" @click="connect()">
+      <button class="btn btn-sm btn-primary connect-button" @click="() => emit('connect')">
         <img class="connect-icon" src="../../assets/icons/controls/connect.svg" alt="Connect button">
         Connect
       </button>
     </div>
     <div v-if="generalStore.debugger.connected" class="float-container-center-aligned">
       <IconWithTooltip
-        :action="() => overlayStore.toggleHelpState()"
         :tooltip="{ text: 'Help', arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/controls/help.svg')" />
+        :icon="help"
+        @action="() => overlayStore.toggleHelpState()" />
       <IconWithTooltip
         v-if="!generalStore.vscExtensionMode"
-        :action="triggerOpenFile"
         :tooltip="{ text: 'Open Files', arrow: 'left', placement: 'below' }"
         :shortcut="{ firstKey: 'Alt', secondKey: 'O' }"
-        :icon="require('../../assets/icons/controls/open.svg')" />
+        :icon="open"
+        @action="() => emit('openFile')" />
       <IconWithTooltip
         v-if="!generalStore.vscExtensionMode"
-        :action="triggerSave"
         :tooltip="{ text: 'Save Files', arrow: 'middle', placement: 'below' }"
         :shortcut="{ firstKey: 'Alt', secondKey: 'S' }"
-        :icon="require('../../assets/icons/controls/save.svg')" />
+        :icon="save"
+        @action="() => emit('download')" />
 
       <!-- display the "play" button if debugger has not yet compiled -->
       <div v-if="!generalStore.debugger.compiled">
         <IconWithTooltip
-          :action="startCompilation"
           :tooltip="{ text: 'Start', arrow: 'middle', placement: 'below' }"
           :shortcut="{ firstKey: 'Alt', secondKey: 'C' }"
-          :icon="require('../../assets/icons/controls/start.svg')"
-          :semitransparent="generalStore.debugger.compiling" />
+          :icon="start_"
+          :semitransparent="generalStore.debugger.compiling"
+          @action="() => emit('startCompilation')" />
       </div>
       <!-- if debugger is running, display its step buttons -->
-      <TheDebuggerButtons v-if="generalStore.debugger.compiled" :start-compilation="startCompilation" />
+      <TheDebuggerButtons v-if="generalStore.debugger.compiled" @start-compilation="() => emit('startCompilation')" />
     </div>
     <img
       class="toolbar-spinner"
@@ -44,42 +44,24 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent } from 'vue'
 import TheDebuggerButtons from '@/components/TheToolbar/TheDebuggerButtons.vue'
 import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 import { useOverlayStore } from '@/store/OverlayStore'
+import help from '../../assets/icons/controls/help.svg'
+import open from '../../assets/icons/controls/open.svg'
+import start_ from '../../assets/icons/controls/start.svg'
+import save from '../../assets/icons/controls/save.svg'
 
-export default defineComponent({
+defineComponent({
   name: 'TheToolbarButtons',
-  components: { IconWithTooltip, TheDebuggerButtons },
-  props: {
-    connect: {
-      type: Function,
-      required: true
-    },
-    startCompilation: {
-      type: Function,
-      required: true
-    },
-    triggerOpenFile: {
-      type: Function,
-      required: true
-    },
-    triggerSave: {
-      type: Function,
-      required: true
-    }
-  },
-  data: function () {
-    return { }
-  },
-  computed: {
-    ...mapStores(useGeneralStore, useOverlayStore)
-  }
+  components: { IconWithTooltip, TheDebuggerButtons }
 })
+const emit = defineEmits<{ connect: [], openFile: [], download: [], startCompilation: [] }>()
+const generalStore = useGeneralStore()
+const overlayStore = useOverlayStore()
 </script>
 
 <style>

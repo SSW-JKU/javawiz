@@ -14,32 +14,24 @@
     </div>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 import { Notification } from './types'
 
-export default defineComponent({
-  computed: {
-    ...mapStores(useGeneralStore)
-  },
-  methods: {
-    getClasses: function (notification: Notification): string {
-      return [
-        'notification',
-        { 'error': 'notification-danger', 'warning': 'notification-warning', 'info': 'notification-info', 'success': 'notification-success' }[notification.type],
-        ...notification.groups
-      ].join(' ')
-    },
-    deleteButtonStyle () {
-      if (this.generalStore.notifications.notifications.length === 0) {
-        return 'display: none'
-      }
-      return 'display: inline'
-    }
+const generalStore = useGeneralStore()
+function getClasses (notification: Notification): string {
+  return [
+    'notification',
+    { 'error': 'notification-danger', 'warning': 'notification-warning', 'info': 'notification-info', 'success': 'notification-success' }[notification.type],
+    ...notification.groups
+  ].join(' ')
+}
+function deleteButtonStyle () {
+  if (generalStore.notifications.notifications.length === 0) {
+    return 'display: none'
   }
-})
+  return 'display: inline'
+}
 
 </script>
 <style scoped>

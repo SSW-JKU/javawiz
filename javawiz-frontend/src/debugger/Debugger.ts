@@ -58,13 +58,12 @@ export class Debugger {
   }
 
   public connect (): Promise<boolean> {
-    const dbg = this
     return new Promise((resolve, reject) => {
-      if (dbg.connected) {
+      if (this.connected) {
         resolve(true)
         return
       }
-      if (dbg.state === CONNECTING) {
+      if (this.state === CONNECTING) {
         resolve(false)
         return
       }
@@ -76,15 +75,15 @@ export class Debugger {
       this.websocket = new WebSocket(`ws://localhost:${this.port}`)
 
       this.websocket.onopen = (_e: Event) => {
-        dbg.handleOpen()
+        this.handleOpen()
         resolve(true)
       }
-      this.websocket.onmessage = (e: MessageEvent<any>) => dbg.handleMessage(e)
+      this.websocket.onmessage = (e: MessageEvent<any>) => this.handleMessage(e)
       this.websocket.onerror = (e: Event) => {
-        dbg.handleError(e)
+        this.handleError(e)
         reject(e)
       }
-      this.websocket.onclose = (e: CloseEvent) => dbg.handleClose(e)
+      this.websocket.onclose = (e: CloseEvent) => this.handleClose(e)
     })
   }
 

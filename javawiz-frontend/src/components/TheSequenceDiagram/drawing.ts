@@ -1,8 +1,7 @@
 import { BaseType, Selection } from 'd3-selection'
 import { DURATION, FONT_FAMILY, HTML, LAYOUT } from '@/components/TheSequenceDiagram/constants'
 import { easeCubic } from 'd3-ease'
-import { LifeLine, Box, Elements } from '@/components/TheSequenceDiagram/types'
-import { DEFINITIONS } from '@/helpers/SvgDefinitions.vue'
+import { LifeLine, Box, Elements, Arrow } from '@/components/TheSequenceDiagram/types'
 import {
   getCoordsForSelfCallArrow,
   getSecondXBaseForArrow,
@@ -35,7 +34,7 @@ import {
   getYForVerticalLine,
   getCoordinatesForLifeLine,
   getCoordinatesForArrow,
-  getCoordinatesForBox
+  getCoordinatesForBox, chooseArrowType
 } from '@/components/TheSequenceDiagram/drawing-utils'
 
 import { blendInAnimation } from '@/components/DataStructureVisualizations/animations'
@@ -51,6 +50,16 @@ import {
   getBoxEnd
 } from '@/components/TheSequenceDiagram/data-utils'
 import { TRANSFORMATION } from '@/helpers/constants'
+import {
+  getArrowHoverInfo,
+  getBoxHoverInfo, getLifeLineHoverInfo,
+  isHighlightedArrow,
+  isHighlightedBox, isHighlightedLifeLine, isHighlightedRefArrow,
+  onHover
+} from '@/components/TheSequenceDiagram/hover'
+import { HoverInfo } from '@/hover/types'
+import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
+import { HeapVizTraceState } from '@/components/TheHeapVisualization/types'
 
 /**
  * Draws lifelines for static classes and objects
@@ -61,6 +70,8 @@ import { TRANSFORMATION } from '@/helpers/constants'
  * @param vm
  * @param hiddenLifeLines all lifelines that are hidden
  * @param hiddenIntervals all boxes that are hidden
+ * @param hoveredInfos currently hovered items
+ * @param currHeapVizTraceState
  */
 export function drawLifeLines (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
@@ -69,7 +80,9 @@ export function drawLifeLines (
   activeTimeIndices: number[],
   vm: any,
   hiddenLifeLines: LifeLine[],
-  hiddenIntervals: Box[]
+  hiddenIntervals: Box[],
+  hoveredInfos: HoverInfo[],
+  currHeapVizTraceState: HeapVizTraceState
 ) {
   svg.select(`#${HTML.ids.lifeLines}`)
     .selectAll('g')
@@ -82,8 +95,17 @@ export function drawLifeLines (
             e.preventDefault()
             e.stopPropagation()
             toggleLifeLine(elems, d, timeIdx, hiddenIntervals, hiddenLifeLines)
-            vm.redraw()
+            vm.redraw(hoveredInfos)
           })
+          .classed(HTML.classes.highlighted.lifeLine, d => isHighlightedLifeLine(hoveredInfos, elems.arrows, d))
+          .on('mouseenter', (_event, data: any) => {
+            const lifeLine = data as LifeLine
+            const hoverInfos = getLifeLineHoverInfo(lifeLine.className, lifeLine.heapId, currHeapVizTraceState)
+            if (isVisible(lifeLine)) {
+              onHover(hoverInfos)
+            }
+          })
+          .on('mouseleave', () => HoverSynchronizer.clear())
         group.append('line')
           .attr('id', HTML.ids.verticalLine)
           .attr('x1', d => getXForVerticalLine(d, elems.lifeLines))
@@ -137,6 +159,7 @@ export function drawLifeLines (
         return group
       },
       u => {
+        u.classed(HTML.classes.highlighted.lifeLine, d => isHighlightedLifeLine(hoveredInfos, elems.arrows, d))
         u.interrupt()
           .filter(d => (!wasVisible(d) && isVisible(d)))
           .attr('transform', d => `translate(${[getCoordinatesForLifeLine(d, activeTimeIndices)[0], getCoordinatesForLifeLine(d, activeTimeIndices)[1]]})`)
@@ -150,7 +173,7 @@ export function drawLifeLines (
           e.preventDefault()
           e.stopPropagation()
           toggleLifeLine(elems, d, timeIdx, hiddenIntervals, hiddenLifeLines)
-          vm.redraw()
+          vm.redraw(hoveredInfos)
         })
         updateLifeLines(u, activeTimeIndices, elems.boxes, elems.lifeLines, timeIdx)
         updateCrosses(u, activeTimeIndices, elems.boxes, elems.lifeLines, timeIdx)
@@ -191,12 +214,18 @@ export function drawLifeLines (
  * @param elems all elements that are relevant including arrows, boxes and lifelines
  * @param activeTimeIndices all currently active time indices
  * @param hiddenLifeLines all lifelines that are hidden
+ * @param hoveredInfos currently hovered items
+ * @param timeIdx
+ * @param currHeapVizTraceState
  */
 export function drawArrows (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
   elems: Elements,
   activeTimeIndices: number[],
-  hiddenLifeLines: LifeLine[]
+  hiddenLifeLines: LifeLine[],
+  hoveredInfos: HoverInfo[],
+  timeIdx: number,
+  currHeapVizTraceState: HeapVizTraceState
 ) {
   svg.select(`#${HTML.ids.arrows}`)
     .selectAll('g')
@@ -204,6 +233,18 @@ export function drawArrows (
     .join(
       e => {
         const group = e.append('g')
+          .classed(HTML.classes.highlighted.arrow, d => isHighlightedArrow(hoveredInfos, d, elems.boxes))
+          .classed(HTML.classes.highlighted.refArrow, d => isHighlightedRefArrow(hoveredInfos, d, elems.arrows, elems.boxes, timeIdx))
+          .on('mouseenter', (_event, data: any) => {
+            const arrow = data as Arrow
+            if (arrow.time) {
+              const hoverInfos = getArrowHoverInfo(arrow, currHeapVizTraceState)
+              if (!arrow.isHidden) {
+                onHover(hoverInfos)
+              }
+            }
+          })
+          .on('mouseleave', () => HoverSynchronizer.clear())
           .attr('transform', d => `translate(${[getCoordinatesForArrow(d)[0], getCoordinatesForArrow(d)[1]]})`) // translate the whole group to (x,y)
         // call arrow between diverse lifelines
         group.filter(d => (d.to !== d.from) && (d.kind === 'Call'))
@@ -215,7 +256,7 @@ export function drawArrows (
           .attr('y2', d => getYForArrow(LAYOUT.arrow.yOffset, activeTimeIndices, d, hiddenLifeLines, elems.arrows, elems.boxes))
           .attr('stroke', 'black')
           .attr('stroke-width', LAYOUT.strokeWidth)
-          .attr('marker-end', `${DEFINITIONS.urls.thinArrow}`)
+          .attr('marker-end', d => chooseArrowType(d, hoveredInfos, elems, timeIdx))
           .style('opacity', d => getArrowOpacity(d))
         blendInAnimation(group)
         group.filter(d => (d.to !== d.from) && (d.kind === 'Call'))
@@ -260,7 +301,7 @@ export function drawArrows (
           .attr('y2', d => getYForArrow(LAYOUT.arrow.secYOffset, activeTimeIndices, d, hiddenLifeLines, elems.arrows, elems.boxes))
           .attr('stroke', 'black')
           .attr('stroke-width', LAYOUT.strokeWidth)
-          .attr('marker-end', `${DEFINITIONS.urls.thinArrow}`)
+          .attr('marker-end', d => chooseArrowType(d, hoveredInfos, elems, timeIdx)) 
           .style('opacity', d => getArrowOpacity(d))
         group.filter(d => (d.to === d.from) && (d.kind === 'Call'))
           .append('foreignObject')
@@ -285,7 +326,7 @@ export function drawArrows (
           .attr('stroke', 'black')
           .attr('stroke-dasharray', '6,3')
           .attr('stroke-width', LAYOUT.strokeWidth)
-          .attr('marker-end', `${DEFINITIONS.urls.thinArrow}`)
+          .attr('marker-end', d => chooseArrowType(d, hoveredInfos, elems, timeIdx))
           .style('opacity', d => getArrowOpacity(d))
         group.filter(d => d.kind === 'Return' && d.to !== d.from)
           .append('foreignObject')
@@ -309,7 +350,7 @@ export function drawArrows (
           .attr('y2', d => getYForArrow(LAYOUT.arrow.constructor, activeTimeIndices, d, hiddenLifeLines, elems.arrows, elems.boxes) + LAYOUT.constructorOffset)
           .attr('stroke', 'black')
           .attr('stroke-width', LAYOUT.strokeWidth)
-          .attr('marker-end', `${DEFINITIONS.urls.thinArrow}`)
+          .attr('marker-end', d => chooseArrowType(d, hoveredInfos, elems, timeIdx))
           .style('opacity', d => getArrowOpacity(d))
         blendInAnimation(group)
         group.filter(d => d.kind === 'Constructor' && d.to !== undefined)
@@ -323,7 +364,7 @@ export function drawArrows (
           .attr('font-family', FONT_FAMILY)
           .style('opacity', d => {
             const opacity = getArrowOpacity(d)
-            if (d.wasHidden!! && !d.isHidden) {
+            if (d.wasHidden! && !d.isHidden) {
               d.wasHidden = false
             }
             return opacity
@@ -334,12 +375,14 @@ export function drawArrows (
         return group
       },
       u => {
+        u.classed(HTML.classes.highlighted.arrow, d => isHighlightedArrow(hoveredInfos, d, elems.boxes))
+          .classed(HTML.classes.highlighted.refArrow, d => isHighlightedRefArrow(hoveredInfos, d, elems.arrows, elems.boxes, timeIdx))
         u.interrupt()
           .transition()
           .duration(DURATION)
           .style('opacity', '1')
           .attr('transform', d => `translate(${[getCoordinatesForArrow(d)[0], getCoordinatesForArrow(d)[1]]})`)
-        updateArrows(u, activeTimeIndices, hiddenLifeLines, elems)
+        updateArrows(u, activeTimeIndices, hiddenLifeLines, elems, hoveredInfos, timeIdx)
         u.filter(d => d.isHidden)
           .transition()
           .duration(DURATION)
@@ -377,6 +420,7 @@ export function drawArrows (
  * @param hiddenLifeLines all lifelines that are hidden
  * @param activeTimeIndices all currently active time indices
  * @param vm
+ * @param hoveredInfos currently hovered items
  */
 export function drawBoxes (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
@@ -385,7 +429,9 @@ export function drawBoxes (
   hiddenIntervals: Box[],
   hiddenLifeLines: LifeLine[],
   activeTimeIndices: number[],
-  vm: any) {
+  vm: any,
+  hoveredInfos: HoverInfo[],
+  currHeapVizTraceState: HeapVizTraceState) {
   console.assert(activeTimeIndices.includes(timeIdx))
   svg.select(`#${HTML.ids.boxes}`)
     .selectAll('.box')
@@ -394,6 +440,7 @@ export function drawBoxes (
       e => {
         const group = e.append('g')
           .classed('box', true)
+          .classed(HTML.classes.highlighted.box, d => isHighlightedBox(hoveredInfos, d))
           .attr('transform', d => `translate(${[getCoordinatesForBox(d, activeTimeIndices)[0], getCoordinatesForBox(d, activeTimeIndices)[1]]})`)
           .on('dblclick', (e, d) => {
             e.preventDefault()
@@ -409,8 +456,14 @@ export function drawBoxes (
             setHiddenBoxes(elems.boxes, d, getLastTimeIdx(elems.boxes), hiddenIntervals, indices)
             setHiddenArrows(elems, indices, hiddenLifeLines, timeIdx)
             setHiddenLifeLines(elems, indices, hiddenLifeLines)
-            vm.redraw()
+            vm.redraw(hoveredInfos)
           })
+          .on('mouseenter', (_event, data: any) => {
+            const box = data as Box
+            const hoverInfos = getBoxHoverInfo(box.index, box.start, box.lifeLine.className, box.callArrow, box.lifeLine.heapId, currHeapVizTraceState)
+            if (isVisible(box)) onHover(hoverInfos)
+          })
+          .on('mouseleave', () => HoverSynchronizer.clear())
         group.append('rect')
           .attr('id', `${HTML.ids.methodCallBox}`)
           .attr('x', d => {
@@ -472,6 +525,7 @@ export function drawBoxes (
         return group
       },
       u => {
+        u.classed(HTML.classes.highlighted.box, d => isHighlightedBox(hoveredInfos, d))
         u.filter(d => !wasVisible(d) && isVisible(d))
           .interrupt()
           .attr('transform', d => `translate(${[getCoordinatesForBox(d, activeTimeIndices)[0], getCoordinatesForBox(d, activeTimeIndices)[1]]})`)
@@ -507,7 +561,7 @@ export function drawBoxes (
           setHiddenBoxes(elems.boxes, d, getLastTimeIdx(elems.boxes), hiddenIntervals, indices)
           setHiddenArrows(elems, indices, hiddenLifeLines, timeIdx)
           setHiddenLifeLines(elems, indices, hiddenLifeLines)
-          vm.redraw()
+          vm.redraw(hoveredInfos)
         })
         u.select(`#${HTML.ids.methodCallBox}`)
           .filter(d => d.currState === 'expanded' && (d.prevState === 'hidden' || (d.prevState === 'collapsed' && !d.wasDrawn)))

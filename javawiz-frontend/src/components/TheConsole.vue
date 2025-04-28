@@ -14,7 +14,7 @@
         title="Replay">
       &nbsp;Console
     </div>
-    <div id="console-output" ref="console">
+    <div id="console-output">
       <p v-if="!consoleText && !compileError">
         Program output is displayed here.
       </p>
@@ -29,7 +29,7 @@
         :disabled="!isInputExpected"
         @click="() => {
           blur()
-          sendInput()
+          generalStore.sendInput()
         }">
         Send
       </button>
@@ -37,69 +37,42 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import * as d3 from 'd3'
-import { defineComponent } from 'vue'
+import { computed, defineComponent, onMounted, watch } from 'vue'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 
-export default defineComponent({
-  name: 'TheConsole',
-  data: function () {
-    return { }
-  },
-  computed: {
-    ...mapStores(useGeneralStore),
-    compileError () {
-      return this.generalStore.debugger.getCompileErrorMessage()
-    },
-    isInputExpected () {
-      return this.generalStore.debugger.inputExpected
-    },
-    isLive () {
-      return this.generalStore.debugger.isLive || !this.generalStore.debugger.compiled
-    },
-    consoleText () {
-      return this.generalStore.consoleLines.map(line => line.output + line.input + line.error).join('')
-    }
-  },
-  watch: {
-    isInputExpected: function () {
-      const vm = this
-      if (vm.isInputExpected) {
-        document.getElementById('console-input-field')?.focus()
-      }
-    },
-    consoleText: function () {
-      // scroll to bottom
-      const consoleDiv = this.$refs.console as HTMLDivElement
-      consoleDiv.scrollTop = consoleDiv.scrollHeight
-    }
-  },
-  /**
-  * The vue 'mounted' lifecycle hook.
-  * Adds an event listener to trigger a click on the input butto after pressing Enter in the input field.
-  * Also calls the first redraw.
-  *
-  */
-  mounted () {
-    d3.select('#console-input-field')
-      .on('keyup', function (event) {
-        event.preventDefault()
-        if (event.key === 'Enter') {
-          d3.select('#console-input-button').dispatch('click')
-        }
-      })
-  },
-  methods: {
-    blur: function () {
-      (document.activeElement as HTMLElement).blur()
-    },
-    sendInput () {
-      this.generalStore.sendInput()
-    }
+defineComponent({ name: 'TheConsole' })
+const generalStore = useGeneralStore()
+const compileError = computed(() => generalStore.debugger.getCompileErrorMessage())
+const isInputExpected = computed(() => generalStore.debugger.inputExpected)
+const isLive = computed(() => generalStore.debugger.isLive || !generalStore.debugger.compiled)
+const consoleText = computed(() => generalStore.consoleLines.map(line => line.output + line.input + line.error).join(''))
+
+watch(isInputExpected, () => {
+  if (isInputExpected.value) {
+    document.getElementById('console-input-field')?.focus()
   }
 })
+
+watch(consoleText, () => {
+  const console = document.getElementById('console-output')
+  if (console) console.scrollTop = console.scrollHeight
+})
+
+onMounted(() => {
+  d3.select('#console-input-field')
+    .on('keyup', function (event) {
+      event.preventDefault()
+      if (event.key === 'Enter') {
+        d3.select('#console-input-button').dispatch('click')
+      }
+    })
+})
+
+function blur () {
+  (document.activeElement as HTMLElement).blur()
+}
 </script>
 
 <style scoped>

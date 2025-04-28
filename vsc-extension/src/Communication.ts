@@ -89,7 +89,6 @@ export class Communication {
         await Extension.editors.highlightLine(message.line, message.uri)
         return defaultResponse
       }
-        
       case 'hoverLine':
         Extension.editors.hoverLine(message.line, message.uri)
         return defaultResponse

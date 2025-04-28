@@ -102,11 +102,9 @@ export default defineComponent({
 
     const currentFileUri = computed(() => generalStore.debugger.latestTraceState?.sourceFileUri ?? '')
     const currentMethod = computed(() => generalStore.debugger.latestTopStackFrame?.method ?? '')
-    const latestStack = computed(() => {
-      return generalStore.debugger.latestTraceState?.stack ?? []
-    })
+    const latestStack = computed(() => generalStore.debugger.latestTraceState?.stack ?? [])
 
-    const rootCurrentMethod = ref(currentMethod)
+    const rootCurrentMethod = ref(currentMethod.value)
     const rootCurrentClass = ref(latestStack.value[0].class)
 
     const prevPosX = ref<number>(0)
@@ -120,7 +118,7 @@ export default defineComponent({
 
     function getNodeWithMainClass (): AstFile | undefined {
       if (!asts || asts.length === 0) { return }
-      const mainClass = latestStack.value.at(-1)!!.class
+      const mainClass = latestStack.value.at(-1)!.class
       return asts.find(ast => ast.file.classes.find(cls => cls.name === mainClass))?.file
     }
 
@@ -135,7 +133,7 @@ export default defineComponent({
         .map<CallSite>(stackFrame => { return { method: stackFrame.method, line: stackFrame.line, class: stackFrame.class } })
 
       const main = 'main'
-      const mainClass = latestStack.value.at(-1)!!.class
+      const mainClass = latestStack.value.at(-1)!.class
 
       let autoInlinedFnMap = new Map()
       if (autoInline.value) {

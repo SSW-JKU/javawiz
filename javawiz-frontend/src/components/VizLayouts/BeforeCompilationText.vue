@@ -7,17 +7,9 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
-
-export default defineComponent({
-  name: 'BeforeCompilationText',
-  computed: {
-    ...mapStores(useGeneralStore)
-  }
-})
+const generalStore = useGeneralStore()
 </script>
 
 <style scoped>

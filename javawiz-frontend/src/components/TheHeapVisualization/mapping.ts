@@ -16,14 +16,14 @@ export function fromProcessedTraceState (processedTraceState: ProcessedTraceStat
     loadedClasses: processedTraceState.loadedClassesBeforeExecution.map(function (lc: LoadedClass): HeapVizLoadedClass {
       return mapLoadedClass(lc)
     }),
-    heapAfterExecution: processedTraceState.heapAfterExecution!!
+    heapAfterExecution: processedTraceState.heapAfterExecution!
       .map(function (hi: HeapItem): HeapVizHeapItem {
         return mapHeapItem(hi)
       }),
-    stackAfterExecution: [...processedTraceState.stackAfterExecution!!].reverse().map(function (stackFrame: StackFrame, stackFrameNumber: number): HeapVizStackFrame {
+    stackAfterExecution: [...processedTraceState.stackAfterExecution!].reverse().map(function (stackFrame: StackFrame, stackFrameNumber: number): HeapVizStackFrame {
       return mapStackFrame(stackFrame, stackFrameNumber)
     }),
-    loadedClassesAfterExecution: processedTraceState.loadedClassesAfterExecution!!.map(function (lc: LoadedClass): HeapVizLoadedClass {
+    loadedClassesAfterExecution: processedTraceState.loadedClassesAfterExecution!.map(function (lc: LoadedClass): HeapVizLoadedClass {
       return mapLoadedClass(lc)
     })
   }

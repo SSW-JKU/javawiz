@@ -2,94 +2,68 @@
   <div style="width: 100%; height: 100%; display: flex">
     <div style="display: flex; margin: auto; flex-wrap: wrap;">
       <IconWithTooltip
-        :action="() => { $emit('selected', FLOWCHART) }"
         :tooltip="{ text: flowchartText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/flowchart.svg')" />
+        :icon="flowchart"
+        @action="() => { emit('selected', FLOWCHART) }" />
       <IconWithTooltip
-        :action="() => { $emit('selected', HEAP) }"
         :tooltip="{ text: heapStackText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/stack.svg')" />
+        :icon="stack"
+        @action="() => { emit('selected', HEAP) }" />
       <IconWithTooltip
-        :action="() => { $emit('selected', DESKTEST) }"
         :tooltip="{ text: deskTestText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/desktest.svg')" />
+        :icon="desktest"
+        @action="() => { emit('selected', DESKTEST) }" />
       <IconWithTooltip
-        :action="() => { $emit('selected', ARRAY)}"
         :tooltip="{ text: arraysText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/array.svg')" />
+        :icon="array"
+        @action="() => { emit('selected', ARRAY)}" />
       <IconWithTooltip
-        :action="() => { $emit('selected', LINKEDLIST)}"
         :tooltip="{ text: linkedListText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/list.svg')" />
+        :icon="list"
+        @action="() => { emit('selected', LINKEDLIST)}" />
       <IconWithTooltip
-        :action="() => { $emit('selected', BINARYTREE)}"
         :tooltip="{ text: binaryTreeText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/tree.svg')" />
+        :icon="tree_"
+        @action="() => { emit('selected', BINARYTREE)}" />
       <IconWithTooltip
-        :action="() => { $emit('selected', INVIZ) }"
         :tooltip="{ text: ioText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/console.svg')" />
+        :icon="console_"
+        @action="() => { emit('selected', INVIZ) }" />
       <IconWithTooltip
-        :action="() => { $emit('selected', SEQUENCEDIAGRAM) }"
         :tooltip="{ text: sequenceDiagramText, arrow: 'left', placement: 'below' }"
-        :icon="require('../../assets/icons/hiding/sequencediagram.svg')" />
+        :icon="sequencediagram"
+        @action="() => { emit('selected', SEQUENCEDIAGRAM) }" />
     </div>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { mapStores } from 'pinia'
+<script setup lang="ts">
+import { computed, defineComponent } from 'vue'
 import IconWithTooltip from '../TheToolbar/IconWithTooltip.vue'
-import { ARRAY, BINARYTREE, CONSOLE, DESKTEST, EDITOR, FLOWCHART, HEAP, INVIZ, LINKEDLIST, SEQUENCEDIAGRAM, usePaneVisibilityStore } from '@/store/PaneVisibilityStore'
+import { ARRAY, BINARYTREE, DESKTEST, FLOWCHART, HEAP, LINKEDLIST, INVIZ, SEQUENCEDIAGRAM, usePaneVisibilityStore } from '@/store/PaneVisibilityStore'
+import flowchart from '../../assets/icons/hiding/flowchart.svg'
+import stack from '../../assets/icons/hiding/stack.svg'
+import desktest from '../../assets/icons/hiding/desktest.svg'
+import array from '../../assets/icons/hiding/array.svg'
+import list from '../../assets/icons/hiding/list.svg'
+import tree_ from '../../assets/icons/hiding/tree.svg'
+import console_ from '../../assets/icons/hiding/console.svg'
+import sequencediagram from '../../assets/icons/hiding/sequencediagram.svg'
 
-export default defineComponent({
+
+defineComponent({
   name: 'VizChooser',
-  components: { IconWithTooltip },
-  emits: {
-    selected (_kind: number) {
-      return true
-    }
-  },
-  data () {
-    return {
-      EDITOR,
-      CONSOLE,
-      FLOWCHART,
-      HEAP,
-      ARRAY,
-      LINKEDLIST,
-      BINARYTREE,
-      DESKTEST,
-      SEQUENCEDIAGRAM,
-      INVIZ
-    }
-  },
-  computed: {
-    ...mapStores(usePaneVisibilityStore),
-    flowchartText: function () {
-      return this.paneVisibilityStore.isFlowChartPaneHidden ? 'Show Flowchart' : 'Move Flowchart here'
-    },
-    heapStackText: function () {
-      return this.paneVisibilityStore.isHeapPaneHidden ? 'Show Heap/Stack' : 'Move Heap/Stack here'
-    },
-    deskTestText: function () {
-      return this.paneVisibilityStore.isDeskTestPaneHidden ? 'Show Desk Test' : 'Move Desk Test here'
-    },
-    arraysText: function () {
-      return this.paneVisibilityStore.isArrayPaneHidden ? 'Show Arrays' : 'Move Arrays here'
-    },
-    linkedListText: function () {
-      return this.paneVisibilityStore.isListPaneHidden ? 'Show Linked Lists' : 'Move Linked Lists here'
-    },
-    binaryTreeText: function () {
-      return this.paneVisibilityStore.isTreePaneHidden ? 'Show Binary Trees' : 'Move Binary Trees here'
-    },
-    ioText: function () {
-      return this.paneVisibilityStore.isInputOutputPaneHidden ? 'Show I/O' : 'Move I/O here'
-    },
-    sequenceDiagramText: function () {
-      return this.paneVisibilityStore.isSequenceDiagramPaneHidden ? 'Show Sequence Diagram' : 'Move Sequence Diagram'
-    }
-  }
+  components: { IconWithTooltip }
 })
+
+const emit = defineEmits<{(e: 'selected', kind: number): void}>()
+
+const paneVisibilityStore = usePaneVisibilityStore()
+const flowchartText = computed(() => paneVisibilityStore.isFlowChartPaneHidden ? 'Show Flowchart' : 'Move Flowchart here')
+const heapStackText = computed(() => paneVisibilityStore.isHeapPaneHidden ? 'Show Heap/Stack' : 'Move Heap/Stack here')
+const deskTestText = computed(() => paneVisibilityStore.isDeskTestPaneHidden ? 'Show Desk Test' : 'Move Desk Test here')
+const arraysText = computed(() => paneVisibilityStore.isArrayPaneHidden ? 'Show Arrays' : 'Move Arrays here')
+const linkedListText = computed(() => paneVisibilityStore.isListPaneHidden ? 'Show Linked Lists' : 'Move Linked Lists here')
+const binaryTreeText = computed(() => paneVisibilityStore.isTreePaneHidden ? 'Show Binary Trees' : 'Move Binary Trees here')
+const ioText = computed(() => paneVisibilityStore.isInputOutputPaneHidden ? 'Show I/O' : 'Move I/O here')
+const sequenceDiagramText = computed(() => paneVisibilityStore.isSequenceDiagramPaneHidden ? 'Show Sequence Diagram' : 'Move Sequence Diagram')
 </script>

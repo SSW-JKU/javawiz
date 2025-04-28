@@ -1,7 +1,7 @@
 import { ArrayNode } from './types'
 import { addCellWidthAndStringChanged, getLevelYCoordinate } from './utils'
 import { HTML, LAYOUT } from './constants'
-import { BaseType, Selection } from 'd3-selection'
+import { BaseType, Selection } from 'd3'
 import { HeapArray, HeapArrayElementVar } from '@/dto/TraceState'
 import { SVG } from '../constants'
 import { blendOutAnimation } from '../animations'

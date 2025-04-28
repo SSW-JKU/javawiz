@@ -1,59 +1,60 @@
 <template>
   <div id="step-buttons-container" class="float-container-start-aligned">
     <IconWithTooltip
-      :action="() => generalStore.debugger.stepBack()"
       :enabled="generalStore.debugger.stepBackEnabled"
       :tooltip="{ text: 'Step back', arrow: 'middle' }"
-      :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_left.svg') }"
-      :icon="require('../../assets/icons/controls/arrow_left.svg')" />
+      :shortcut="{ iconPath: shortcut_arrow_left }"
+      :icon="arrow_left"
+      @action="() => generalStore.debugger.stepBack()" />
     <div id="step-buttons-relative-stackcontainer-parent" class="show-on-narrow" style="position: relative; display: flex;">
       <!-- Hidden paragraph to reserve space -->
       <IconWithTooltip
         id="step-buttons-stackcontainer"
-        :icon="require('../../assets/icons/controls/arc_right.svg')"
-        style="visibility: hidden;" :action="() => {}" />
+        :icon="arc_right"
+        style="visibility: hidden;" @action="() => {}" />
       <div
         :class="{'absolute-vertical-box': true, 'wide-expanded': showAllStepButtons}"
         @mouseenter="showAllStepButtons=true"
         @mouseleave="showAllStepButtons=false">
         <transition name="heightfade">
           <IconWithTooltip
-            :action="() => generalStore.debugger.stepOver()"
             :enabled="generalStore.debugger.stepForwardEnabled"
             :tooltip="{ text: 'Step over', arrow: 'middle', placement: 'left' }"
-            :icon="require('../../assets/icons/controls/arc_right.svg')"
-            :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_right.svg') }" />
+            :icon="arc_right"
+            :shortcut="{ iconPath: arrow_right }"
+            @action="() => generalStore.debugger.stepOver()" />
         </transition>
         <transition name="heightfade">
           <IconWithTooltip
             v-if="showAllStepButtons"
-            :action="() => generalStore.debugger.stepInto()"
             :tooltip="{ text: 'Step into', arrow: 'middle', placement: 'left' }"
             :enabled="generalStore.debugger.stepForwardEnabled"
-            :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_down.svg') }"
-            :icon="require('../../assets/icons/controls/arrow_right_down.svg')" />
+            :shortcut="{ iconPath: arrow_down }"
+            :icon="arrow_right_down"
+            @action="() => generalStore.debugger.stepInto()" />
         </transition>
         <transition name="heightfade">
           <IconWithTooltip
             v-if="showAllStepButtons"
-            :action="() => generalStore.debugger.stepOut()"
             :tooltip="{ text: 'Step out', arrow: 'middle', placement: 'left' }"
             :enabled="generalStore.debugger.stepForwardEnabled"
-            :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_up.svg') }"
-            :icon="require('../../assets/icons/controls/arrow_right_up.svg')" />
+            :shortcut="{ iconPath: arrow_up }"
+            :icon="arrow_right_up"
+            @action="() => generalStore.debugger.stepOut()" />
         </transition>
         <div class="float-container-start-aligned no-gap">
           <transition name="heightfade">
             <IconWithTooltip
               v-if="showAllStepButtons"
-              :action="() => generalStore.debugger.runToLine(runToLineNumber ?? -1)"
               :tooltip="{ text: 'Run to line', arrow: 'middle', placement: 'left' }"
               :enabled="generalStore.debugger.stepForwardEnabled"
-              :icon="require('../../assets/icons/controls/arrow_right_bar.svg')"
-              class="run-to-line-arrow" />
+              :icon="arrow_right_bar"
+              class="run-to-line-arrow"
+              @action="() => generalStore.debugger.runToLine(runToLineNumber ?? -1)" />
           </transition>
           <input
             v-if="showAllStepButtons"
+            id="line-number-input-1"
             v-model="runToLineNumber"
             class="line-number-input"
             type="number"
@@ -68,31 +69,32 @@
     </div>
     <div id="step-buttons-flowcontainer" class="hide-on-narrow float-container-center-aligned">
       <IconWithTooltip
-        :action="() => generalStore.debugger.stepOver()"
         :enabled="generalStore.debugger.stepForwardEnabled"
         :tooltip="{ text: 'Step over', arrow: 'middle', placement: 'below' }"
-        :icon="require('../../assets/icons/controls/arc_right.svg')"
-        :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_right.svg') }" />
+        :icon="arc_right"
+        :shortcut="{ iconPath: arrow_right }"
+        @action="() => generalStore.debugger.stepOver()" />
       <IconWithTooltip
-        :action="() => generalStore.debugger.stepInto()"
         :tooltip="{ text: 'Step into', arrow: 'middle', placement: 'below' }"
         :enabled="generalStore.debugger.stepForwardEnabled"
-        :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_down.svg') }"
-        :icon="require('../../assets/icons/controls/arrow_right_down.svg')" />
+        :shortcut="{ iconPath: arrow_down }"
+        :icon="arrow_right_down"
+        @action="() => generalStore.debugger.stepInto()" />
       <IconWithTooltip
-        :action="() => generalStore.debugger.stepOut()"
         :tooltip="{ text: 'Step out', arrow: 'middle', placement: 'below' }"
         :enabled="generalStore.debugger.stepForwardEnabled"
-        :shortcut="{ iconPath: require('../../assets/icons/shortcuts/arrow_up.svg') }"
-        :icon="require('../../assets/icons/controls/arrow_right_up.svg')" />
+        :shortcut="{ iconPath: arrow_up }"
+        :icon="arrow_right_up"
+        @action="() => generalStore.debugger.stepOut()" />
       <div class="float-container-start-aligned no-gap">
         <IconWithTooltip
-          :action="() => generalStore.debugger.runToLine(runToLineNumber ?? -1)"
           :tooltip="{ text: 'Run to line', arrow: 'middle', placement: 'below' }"
           :enabled="generalStore.debugger.stepForwardEnabled"
-          :icon="require('../../assets/icons/controls/arrow_right_bar.svg')"
-          class="run-to-line-arrow" />
+          :icon="arrow_right_bar"
+          class="run-to-line-arrow"
+          @action="() => generalStore.debugger.runToLine(runToLineNumber ?? -1)" />
         <input
+          id="line-number-input-2"
           v-model="runToLineNumber"
           class="line-number-input"
           type="number"
@@ -107,25 +109,30 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
+import { defineComponent, ref } from 'vue'
 import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
+import arrow_right_bar from '../../assets/icons/controls/arrow_right_bar.svg'
+import arrow_right_up from '../../assets/icons/controls/arrow_right_up.svg'
+import arrow_up from '../../assets/icons/shortcuts/arrow_up.svg'
+import arrow_left from '../../assets/icons/controls/arrow_left.svg'
+import arrow_right from '../../assets/icons/shortcuts/arrow_right.svg'
+import arc_right from '../../assets/icons/controls/arc_right.svg'
+import arrow_down from '../../assets/icons/shortcuts/arrow_down.svg'
+import arrow_right_down from '../../assets/icons/controls/arrow_right_down.svg'
+import shortcut_arrow_left from '../../assets/icons/shortcuts/arrow_left.svg'
 
-export default defineComponent({
+
+defineComponent({
   name: 'TheStepButtons',
-  components: { IconWithTooltip },
-  data: function () {
-    return {
-      runToLineNumber: null,
-      showAllStepButtons: false
-    }
-  },
-  computed: {
-    ...mapStores(useGeneralStore)
-  }
+  components: { IconWithTooltip }
 })
+
+const runToLineNumber = ref<number | null>(null)
+const showAllStepButtons = ref(false)
+const generalStore = useGeneralStore()
+
 </script>
 
 <style>

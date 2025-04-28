@@ -2,6 +2,7 @@ package at.jku.ssw.wsdebug.communication
 
 import at.jku.ssw.wsdebug.compilation.COMPILATION_DIR_NAME
 import at.jku.ssw.wsdebug.compilation.ast.AstItem
+import at.jku.ssw.wsdebug.compilation.ast.CONSTRUCTOR_NAME
 import at.jku.ssw.wsdebug.compilation.ast.lang.*
 import at.jku.ssw.wsdebug.compilation.instrumentation.ArrayAccessTarget
 import at.jku.ssw.wsdebug.compilation.instrumentation.VariableTarget
@@ -75,6 +76,7 @@ internal class DebugWebSocketServerTest {
         if (checkAst) {
             val files = (response as CompileSuccessResponse).data.asts.map { it.file }
             assertCorrectMethodCallOffsets(files)
+            assertCorrectMethodCallLengths(files)
             checkEndOfStatementList(files)
         }
         val firstStates = (response as CompileSuccessResponse).data.firstStepResult.traceStates
@@ -1208,7 +1210,7 @@ internal class DebugWebSocketServerTest {
         val items = asts.flatMap { it.descendents() }
 
         items.filterIsInstance<Conditional>().forEach { conditional ->
-            conditional.methodCallExpressions/*.filter { it.userExpandable }*/.forEach { // filter our constructors
+            conditional.methodCallExpressions.forEach { // filter our constructors
                 assert(conditional.condition.substring(it.deltaBegin).startsWith(it.name)) {
                     "${conditional.condition} does not have method call expression \"${it.name}\" at offset ${it.deltaBegin}"
                 }
@@ -1224,6 +1226,22 @@ internal class DebugWebSocketServerTest {
         }
     }
 
+    private fun assertCorrectMethodCallLengths(asts: List<AstFile>) {
+        val items = asts.flatMap { it.descendents() }
+        val methodCallExpressions = buildSet {
+            items.filterIsInstance<Conditional>().forEach {item -> addAll(item.methodCallExpressions)}
+            items.filterIsInstance<Statement>().forEach {item -> addAll(item.methodCallExpressions)}
+        }
+
+        methodCallExpressions.forEach {expression ->
+            if(expression.name == CONSTRUCTOR_NAME) {
+                assertTrue(expression.length > 4) // length should be at least the length of the constructor call "this"
+            } else {
+                assertEquals(expression.length, expression.name.length)
+            }
+        }
+
+    }
 
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
@@ -1700,6 +1718,40 @@ internal class DebugWebSocketServerTest {
             )
         )
         assert(response !is ErrorResponse)
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testSteppingLogic(testFlags: TestFlags) {
+        val response1 = requestCompile(
+            listOf(
+                createFilePathAndContent("$BASIC_LANGUAGE_STRUCTURES/SteppingLogic", "Sum1.java"),
+            )
+        )
+        assertTrue(response1 is CompileSuccessResponse)
+        var response: Response
+        val sizes1 = mutableListOf<Int>()
+        while(true) {
+            response = request(StepOver(1))
+            if(response !is StepResultResponse || !response.data.isVMRunning) break
+            sizes1.add(response.data.traceStates.size)
+        }
+
+        val response2 = requestCompile(
+            listOf(
+                createFilePathAndContent("$BASIC_LANGUAGE_STRUCTURES/SteppingLogic", "Sum2.java"),
+            )
+        )
+        assertTrue(response2 is CompileSuccessResponse)
+        val sizes2 = mutableListOf<Int>()
+        while(true) {
+            response = request(StepOver(1))
+            if(response !is StepResultResponse || !response.data.isVMRunning) break
+            sizes2.add(response.data.traceStates.size)
+        }
+
+        assertIterableEquals(sizes1, sizes2)
     }
 
 

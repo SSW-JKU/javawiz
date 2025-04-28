@@ -18,11 +18,11 @@
             v-for="(deskTestLine, lineIdx) in generalStore.currentTraceData?.deskTestLines"
             :key="lineIdx"
             :class="{highlighted: deskTestLine.line === hoverStore.hoveredLine && deskTestLine.localUri === hoverStore.hoveredLineUri }"
-            @mouseover="event => {
+            @mouseover="() => {
               hover(deskTestLine)
               hoverStore.changeLine({ lineNr: deskTestLine.line, localUri: deskTestLine.localUri })
             }"
-            @mouseout="event => {
+            @mouseout="() => {
               clearHover()
               hoverStore.changeLine({ lineNr: -1, localUri: deskTestLine.localUri })
             }">
@@ -61,10 +61,10 @@
               class="sub-header-cell"
               :class="{ 'highlighted-col': methodHighlighted(method) }"
               :colspan="method.vars.length + method.conditions.length"
-              @mouseenter="event => {
+              @mouseenter="() => {
                 hover(method)
               }"
-              @mouseleave="event => {
+              @mouseleave="() => {
                 clearHover()
               }">
               <text :title="method.displayText">
@@ -92,10 +92,10 @@
                 v-for="(variable, variableIdx) in method.vars"
                 :key="variableIdx"
                 :class="{ 'last-header-child': isLastChild(variableIdx, method.vars.length), 'highlighted-col': localHighlighted(variable) }"
-                @mouseenter="event => {
+                @mouseenter="() => {
                   hover(variable)
                 }"
-                @mouseleave="event => {
+                @mouseleave="() => {
                   clearHover()
                 }">
                 <text :title="variable.name">
@@ -106,10 +106,10 @@
                 v-for="(condition, conditionIdx) in method.conditions"
                 :key="conditionIdx"
                 :class="{ 'last-header-child': isLastChild(conditionIdx, method.conditions.length), 'highlighted-col': conditionHighlighted(condition) }"
-                @mouseenter="event => {
+                @mouseenter="() => {
                   hover(condition)
                 }"
-                @mouseleave="event => {
+                @mouseleave="() => {
                   clearHover()
                 }">
                 <text :title="condition.expression">
@@ -122,10 +122,10 @@
               v-for="(staticVar, staticVarIdx) in statics"
               :key="staticVarIdx"
               :class="{ 'last-header-child': isLastChild(staticVarIdx, statics.length), 'highlighted-col': staticHighlighted(staticVar) }"
-              @mouseenter="event => {
+              @mouseenter="() => {
                 hover(staticVar)
               }"
-              @mouseleave="event => {
+              @mouseleave="() => {
                 clearHover()
               }">
               <text :title="staticVar.class + '.' + staticVar.name">
@@ -140,11 +140,11 @@
             :key="lineIdx"
             class="value-row"
             :class="{highlighted: deskTestLine.line === hoverStore.hoveredLine && deskTestLine.localUri === hoverStore.hoveredLineUri }"
-            @mouseover="event => {
+            @mouseover="() => {
               hover(deskTestLine)
               hoverStore.changeLine({ lineNr: deskTestLine.line, localUri: deskTestLine.localUri })
             }"
-            @mouseout="event => {
+            @mouseout="() => {
               clearHover()
               hoverStore.changeLine({ lineNr: -1, localUri: deskTestLine.localUri })
             }">
@@ -190,143 +190,116 @@
   </div>
 </template>
 
-<script lang = 'ts'>
-import { defineComponent } from 'vue'
+<script setup lang = 'ts'>
+import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { DeskTestCondition, DeskTestMethod, DeskTestStatic, DeskTestVar, HoverTarget } from '@/components/TheDeskTest/types'
 import DeskTestValue from './DeskTestValue.vue'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
 import { DESKTEST } from '@/store/PaneVisibilityStore'
 import { useHoverStore } from '@/store/HoverStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverInfo } from '@/hover/types'
 
-type DeskTestData = {
-  DESKTEST: number,
-  highlightedInfo: HoverInfo[]
-}
-
-export default defineComponent({
+defineComponent({
   name: 'TheDeskTest',
   components: {
     NavigationBarWithSettings,
     DeskTestValue
-  },
-  data: () => {
-    const value: DeskTestData = {
-      DESKTEST,
-      highlightedInfo: []
-    }
-    return value
-  },
-  computed: {
-    methods: function (): DeskTestMethod[] {
-      const vm = this
-      return vm.generalStore.currentTraceData?.deskTestLines.at(-1)?.methods ?? []
-    },
-    totalNrOfLocals: function (): number {
-      const vm = this
-      return vm.methods.flatMap(m => m.vars).length + vm.methods.flatMap(m => m.conditions).length
-    },
-    statics: function (): DeskTestStatic[] {
-      const vm = this
-      return vm.generalStore.currentTraceData?.deskTestLines.at(-1)?.statics ?? []
-    },
-    editorTextsAsArray: function (): { [key: string]: string[] } {
-      const vm = this
-      const result: {[key: string]: string[] } = {}
-      for (const fileContent of vm.generalStore.fileManager.fileContents.entries()) {
-        result[fileContent[0]] = fileContent[1].split('\n')
-      }
-      return result
-    },
-    ...mapStores(useGeneralStore, useHoverStore)
-  },
-  watch: {
-    deskTestLines: function () { // TODO: remove?
-      const vm = this
-      const div = document.getElementById('desktest-pane')
-
-      // we need to wait until the rendering has finished, otherwise the scrollbar will be "one line off"/not fully at the bottom
-      vm.$nextTick(function () {
-        if (div) {
-          div.scrollTop = div.scrollHeight
-        }
-      })
-    }
-  },
-  mounted: function () {
-    const vm = this
-
-    const div = document.getElementById('desktest-pane')
-    vm.$nextTick(function () {
-      if (div) {
-        div.scrollTop = div.scrollHeight
-      }
-    })
-
-    HoverSynchronizer.onHover(vm.onHover)
-  },
-  unmounted: function () {
-    const vm = this
-
-    HoverSynchronizer.removeOnHover(vm.onHover)
-  },
-  methods: {
-    onHover: function (hoverInfos: HoverInfo[]) {
-      this.highlightedInfo = hoverInfos
-    },
-    hover: function (element: HoverTarget) {
-      HoverSynchronizer.hover(element.hoverInfos)
-    },
-    toggleOverflow: function (selector: string, reveal: boolean) {
-      const element = document.querySelector(selector) as HTMLElement
-      if (!element) {
-        return
-      }
-      if (!reveal) {
-        element.classList.remove('reveal-hover')
-      } else if (element.offsetWidth < element.scrollWidth) {
-        element.classList.add('reveal-hover')
-      }
-    },
-    isLastChild: function (idx: number, len: number): string {
-      return idx === len - 1 ? 'last-header-child' : ''
-    },
-
-    editorText: function (line: number, uri: string): string {
-      return this.editorTextsAsArray[uri][line - 1].replace(/\t/g, '  ')
-    },
-    methodHighlighted (method: DeskTestMethod): boolean {
-      for (const hoverInfo of this.highlightedInfo) {
-        if (hoverInfo.kind === 'Method' && hoverInfo.class === method.class && hoverInfo.method === method.displayText) return true
-      }
-      return false
-    },
-    localHighlighted (local: DeskTestVar): boolean {
-      for (const hoverInfo of this.highlightedInfo) {
-        if (hoverInfo.kind === 'Local' && hoverInfo.name === local.name && hoverInfo.class === local.class && hoverInfo.method === local.method) return true
-      }
-      return false
-    },
-    staticHighlighted (staticVar: DeskTestStatic) {
-      for (const hoverInfo of this.highlightedInfo) {
-        if (hoverInfo.kind === 'Static' && hoverInfo.class === staticVar.class && hoverInfo.name === staticVar.name) return true
-      }
-      return false
-    },
-    conditionHighlighted (condition: DeskTestCondition): boolean {
-      for (const hoverInfo of this.highlightedInfo) {
-        if (hoverInfo.kind === 'Condition' && hoverInfo.class === condition.class && hoverInfo.expression === condition.expression) return true
-      }
-      return false
-    },
-    clearHover () {
-      HoverSynchronizer.clear()
-      this.highlightedInfo = []
-    }
   }
+})
+const generalStore = useGeneralStore()
+const hoverStore = useHoverStore()
+const highlightedInfo = ref<HoverInfo[]>([])
+const methods = computed(() => generalStore.currentTraceData?.deskTestLines.at(-1)?.methods ?? [])
+const totalNrOfLocals = computed(() => methods.value.flatMap(m => m.vars).length + methods.value.flatMap(m => m.conditions).length)
+const statics = computed(() => generalStore.currentTraceData?.deskTestLines.at(-1)?.statics ?? [])
+const editorTextsAsArray = computed(() => {
+  const result: {[key: string]: string[] } = {}
+  for (const fileContent of generalStore.fileManager.fileContents.entries()) {
+    result[fileContent[0]] = fileContent[1].split('\n')
+  }
+  return result
+})
+/*
+watch(deskTestLines, () => { // TODO: remove?
+  const vm = this
+  const div = document.getElementById('desktest-pane')
+
+  // we need to wait until the rendering has finished, otherwise the scrollbar will be "one line off"/not fully at the bottom
+  vm.$nextTick(function () {
+    if (div) {
+      div.scrollTop = div.scrollHeight
+    }
+  })
+})
+  */
+
+function onHover (hoverInfos: HoverInfo[]) {
+  highlightedInfo.value = hoverInfos
+}
+function hover (element: HoverTarget) {
+  HoverSynchronizer.hover(element.hoverInfos)
+}
+function toggleOverflow (selector: string, reveal: boolean) {
+  const element = document.querySelector(selector) as HTMLElement
+  if (!element) {
+    return
+  }
+  if (!reveal) {
+    element.classList.remove('reveal-hover')
+  } else if (element.offsetWidth < element.scrollWidth) {
+    element.classList.add('reveal-hover')
+  }
+}
+function isLastChild (idx: number, len: number): string {
+  return idx === len - 1 ? 'last-header-child' : ''
+}
+
+function editorText (line: number, uri: string): string {
+  return editorTextsAsArray.value[uri][line - 1].replace(/\t/g, '  ')
+}
+function methodHighlighted (method: DeskTestMethod): boolean {
+  for (const hoverInfo of highlightedInfo.value) {
+    if (hoverInfo.kind === 'Method' && hoverInfo.class === method.class && hoverInfo.method === method.displayText) return true
+  }
+  return false
+}
+function localHighlighted (local: DeskTestVar): boolean {
+  for (const hoverInfo of highlightedInfo.value) {
+    if (hoverInfo.kind === 'Local' && hoverInfo.name === local.name && hoverInfo.class === local.class && hoverInfo.method === local.method) return true
+  }
+  return false
+}
+function staticHighlighted (staticVar: DeskTestStatic) {
+  for (const hoverInfo of highlightedInfo.value) {
+    if (hoverInfo.kind === 'Static' && hoverInfo.class === staticVar.class && hoverInfo.name === staticVar.name) return true
+  }
+  return false
+}
+function conditionHighlighted (condition: DeskTestCondition): boolean {
+  for (const hoverInfo of highlightedInfo.value) {
+    if (hoverInfo.kind === 'Condition' && hoverInfo.class === condition.class && hoverInfo.expression === condition.expression) return true
+  }
+  return false
+}
+function clearHover () {
+  HoverSynchronizer.clear()
+  highlightedInfo.value = []
+}
+
+onMounted(() => {
+  const div = document.getElementById('desktest-pane')
+  nextTick(function () {
+    if (div) {
+      div.scrollTop = div.scrollHeight
+    }
+  })
+
+  HoverSynchronizer.onHover(onHover)
+})
+onUnmounted(() => {
+  HoverSynchronizer.removeOnHover(onHover)
 })
 </script>
 

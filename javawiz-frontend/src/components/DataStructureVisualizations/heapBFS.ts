@@ -29,7 +29,7 @@ export function heapBFS (
   loadedClasses: LoadedClass[],
   stackFrames: StackFrame[],
   heap: HeapItem[],
-  onlyCurrentStackFrame?: Boolean
+  onlyCurrentStackFrame?: boolean
 ): { root: HeapTreeNode, heapNodes: HeapTreeNode[] } {
   const heapBFSUtils: HeapBFSUtils = {
     root: { children: [], depth: 0, name: 'root' },
@@ -59,7 +59,7 @@ function processStack (
   heapBFSUtils: HeapBFSUtils,
   stackFrames: StackFrame[],
   heap: HeapItem[],
-  onlyCurrentStackFrame?: Boolean
+  onlyCurrentStackFrame?: boolean
 ) {
   for (let i = onlyCurrentStackFrame ? 0 : stackFrames.length - 1; i >= 0; i--) {
     for (let j = 0; j < stackFrames[i].localVariables.length; j++) {

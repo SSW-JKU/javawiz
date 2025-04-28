@@ -21,7 +21,7 @@ export function isHighlighted (hoveredInfos: HoverInfo[], nodeOrPointer: ListNod
 
         if (nodeOrPointerIsHighlighted) return true
       } else if (hInfo.kind === 'Field') { // check if the next field of a list node is highlighted
-        const currNode = (nodeOrPointer.node as any).element as HeapObject
+        const currNode = nodeOrPointer.node.element as HeapObject
         if (fieldIndex !== -1) {
           const nodeField = currNode.fields[fieldIndex]
           if (currNode.id === hInfo.objId && nodeField.name === hInfo.name) return true
@@ -39,7 +39,7 @@ export function isHighlighted (hoveredInfos: HoverInfo[], nodeOrPointer: ListNod
 export function isHighlightedRef (hoveredRefs: HoverInfo[], node: ListNode | ReferenceNode): boolean {
   for (const hInfo of hoveredRefs) {
     if (hInfo.kind !== 'HeapObject') continue
-    const currNode = ('reference' in node ? (node.reference as any).element : (node.node as any).element) as HeapObject
+    const currNode = ('reference' in node ? node.reference.element : node.node!.element) as HeapObject
     if (currNode.id === hInfo.objId) {
       return true
     }
@@ -75,7 +75,7 @@ export function getListNodeHoverInfo (node: HeapObject, name: string = ''): Hove
   }
 
   if (name.length > 0) {
-    const currField = node.fields.find(field => field.name === name)!!
+    const currField = node.fields.find(field => field.name === name)!
     const reference = 'reference' in currField.value ? currField.value.reference : -1
     hoverInfos.push(createHoverField(node.id, currField.name, reference))
 

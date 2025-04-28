@@ -82,7 +82,7 @@ export function getHeapTree (
   stateIndex: number,
   traceState: ProcessedTraceState | undefined,
   firstState: TraceState,
-  onlyCurrentStackFrame?: Boolean
+  onlyCurrentStackFrame?: boolean
 ) {
   let loadedClasses: LoadedClass[]
   let stack: StackFrame[]

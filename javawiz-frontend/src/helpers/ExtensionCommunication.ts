@@ -12,9 +12,9 @@ import { useGeneralStore } from '@/store/GeneralStore'
 export class ExtensionCommunication {
   private static webSocket: WebSocket
 
-  private static generalStore: any /* TODO we can type the pinia store */
+  private static generalStore: ReturnType<typeof useGeneralStore>
 
-  private static sendConsoleInputTextCallback: () => any
+  private static sendConsoleInputTextCallback: () => void
 
   public static active (): boolean {
     return this.webSocket && this.webSocket.readyState === this.webSocket.OPEN
@@ -46,7 +46,7 @@ export class ExtensionCommunication {
       // TODO react to error flag set by extension
     }
     console.log({ response })
-    return (response.data as GetFileContentsResponseData)!!
+    return (response.data as GetFileContentsResponseData)!
   }
 
   public static sendSetConsoleEnabled (enabled: boolean) {
@@ -61,7 +61,7 @@ export class ExtensionCommunication {
       })
   }
 
-  public static connectToExtension (sendInput: () => any, port: number): Promise<void> {
+  public static connectToExtension (sendInput: () => void, port: number): Promise<void> {
     ExtensionCommunication.sendConsoleInputTextCallback = sendInput
     ExtensionCommunication.webSocket = new WebSocket(`ws://localhost:${port}`)
     ExtensionCommunication.generalStore = useGeneralStore()
@@ -108,7 +108,7 @@ export class ExtensionCommunication {
         reject(connectionDiedError)
       }
 
-      function handle (event: MessageEvent<any>) {
+      function handle (event: MessageEvent<string>) {
         const data = JSON.parse(event.data)
         shared.logDebug(
           'Response Listener for message ' +

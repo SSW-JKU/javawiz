@@ -11,8 +11,8 @@ import { getBoxEnd, getOrderIndex, isHidden } from '@/components/TheSequenceDiag
  */
 export function getArrowCoordinates (arrow: Arrow, activeTimeIndices: number[]): [number, number] {
   return [
-    arrow.to!!.index * 80 + 30,
-    activeTimeIndices.indexOf(arrow.time!!) * 15
+    arrow.to!.index * 80 + 30,
+    activeTimeIndices.indexOf(arrow.time!) * 15
   ]
 }
 
@@ -51,7 +51,7 @@ export function getLifeLineCoordinates (lifeLine: LifeLine, activeTimeIndices: n
  */
 export function getCoordinatesOfChange ({ arrows, lifeLines, boxes }: Elements, timeIdx: number, activeTimeIndices: number[]) {
   let changedArrow: Arrow | undefined
-  const lastArrow = arrows.at(-1)!!
+  const lastArrow = arrows.at(-1)!
   const firstArrow = arrows[0]
   if (lastArrow.time === timeIdx && !lastArrow.isHidden && lastArrow.changed) {
     changedArrow = lastArrow
@@ -64,7 +64,7 @@ export function getCoordinatesOfChange ({ arrows, lifeLines, boxes }: Elements, 
     return getArrowCoordinates(changedArrow, activeTimeIndices)
   }
   let changedLifeLine: LifeLine | undefined
-  const lastLifeLine = lifeLines.at(-1)!!
+  const lastLifeLine = lifeLines.at(-1)!
   if (lastLifeLine.start === timeIdx && !isHidden(lastLifeLine) && lastLifeLine.changed) {
     for (let i = 0; i < arrows.length; i++) {
       if (arrows[i].kind === 'Constructor' && arrows[i].to === lastLifeLine && !arrows[i].isHidden) {
@@ -79,7 +79,7 @@ export function getCoordinatesOfChange ({ arrows, lifeLines, boxes }: Elements, 
   }
 
   let changedBox: Box | undefined
-  const lastBox = boxes.at(-1)!!
+  const lastBox = boxes.at(-1)!
   const firstBox = boxes[0]
   if (getBoxEnd(lastBox, timeIdx) === timeIdx && !isHidden(lastBox) && lastBox.changed) {
     changedBox = lastBox

@@ -149,14 +149,12 @@ function getHoverInfos (state: ProcessedTraceState): HoverInfo[] { // only highl
   // add line as HoverInfo
   hoverInfos.push(createHoverLine(state.line, state.localUri))
 
-  // eslint-disable-next-line no-unreachable-loop
   for (const condition of frame.conditionValues) {
     if (!condition.evaluated) continue
     hoverInfos.push(createHoverCondition(frame.class, condition.expression))
     return hoverInfos
   }
 
-  // eslint-disable-next-line no-unreachable-loop
   for (const localVariable of frame.localVariables) {
     if (!localVariable.changed) continue
     let reference = -1
@@ -167,7 +165,6 @@ function getHoverInfos (state: ProcessedTraceState): HoverInfo[] { // only highl
     hoverInfos.push(createHoverLocal(frame.class, frame.method, localVariable.name, reference))
     return hoverInfos
   }
-  // eslint-disable-next-line no-unreachable-loop
   for (const clazz of state.loadedClassesAfterExecution) {
     for (const staticField of clazz.staticFields) {
       if (!staticField.changed) continue

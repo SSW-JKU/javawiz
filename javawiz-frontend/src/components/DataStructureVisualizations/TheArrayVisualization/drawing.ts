@@ -400,7 +400,7 @@ export function animateValueCopies (copyAnimations: CopyAnimations) {
     const curve3 = line().curve(curveBasis)
     const points3: [number, number][] = [copyAnimation.coordinatesFrom, coordinatesMiddle, copyAnimation.coordinatesTo]
     const path = copyAnimations.movingViz.append('path')
-      .attr('d', curve3(points3)!!)
+      .attr('d', curve3(points3)!)
       .attr('stroke', 'red')
       .attr('fill', 'none')
     copyAnimations.movingViz.append('rect')

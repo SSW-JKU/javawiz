@@ -1,4 +1,3 @@
-<!--suppress CssUnresolvedCustomProperty -->
 <template>
   <div :id="HTML.ids.parentDiv" :style="cssVariables">
     <div :id="HTML.ids.fieldNotFound" class="pane-default-text" style="color: red; display: none">
@@ -57,7 +56,7 @@
 import { BaseType, select, Selection } from 'd3-selection'
 import 'd3-transition'
 import { zoom, zoomIdentity } from 'd3-zoom'
-import { defineComponent } from 'vue'
+import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
 import { FUZZY_NAMES, HTML, LAYOUT, LOCAL_STORAGE } from './constants'
@@ -72,8 +71,6 @@ import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverInfo } from '@/hover/types'
 import { LINKEDLIST } from '@/store/PaneVisibilityStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
-import { ProcessedTraceState, TraceState } from '@/dto/TraceState'
 import { DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/helpers/constants'
 
 export let levelCoordinates: number[] = [LAYOUT.nodes.yOrigin] // Y offsets of levels
@@ -82,185 +79,155 @@ let transform: any = zoomIdentity // holds the current zoom-state
 export default defineComponent({
   name: 'TheListVisualization',
   components: { SvgDefinitions, NavigationBarWithSettings },
-  data: function () {
-    return {
-      nextName: localStorage.getItem(LOCAL_STORAGE.nextName) || 'next',
-      valName: localStorage.getItem(LOCAL_STORAGE.valName) || 'val',
-      prevName: localStorage.getItem(LOCAL_STORAGE.prevName) || 'prev',
-      resizeObserver: null as unknown as ResizeObserver,
-      zoomCall: zoom().on('zoom', (event) => {
-        transform = event.transform
-        select(`#${HTML.ids.list}`).attr('transform', transform)
-      }),
-      svg: select(`#${HTML.ids.listSvg}`),
-      LINKEDLIST,
-      hoveredInfos: [] as HoverInfo[],
-      listClassName: '',
-      nodeClassName: ''
+  setup () {
+    const nextName = ref(localStorage.getItem(LOCAL_STORAGE.nextName) || 'next')
+    const valName = ref(localStorage.getItem(LOCAL_STORAGE.valName) || 'val')
+    const prevName = ref(localStorage.getItem(LOCAL_STORAGE.prevName) || 'prev')
+    const resizeObserver = ref(null as unknown as ResizeObserver)
+    const zoomCall = ref(zoom().on('zoom', (event) => {
+      transform = event.transform
+      select(`#${HTML.ids.list}`).attr('transform', transform)
+    }))
+    const listClassName = ref<string | undefined>('')
+    const nodeClassName = ref<string | undefined>('')
+    const svg = ref(select(`#${HTML.ids.listSvg}`))
+    const hoveredInfos = ref([] as HoverInfo[])
+
+    const generalStore = useGeneralStore()
+    const traceState = computed(() => generalStore.currentTraceData?.processedTraceState)
+    const firstState = computed(() => generalStore.currentTraceData!.firstTraceState)
+    const stateIndex = computed(() => generalStore.currentTraceData?.stateIndex ?? 0)
+    const compiledClasses = computed(() => generalStore.debugger.getCompiledClasses()!)
+    const cssVariables = {
+      '--cell-font-size': CSS.cell.fontSize + 'px',
+      '--cell-name-font-family': CSS.cell.name.fontFamily,
+      '--cell-name-font-weight': CSS.cell.name.fontWeight,
+      '--cell-value-font-family': CSS.cell.value.fontFamily,
+      '--cell-value-font-weight': CSS.cell.value.fontWeight,
+      '--pointer-font-size': CSS.pointer.fontSize + 'px',
+      '--pointer-parent-font-size': CSS.pointer.parent.fontSize + 'px',
+      '--pointer-parent-font-style': CSS.pointer.parent.fontStyle,
+      '--pointer-parent-font-family': CSS.pointer.parent.fontFamily,
+      '--pointer-name-font-family': CSS.pointer.name.fontFamily
+
     }
-  },
-  computed: {
-    ...mapStores(useGeneralStore),
-    traceState (): ProcessedTraceState | undefined {
-      return this.generalStore.currentTraceData?.processedTraceState
-    },
-    firstState (): TraceState {
-      return this.generalStore.currentTraceData?.firstTraceState!
-    },
-    stateIndex (): number {
-      return this.generalStore.currentTraceData?.stateIndex ?? 0
-    },
-    compiledClasses (): string[] {
-      return this.generalStore.debugger.getCompiledClasses()!!
-    },
-    HTML () {
-      return HTML
-    },
-    cssVariables () {
-      return {
-        '--cell-font-size': CSS.cell.fontSize + 'px',
-        '--cell-name-font-family': CSS.cell.name.fontFamily,
-        '--cell-name-font-weight': CSS.cell.name.fontWeight,
-        '--cell-value-font-family': CSS.cell.value.fontFamily,
-        '--cell-value-font-weight': CSS.cell.value.fontWeight,
-        '--pointer-font-size': CSS.pointer.fontSize + 'px',
-        '--pointer-parent-font-size': CSS.pointer.parent.fontSize + 'px',
-        '--pointer-parent-font-style': CSS.pointer.parent.fontStyle,
-        '--pointer-parent-font-family': CSS.pointer.parent.fontFamily,
-        '--pointer-name-font-family': CSS.pointer.name.fontFamily
-      }
-    },
-    svgWidth () {
-      return SVG.cellWidth * ((LAYOUT.defaultNumberOfNodes + 2) * LAYOUT.nodes.distances.multiplier + LAYOUT.nodes.distances.constant)
+    const svgWidth = SVG.cellWidth * ((LAYOUT.defaultNumberOfNodes + 2) * LAYOUT.nodes.distances.multiplier + LAYOUT.nodes.distances.constant)
+
+    function onHover (hoverInfos: HoverInfo[]) {
+      hoveredInfos.value = hoverInfos
+      redraw(hoveredInfos.value)
     }
-  },
-  watch: {
-    stateIndex: function () {
-      const vm = this
-      vm.redraw(vm.hoveredInfos)
-    },
-    nextName: function () {
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.nextName, vm.nextName)
-      vm.redraw(vm.hoveredInfos)
-    },
-    valName: function () {
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.valName, vm.valName)
-      vm.redraw(vm.hoveredInfos)
-    },
-    prevName: function () {
-      const vm = this
-      localStorage.setItem(LOCAL_STORAGE.prevName, vm.prevName)
-      vm.redraw(vm.hoveredInfos)
-    },
-    compiledClasses: function () {
-      const vm = this
-      vm.listClassName = fuzzySearch(FUZZY_NAMES.list, vm.compiledClasses) ?? ''
-      vm.nodeClassName = fuzzySearch(FUZZY_NAMES.node, vm.compiledClasses) ?? ''
-    }
-  },
-  mounted () {
-    const vm = this
-
-    // selection was empty when component was created, since template was not inserted yet
-    vm.svg = select(`#${HTML.ids.listSvg}`)
-
-    HoverSynchronizer.onHover(vm.onHover)
-
-    const div = document.getElementById(HTML.ids.parentDiv)
-    vm.resizeObserver = new ResizeObserver(() => {
-      if (div) {
-        const height = div.offsetHeight / div.offsetWidth * vm.svgWidth
-        if (height) {
-          vm.svg.attr('viewBox', `0 0 ${vm.svgWidth} ${height}`)
-        }
-      }
-    })
-    vm.resizeObserver.observe(div as any)
-    // delete old visualization
-    vm.deleteViz()
-    vm.redraw(vm.hoveredInfos)
-    // TODO: find out why second redraw is needed (list is not drawn otherwise)
-    vm.redraw(vm.hoveredInfos)
-  },
-  unmounted () {
-    const vm = this
-
-    const div = document.getElementById(HTML.ids.parentDiv)
-    if (div) {
-      this.resizeObserver.unobserve(div)
-    }
-    HoverSynchronizer.removeOnHover(vm.onHover)
-  },
-  methods: {
-    onHover: function (hoverInfos: HoverInfo[]) {
-      const vm = this
-
-      vm.hoveredInfos = hoverInfos
-      vm.redraw(vm.hoveredInfos)
-    },
-    deleteViz: function () {
+    function deleteViz () {
       removeChildren(`#${HTML.ids.listNodes}`)
       removeChildren(`#${HTML.ids.nextPointers}`)
       removeChildren(`#${HTML.ids.nodePointers}`)
-    },
-    redraw: function (hoveredInfos: HoverInfo[]) {
-      const vm = this
-      const { root: heapTree, heapNodes } = getHeapTree(vm.stateIndex, vm.traceState, vm.firstState, undefined)
+    }
+
+    function redraw (hoveredInfos: HoverInfo[]) {
+      const { root: heapTree, heapNodes } = getHeapTree(stateIndex.value, traceState.value, firstState.value, undefined)
 
       // get lists
-      const lists = getNodesOfType(heapNodes, vm.listClassName)
+      const lists = getNodesOfType(heapNodes, listClassName.value!)
 
       // create data-structure for nodes and next-pointers
       levelCoordinates = [LAYOUT.nodes.yOrigin]
-      const { nodes, pointers, nextPointers, referenceNodes } = createListAndNextPointerStructs(heapTree, lists, levelCoordinates, vm)
+      const { nodes, pointers, nextPointers, referenceNodes } = createListAndNextPointerStructs(heapTree, lists, levelCoordinates, {
+        nodeClassName: nodeClassName.value!, nextName: nextName.value, valName: valName.value
+      })
       // create data-structure for node pointers
-      const svg = vm.svg as Selection<BaseType, unknown, HTMLElement, any>
-      const nodePointers = createPointerStructure(svg, nodes, pointers, lists, vm)
+      const _svg = svg.value as Selection<BaseType, unknown, HTMLElement, any>
+      const nodePointers = createPointerStructure(_svg, nodes, pointers, lists, {
+        prevName: prevName.value, nodeClassName: nodeClassName.value!
+      })
 
       // check if fields (next, value) in nodes exist
-      const fieldNotFound = checkFields(nodes, [vm.nextName, vm.valName], HTML.ids.fieldNotFound)
+      const fieldNotFound = checkFields(nodes, [nextName.value, valName.value], HTML.ids.fieldNotFound)
       if (fieldNotFound) {
-        vm.deleteViz()
+        deleteViz()
         return
       }
 
-      processChildren(nodes, vm)
+      processChildren(nodes, { valName: valName.value, nextName: nextName.value })
       processChildren(referenceNodes)
 
       // visualize everything
-      drawNodeRectangles(svg, nodes, vm, hoveredInfos)
-      drawReferenceNodes(svg, referenceNodes, hoveredInfos)
-      drawNextPointers(svg, nextPointers, hoveredInfos)
-      drawPointers(svg, nodePointers, hoveredInfos)
+      drawNodeRectangles(_svg, nodes, { valName: valName.value, nextName: nextName.value }, hoveredInfos)
+      drawReferenceNodes(_svg, referenceNodes, hoveredInfos)
+      drawNextPointers(_svg, nextPointers, hoveredInfos)
+      drawPointers(_svg, nodePointers, hoveredInfos)
 
       // get coordinate of first change
       const { x, y } = getCoordinatesOfChange(nodePointers, nextPointers)
 
       // add ability to zoom and pan
-      vm.svg.call(vm.zoomCall as any)
+      _svg.call(zoomCall.value as any)
 
       // translate zoom, so x and y are visible
-      zoomToChange(x, y, transform, vm.zoomCall, HTML.ids.parentDiv, vm.svgWidth, vm.svg as Selection<BaseType, unknown, HTMLElement, any>)
-    },
-    getTransition: function () {
-      const vm = this
-      return vm.svg.transition().duration(TRANSFORMATION.duration)
-        .ease(TRANSFORMATION.ease) as any
-    },
-    zoomIn: function () {
-      const vm = this
-      vm.zoomCall.scaleBy(vm.getTransition(), DEFAULT_ZOOM_FACTOR)
-    },
-    zoomOut: function () {
-      const vm = this
-      vm.zoomCall.scaleBy(vm.getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
-    },
-    zoomReset: function () {
-      const vm = this
-      vm.zoomCall.transform(vm.getTransition(), zoomIdentity)
+      zoomToChange(x, y, transform, zoomCall.value, HTML.ids.parentDiv, svgWidth, _svg)
     }
+
+    function getTransition () {
+      return svg.value.transition().duration(TRANSFORMATION.duration)
+        .ease(TRANSFORMATION.ease) as any
+    }
+    function zoomIn () {
+      zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
+    }
+    function zoomOut () {
+      zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
+    }
+    function zoomReset () {
+      zoomCall.value.transform(getTransition(), zoomIdentity)
+    }
+
+    watch(stateIndex, () => redraw(hoveredInfos.value))
+    watch(nextName, () => {
+      localStorage.setItem(LOCAL_STORAGE.nextName, nextName.value)
+      redraw(hoveredInfos.value)
+    })
+    watch(valName, () => {
+      localStorage.setItem(LOCAL_STORAGE.valName, valName.value)
+      redraw(hoveredInfos.value)
+    })
+    watch(prevName, () => {
+      localStorage.setItem(LOCAL_STORAGE.prevName, prevName.value)
+      redraw(hoveredInfos.value)
+    })
+    watch(compiledClasses, () => {
+      listClassName.value = fuzzySearch(FUZZY_NAMES.list, compiledClasses.value)
+      nodeClassName.value = fuzzySearch(FUZZY_NAMES.node, compiledClasses.value)
+    })
+
+    onMounted(() => {
+      // selection was empty when component was created, since template was not inserted yet
+      svg.value = select(`#${HTML.ids.listSvg}`)
+
+      HoverSynchronizer.onHover(onHover)
+
+      const div = document.getElementById(HTML.ids.parentDiv)
+      resizeObserver.value = new ResizeObserver(() => {
+        if (div) {
+          const height = div.offsetHeight / div.offsetWidth * svgWidth
+          if (height) {
+            svg.value.attr('viewBox', `0 0 ${svgWidth} ${height}`)
+          }
+        }
+      })
+      resizeObserver.value.observe(div as any)
+      // delete old visualization
+      deleteViz()
+      redraw(hoveredInfos.value)
+      // TODO: find out why second redraw is needed (list is not drawn otherwise)
+      redraw(hoveredInfos.value)
+    })
+    onUnmounted(() => {
+      const div = document.getElementById(HTML.ids.parentDiv)
+      if (div) {
+        resizeObserver.value.unobserve(div)
+      }
+      HoverSynchronizer.removeOnHover(onHover)
+    })
+    return { zoomIn, zoomOut, zoomReset, cssVariables, LINKEDLIST, HTML, listClassName, compiledClasses, nodeClassName, hoveredInfos, redraw, nextName, valName, prevName }
   }
 })
 </script>

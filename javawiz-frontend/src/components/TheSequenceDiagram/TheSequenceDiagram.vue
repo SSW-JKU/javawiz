@@ -23,7 +23,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { select } from 'd3-selection'
 import { drawLifeLines, drawArrows, drawBoxes } from '@/components/TheSequenceDiagram/drawing'
 import { zoom, zoomIdentity } from 'd3-zoom'
@@ -45,150 +45,122 @@ import {
 } from '@/components/TheSequenceDiagram/data-utils'
 import { getCoordinatesOfChange, zoomToChange } from './zooming-utils'
 import { SEQUENCEDIAGRAM } from '@/store/PaneVisibilityStore'
-import { mapStores } from 'pinia'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { Elements } from './types'
+import { Box, Elements, LifeLine } from './types'
+import { HoverInfo } from '@/hover/types'
+import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
+import { ProcessedTraceState } from '@/dto/TraceState'
+import { fromProcessedTraceState } from '@/components/TheHeapVisualization/mapping'
 
 let transform: any = zoomIdentity // holds the current zoom-state
 export default defineComponent({
   name: 'TheSequenceDiagram',
   components: { SvgDefinitions, NavigationBarWithSettings },
-  data: function () {
-    return {
-      svg: select('#sequence-diagram-svg'),
-      resizeObserver: null as unknown as ResizeObserver,
-      zoomCall: zoom().on('zoom', (event) => {
-        transform = event.transform
-        select(`#sequence-diagram`).attr('transform', transform)
-      }),
-      hiddenIntervals: [],
-      hiddenLifeLines: [],
-      SEQUENCEDIAGRAM
-    }
-  },
-  computed: {
-    ...mapStores(useGeneralStore),
-    svgWidth () {
-      return window.innerWidth * SVG.multiplier
-    },
-    lifeLines () {
-      return this.generalStore.currentTraceData!.lifeLines
-    },
-    arrows () {
-      return this.generalStore.currentTraceData!.arrows
-    },
-    boxes () {
-      return this.generalStore.currentTraceData!.boxes
-    },
-    timeIdx () {
-      return this.generalStore.currentTraceData!.timeIdx
-    },
-    stateIndex () {
-      return this.generalStore.currentTraceData!.stateIndex
-    },
-    timeIdxStateIdxMap () {
-      return this.generalStore.currentTraceData!.timeIdxStateIdxMap
-    },
-    vmRunning () {
-      return this.generalStore.debugger.running
-    },
-    undoStack () {
-      return this.generalStore.debugger!.getUndoStack()
-    },
-    visitedLines () {
-      return this.generalStore.currentTraceData!.visitedLines
-    }
-  },
-  watch: {
-    stateIndex: function () {
-      const vm = this
-      vm.redraw()
-    },
-    vmRunning: function () {
-      const vm = this
-      vm.redraw()
-    }
-  },
-  mounted () {
-    const vm = this
-    vm.svg = select('#sequence-diagram-svg')
-    const div = document.getElementById(HTML.ids.parentDiv)
-    vm.resizeObserver = new ResizeObserver(() => { // receive notifications when size of element changes
-      if (div) {
-        const height = div.offsetHeight / div.offsetWidth * vm.svgWidth
-        if (height) {
-          vm.svg.attr('viewBox', `0 0 ${vm.svgWidth} ${height}`)
-        }
+  setup () {
+    const svg = ref(select('#sequence-diagram-svg'))
+    const resizeObserver = ref<ResizeObserver>()
+    const zoomCall = ref(zoom().on('zoom', (event) => {
+      transform = event.transform
+      select(`#sequence-diagram`).attr('transform', transform)
+    }))
+    const hiddenIntervals = ref<Box[]>([])
+    const hiddenLifeLines = ref<LifeLine[]>([])
+    const hoveredInfos = ref([] as HoverInfo[])
+
+    const generalStore = useGeneralStore()
+    const svgWidth = computed(() => window.innerWidth * SVG.multiplier)
+    const lifeLines = computed(() => generalStore.currentTraceData!.lifeLines)
+    const arrows = computed(() => generalStore.currentTraceData!.arrows)
+    const boxes = computed(() => generalStore.currentTraceData!.boxes)
+    const timeIdx = computed(() => generalStore.currentTraceData!.timeIdx)
+    const stateIndex = computed(() => generalStore.currentTraceData!.stateIndex)
+    const timeIdxStateIdxMap = computed(() => generalStore.currentTraceData!.timeIdxStateIdxMap)
+    const vmRunning = computed(() => generalStore.debugger.running)
+    const undoStack = computed(() => generalStore.debugger.getUndoStack())
+    const visitedLines = computed(() => generalStore.currentTraceData!.visitedLines)
+    const currentHeapVizTraceState = computed(() => {
+      /*  we want to use processedTrace to access the already computed changed-flag for highlighting changed elements,
+       *  but it's only available after the first step, so the first state still has to come from the original trace
+       *  (because we want to display static fields, args etc. _before_ the first step)
+      */
+      if (generalStore.currentTraceData?.processedTraceState) {
+        return fromProcessedTraceState(generalStore.currentTraceData?.processedTraceState)
       }
+      const first = generalStore.currentTraceData!.firstTraceState
+      const processedState: ProcessedTraceState = {
+        kind: 'ProcessedTraceState',
+        localUri: first.sourceFileUri,
+        line: first.line,
+        heapBeforeExecution: first.heap,
+        stackBeforeExecution: first.stack,
+        loadedClassesBeforeExecution: first.loadedClasses,
+        stateIndex: 0,
+        heapAfterExecution: first.heap,
+        stackAfterExecution: first.stack,
+        loadedClassesAfterExecution: first.loadedClasses
+      }
+
+      processedState.stackAfterExecution!.flatMap(frame => frame.localVariables).forEach(lv => {
+        lv.changed = true
+      })
+      processedState.loadedClassesAfterExecution!.flatMap(clazz => clazz.staticFields).forEach(sf => {
+        sf.changed = true
+      })
+
+      return fromProcessedTraceState(processedState)
     })
-    vm.resizeObserver.observe(div as any)
-    // delete old visualization
-    vm.deleteViz()
-    vm.redraw()
-  },
-  unmounted () {
-    const div = document.getElementById(HTML.ids.parentDiv)
-    if (div) {
-      this.resizeObserver.unobserve(div)
-    }
-  },
-  methods: {
-    deleteViz: function () {
-      removeChildren(`#${HTML.ids.lifeLines}`)
-      removeChildren(`#${HTML.ids.arrows}`)
-      removeChildren(`#${HTML.ids.boxes}`)
-    },
-    getPreviousTimeIndex: function (previousStateIndex: number) {
+
+    function getPreviousTimeIndex (previousStateIndex: number) {
       let prevTimeIdx = 0
-      for (const [timeIdx, mapStateIdx] of this.timeIdxStateIdxMap) {
+      for (const [timeIdx, mapStateIdx] of timeIdxStateIdxMap.value) {
         if (previousStateIndex === mapStateIdx && timeIdx > prevTimeIdx) {
           prevTimeIdx = timeIdx
         }
       }
       return prevTimeIdx
-    },
-    getTransition: function () {
-      const vm = this
-      return vm.svg.transition().duration(TRANSFORMATION.duration)
-        .ease(TRANSFORMATION.ease) as any
-    },
-    redraw () {
-      const vm = this
-      const elems: Elements = { boxes: this.boxes, arrows: this.arrows, lifeLines: this.lifeLines }
+    }
 
-      if (this.lifeLines.length === 1 && this.lifeLines[0].currState === 'expanded') {
-        this.hiddenLifeLines = []
+    function onHover (hoverInfos: HoverInfo[]) {
+      hoveredInfos.value = hoverInfos
+      redraw(hoveredInfos.value)
+    }
+
+    function redraw (hoveredInfos: HoverInfo[] = []) {
+      const elems: Elements = { boxes: boxes.value, arrows: arrows.value, lifeLines: lifeLines.value }
+
+      if (lifeLines.value.length === 1 && lifeLines.value[0].currState === 'expanded') {
+        hiddenLifeLines.value = []
       }
 
       // detect step over
-      let activeTimeIndices = getActiveTimeIndices(this.hiddenLifeLines, this.hiddenIntervals, this.timeIdx, elems)
-      if (this.boxes.length > 0 && this.boxes[0].currState !== 'collapsed' && this.lifeLines.length > 0 && this.lifeLines[0].currState !== 'collapsed') {
-        updateHiddenLabelsForBoxes(this.boxes, activeTimeIndices, this.hiddenLifeLines, this.timeIdx)
-        const previousStateIndex = this.undoStack[this.undoStack.length - 1] + 1
-        let previousTimeIndex = this.getPreviousTimeIndex(previousStateIndex)
+      let activeTimeIndices = getActiveTimeIndices(hiddenLifeLines.value, hiddenIntervals.value, timeIdx.value, elems)
+      if (boxes.value.length > 0 && boxes.value[0].currState !== 'collapsed' && lifeLines.value.length > 0 && lifeLines.value[0].currState !== 'collapsed') {
+        updateHiddenLabelsForBoxes(boxes.value, activeTimeIndices, hiddenLifeLines.value, timeIdx.value)
+        const previousStateIndex = undoStack.value[undoStack.value.length - 1] + 1
+        let previousTimeIndex = getPreviousTimeIndex(previousStateIndex)
         const stepOverCollapsedBoxes = []
-        for (let i = 0; i < this.boxes.length; i++) { // compute stepOverCollapsedBoxes; update active time indices; add hidden intervals; set stepOver flags
-          const box = this.boxes[i]
-          const boxEnd = getBoxEnd(box, this.timeIdx)
+        for (let i = 0; i < boxes.value.length; i++) { // compute stepOverCollapsedBoxes; update active time indices; add hidden intervals; set stepOver flags
+          const box = boxes.value[i]
+          const boxEnd = getBoxEnd(box, timeIdx.value)
           if (box.callArrow === undefined && box.end) {
-            for (let j = 0; j < this.arrows.length; j++) {
-              const arrow = this.arrows[j]
+            for (let j = 0; j < arrows.value.length; j++) {
+              const arrow = arrows.value[j]
               if (
                 arrow.kind === 'Constructor' &&
                 arrow.to === box.lifeLine &&
                 !arrow.isHidden &&
-                this.visitedLines.length >= 3 &&
-                this.visitedLines.at(-2) === arrow.line &&
-                this.visitedLines.at(-3) === arrow.line &&
+                visitedLines.value.length >= 3 &&
+                visitedLines.value.at(-2) === arrow.line &&
+                visitedLines.value.at(-3) === arrow.line &&
                 !box.stepOver
               ) {
                 if (box.currState !== 'hidden' && box.prevState !== 'hidden') {
                   stepOverCollapsedBoxes.push(box)
-                  pushUnlessIncluded(this.hiddenIntervals, box)
+                  pushUnlessIncluded(hiddenIntervals.value, box)
                   activeTimeIndices = getActiveTimeIndices(
-                    this.hiddenLifeLines,
-                    this.hiddenIntervals,
-                    this.timeIdx,
+                    hiddenLifeLines.value,
+                    hiddenIntervals.value,
+                    timeIdx.value,
                     elems
                   )
                   previousTimeIndex = boxEnd + 1
@@ -198,22 +170,23 @@ export default defineComponent({
             }
           }
 
-          const exists = this.arrows.some(arrow => arrow.kind === 'Return' && box.callArrow && arrow.methodCallId === box.callArrow!!.methodCallId)
+          // eslint-disable-next-line vue/max-len
+          const exists = arrows.value.some((arrow: { kind: string; methodCallId: any }) => arrow.kind === 'Return' && box.callArrow && arrow.methodCallId === box.callArrow!.methodCallId)
           if (
             exists &&
             !isMainBox(box) &&
             box.start === previousTimeIndex &&
-            previousStateIndex !== this.stateIndex &&
+            previousStateIndex !== stateIndex.value &&
             !box.stepOver &&
-            box.start !== this.timeIdx
+            box.start !== timeIdx.value
           ) {
             if (box.currState !== 'hidden' && box.prevState !== 'hidden' && boxEnd - box.start > 1) {
               stepOverCollapsedBoxes.push(box)
-              pushUnlessIncluded(this.hiddenIntervals, box)
+              pushUnlessIncluded(hiddenIntervals.value, box)
               activeTimeIndices = getActiveTimeIndices(
-                this.hiddenLifeLines,
-                this.hiddenIntervals,
-                this.timeIdx,
+                hiddenLifeLines.value,
+                hiddenIntervals.value,
+                timeIdx.value,
                 elems
               )
               previousTimeIndex = boxEnd + 1
@@ -223,85 +196,85 @@ export default defineComponent({
         }
 
         for (let j = 0; j < stepOverCollapsedBoxes.length; j++) {
-          setHiddenBoxesAfterStepOver(this.boxes, stepOverCollapsedBoxes[j], getLastTimeIdx(this.boxes), this.hiddenIntervals, activeTimeIndices)
+          setHiddenBoxesAfterStepOver(boxes.value, stepOverCollapsedBoxes[j], getLastTimeIdx(boxes.value), hiddenIntervals.value, activeTimeIndices)
         }
       }
 
-      updateHiddenLabelsForBoxes(this.boxes, activeTimeIndices, this.hiddenLifeLines, this.timeIdx)
-      setHiddenArrows(elems, activeTimeIndices, this.hiddenLifeLines, this.timeIdx)
-      setHiddenLifeLines(elems, activeTimeIndices, this.hiddenLifeLines)
-      if (this.boxes.length === 1 && activeTimeIndices.length === 3) {
-        this.hiddenIntervals = []
+      updateHiddenLabelsForBoxes(boxes.value, activeTimeIndices, hiddenLifeLines.value, timeIdx.value)
+      setHiddenArrows(elems, activeTimeIndices, hiddenLifeLines.value, timeIdx.value)
+      setHiddenLifeLines(elems, activeTimeIndices, hiddenLifeLines.value)
+      if (boxes.value.length === 1 && activeTimeIndices.length === 3) {
+        hiddenIntervals.value = []
       }
-      for (let i = 0; i < this.lifeLines.length; i++) {
-        const lifeLine = this.lifeLines[i]
-        if (lifeLine.currState === 'hidden' && lifeLine.end && !lifeLine.programEnd && activeTimeIndices.includes(lifeLine.end!!)) {
-          activeTimeIndices.splice(activeTimeIndices.indexOf(lifeLine.end!!), 1)
+      for (let i = 0; i < lifeLines.value.length; i++) {
+        const lifeLine = lifeLines.value[i]
+        if (lifeLine.currState === 'hidden' && lifeLine.end && !lifeLine.programEnd && activeTimeIndices.includes(lifeLine.end!)) {
+          activeTimeIndices.splice(activeTimeIndices.indexOf(lifeLine.end!), 1)
         }
       }
-      if (this.lifeLines.length > 0 && this.lifeLines[0].currState !== 'collapsed' && this.boxes.length > 0 && this.boxes[0].currState !== 'collapsed') {
-        activeTimeIndices = getActiveTimeIndices(this.hiddenLifeLines, this.hiddenIntervals, this.timeIdx, elems)
-        updateHiddenLabelsForBoxes(this.boxes, activeTimeIndices, this.hiddenLifeLines, this.timeIdx)
-        setHiddenArrows(elems, activeTimeIndices, this.hiddenLifeLines, this.timeIdx)
-        setHiddenLifeLines(elems, activeTimeIndices, this.hiddenLifeLines)
+      if (lifeLines.value.length > 0 && lifeLines.value[0].currState !== 'collapsed' && boxes.value.length > 0 && boxes.value[0].currState !== 'collapsed') {
+        activeTimeIndices = getActiveTimeIndices(hiddenLifeLines.value, hiddenIntervals.value, timeIdx.value, elems)
+        updateHiddenLabelsForBoxes(boxes.value, activeTimeIndices, hiddenLifeLines.value, timeIdx.value)
+        setHiddenArrows(elems, activeTimeIndices, hiddenLifeLines.value, timeIdx.value)
+        setHiddenLifeLines(elems, activeTimeIndices, hiddenLifeLines.value)
       }
 
-      activeTimeIndices = getActiveTimeIndices(this.hiddenLifeLines, this.hiddenIntervals, this.timeIdx, elems)
+      activeTimeIndices = getActiveTimeIndices(hiddenLifeLines.value, hiddenIntervals.value, timeIdx.value, elems)
 
-      if (this.boxes.length > 0 && this.boxes[0].currState === 'collapsed' && this.boxes[0].isDrawn) {
-        if (this.lifeLines.length > 0 && this.lifeLines[0].programEnd) {
-          activeTimeIndices = [0, 1, 2, this.timeIdx]
+      if (boxes.value.length > 0 && boxes.value[0].currState === 'collapsed' && boxes.value[0].isDrawn) {
+        if (lifeLines.value.length > 0 && lifeLines.value[0].programEnd) {
+          activeTimeIndices = [0, 1, 2, timeIdx.value]
         } else {
-          if (this.timeIdx !== 2) {
-            const end = this.boxes[0].lifeLine.end
-            const lastIdx = end ?? this.timeIdx
+          if (timeIdx.value !== 2) {
+            const end = boxes.value[0].lifeLine.end
+            const lastIdx = end ?? timeIdx.value
             activeTimeIndices = [0, 1, 2, lastIdx]
           } else {
             activeTimeIndices = [0, 1, 2]
           }
         }
-      } else if (this.lifeLines.length > 0 && this.lifeLines[0].currState === 'collapsed' && this.lifeLines[0].isDrawn) {
-        if (this.timeIdx !== 2) {
-          activeTimeIndices = [0, 1, 2, this.timeIdx]
+      } else if (lifeLines.value.length > 0 && lifeLines.value[0].currState === 'collapsed' && lifeLines.value[0].isDrawn) {
+        if (timeIdx.value !== 2) {
+          activeTimeIndices = [0, 1, 2, timeIdx.value]
         } else {
           activeTimeIndices = [0, 1, 2]
         }
       }
-      setHiddenLifeLines(elems, activeTimeIndices, this.hiddenLifeLines)
-      for (let i = 0; i < this.arrows.length; i++) { // remove time indices of all hidden arrows
-        const arrow = this.arrows[i]
-        if (!arrow.isHidden || arrow.time === this.timeIdx || arrow.kind === 'CallMain') {
+      setHiddenLifeLines(elems, activeTimeIndices, hiddenLifeLines.value)
+      for (let i = 0; i < arrows.value.length; i++) { // remove time indices of all hidden arrows
+        const arrow = arrows.value[i]
+        if (!arrow.isHidden || arrow.time === timeIdx.value || arrow.kind === 'CallMain') {
           continue
         }
-        for (let j = 0; j < this.boxes.length; j++) {
-          if (!activeTimeIndices.includes(arrow.time!!)) { // arrow already removed
+        for (let j = 0; j < boxes.value.length; j++) {
+          if (!activeTimeIndices.includes(arrow.time!)) { // arrow already removed
             break
           }
-          const box = this.boxes[j]
-          const boxEnd = getBoxEnd(box, this.timeIdx)
+          const box = boxes.value[j]
+          const boxEnd = getBoxEnd(box, timeIdx.value)
           if (box.currState === 'collapsed' && box.isDrawn && arrow.time !== boxEnd && arrow.time !== box.start) {
-            const found = this.lifeLines.some(lifeLine => isVisible(lifeLine) && lifeLine.start === arrow.time)
-            if (!found) activeTimeIndices.splice(activeTimeIndices.indexOf(arrow.time!!), 1)
+            const found = lifeLines.value.some((lifeLine: Box | LifeLine) => isVisible(lifeLine) && lifeLine.start === arrow.time)
+            if (!found) activeTimeIndices.splice(activeTimeIndices.indexOf(arrow.time!), 1)
           }
         }
       }
-      for (let i = 0; i < this.lifeLines.length; i++) { // remove time indices for all hidden lifeline start times
-        const lifeLine = this.lifeLines[i]
-        if (isVisible(lifeLine) || this.lifeLines[0].currState === 'collapsed') {
+      for (let i = 0; i < lifeLines.value.length; i++) { // remove time indices for all hidden lifeline start times
+        const lifeLine = lifeLines.value[i]
+        if (isVisible(lifeLine) || lifeLines.value[0].currState === 'collapsed') {
           continue
         }
-        for (let j = 0; j < this.boxes.length; j++) {
-          const box = this.boxes[j]
+        for (let j = 0; j < boxes.value.length; j++) {
+          const box = boxes.value[j]
           const startIndex = activeTimeIndices.indexOf(lifeLine.start)
-          const boxEnd = getBoxEnd(box, this.timeIdx)
+          const boxEnd = getBoxEnd(box, timeIdx.value)
           if (box.currState === 'collapsed' && startIndex >= 0 && box.isDrawn && lifeLine.start !== boxEnd) {
             activeTimeIndices.splice(startIndex, 1)
           }
         }
       }
-      for (let i = 0; i < this.boxes.length; i++) {
-        const box = this.boxes[i]
-        const boxEnd = getBoxEnd(box, this.timeIdx)
+      for (let i = 0; i < boxes.value.length; i++) {
+        const box = boxes.value[i]
+        const boxEnd = getBoxEnd(box, timeIdx.value)
         for (let j = box.start; j <= boxEnd; j++) {
           if (!isVisible(box) && activeTimeIndices.includes(j) && i !== 0) {
             activeTimeIndices.splice(activeTimeIndices.indexOf(j), 1)
@@ -309,61 +282,103 @@ export default defineComponent({
         }
       }
 
-      for (let i = 0; i < this.boxes.length; i++) {
-        const box = this.boxes[i]
+      for (let i = 0; i < boxes.value.length; i++) {
+        const box = boxes.value[i]
         if (box.currState === 'collapsed' && box.isDrawn) {
           pushUnlessIncluded(activeTimeIndices, box.start)
-          const boxEnd = getBoxEnd(box, this.timeIdx)
+          const boxEnd = getBoxEnd(box, timeIdx.value)
           pushUnlessIncluded(activeTimeIndices, boxEnd)
         }
       }
 
-      pushUnlessIncluded(activeTimeIndices, this.timeIdx)
+      pushUnlessIncluded(activeTimeIndices, timeIdx.value)
       sort(activeTimeIndices)
 
-      for (let i = 0; i < this.arrows.length; i++) {
-        if (!activeTimeIndices.includes(this.arrows[i].time!!)) {
-          this.arrows[i].isHidden = true
+      for (let i = 0; i < arrows.value.length; i++) {
+        if (!activeTimeIndices.includes(arrows.value[i].time!)) {
+          arrows.value[i].isHidden = true
         }
       }
 
       // visualize everything
-      drawLifeLines(vm.svg, elems, vm.timeIdx, activeTimeIndices, vm, this.hiddenLifeLines, this.hiddenIntervals)
-      drawArrows(vm.svg, elems, activeTimeIndices, this.hiddenLifeLines)
-      drawBoxes(vm.svg, elems, vm.timeIdx, this.hiddenIntervals, this.hiddenLifeLines, activeTimeIndices, vm)
+      drawLifeLines(svg.value, elems, timeIdx.value, activeTimeIndices, { redraw }, hiddenLifeLines.value, hiddenIntervals.value, hoveredInfos, currentHeapVizTraceState.value)
+      drawArrows(svg.value, elems, activeTimeIndices, hiddenLifeLines.value, hoveredInfos, timeIdx.value, currentHeapVizTraceState.value)
+      drawBoxes(svg.value, elems, timeIdx.value, hiddenIntervals.value, hiddenLifeLines.value, activeTimeIndices, { redraw }, hoveredInfos, currentHeapVizTraceState.value)
 
       // add ability to zoom and pan
-      vm.svg.call(vm.zoomCall as any)
+      svg.value.call(zoomCall.value as any)
 
       // get coordinates of change
-      const coordinatesOfChange = getCoordinatesOfChange(elems, this.timeIdx, activeTimeIndices)
+      const coordinatesOfChange = getCoordinatesOfChange(elems, timeIdx.value, activeTimeIndices)
       if (coordinatesOfChange) {
         // translate zoom to make x and y visible
         zoomToChange(
           coordinatesOfChange[0],
           coordinatesOfChange[1],
           transform,
-          vm.zoomCall,
+          zoomCall.value,
           HTML.ids.parentDiv,
-          vm.svgWidth,
-          vm.svg
+          svgWidth.value,
+          svg.value
         )
       }
-    },
-    zoomIn: function () {
-      const vm = this
-      vm.zoomCall.scaleBy(vm.getTransition(), DEFAULT_ZOOM_FACTOR)
-    },
-    zoomOut: function () {
-      const vm = this
-      vm.zoomCall.scaleBy(vm.getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
-    },
-    zoomReset: function () {
-      const vm = this
-      vm.zoomCall.transform(vm.getTransition(), zoomIdentity)
+    }
+    function deleteViz () {
+      removeChildren(`#${HTML.ids.lifeLines}`)
+      removeChildren(`#${HTML.ids.arrows}`)
+      removeChildren(`#${HTML.ids.boxes}`)
+    }
+    onMounted(() => {
+      svg.value = select('#sequence-diagram-svg')
+      HoverSynchronizer.onHover(onHover)
+      const div = document.getElementById(HTML.ids.parentDiv)
+      resizeObserver.value = new ResizeObserver(() => { // receive notifications when size of element changes
+        if (div) {
+          const height = div.offsetHeight / div.offsetWidth * svgWidth.value
+          if (height) {
+            svg.value.attr('viewBox', `0 0 ${svgWidth.value} ${height}`)
+          }
+        }
+      })
+      resizeObserver.value.observe(div as any)
+      // delete old visualization
+      deleteViz()
+      redraw(hoveredInfos.value)
+    })
+    onUnmounted(() => {
+      const div = document.getElementById(HTML.ids.parentDiv)
+      if (div) {
+        resizeObserver.value?.unobserve(div)
+      }
+      HoverSynchronizer.removeOnHover(onHover)
+    })
+
+    // TODO: local storage ?
+    watch(stateIndex, () => redraw(hoveredInfos.value))
+    watch(vmRunning, () => redraw(hoveredInfos.value))
+    watch(lifeLines, () => redraw(hoveredInfos.value))
+    watch(arrows, () => redraw(hoveredInfos.value))
+    watch(boxes, () => redraw(hoveredInfos.value))
+
+    function getTransition () {
+      return svg.value.transition().duration(TRANSFORMATION.duration)
+        .ease(TRANSFORMATION.ease) as any
+    }
+    function zoomIn () {
+      zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
+    }
+    function zoomOut () {
+      zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
+    }
+    function zoomReset () {
+      zoomCall.value.transform(getTransition(), zoomIdentity)
+    }
+    return {
+      SEQUENCEDIAGRAM, zoomIn, zoomOut, zoomReset, lifeLines, arrows, boxes, redraw
     }
   }
 })
+
 </script>
 
 <style scoped>
@@ -392,4 +407,29 @@ export default defineComponent({
   text-overflow: ellipsis;
   overflow: hidden;
 }
+
+:deep(.highlighted-box rect) {
+  fill: #ffe9d8;
+}
+
+:deep(.highlighted-box circle) {
+  fill: #c9b7a9;
+  stroke: #c9b7a9;
+}
+
+:deep(.highlighted-arrow), :deep(.highlighted-arrow line) {
+  stroke: #eda167;
+  color: #eda167;
+}
+
+:deep(.highlighted-ref-arrow), :deep(.highlighted-ref-arrow line) {
+  stroke: #a1c79d;
+  color: #a1c79d;
+}
+
+:deep(.highlighted-lifeline), :deep(.highlighted-lifeline line) {
+  color: #eda167;
+  stroke: #eda167;
+}
+
 </style>

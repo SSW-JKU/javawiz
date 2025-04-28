@@ -9,7 +9,6 @@ import {
 import { ELEMENT } from './Element'
 import { textHeight, textWidth } from '@/components/TheFlowChart/Font'
 import { BoundingBoxContext } from './size'
-import { FullWidthManager } from './FullWidthManager'
 import { AstElement, Block, Method } from '@/dto/AbstractSyntaxTree'
 
 export interface Position {
@@ -74,8 +73,7 @@ function set (d: SizedHierarchyNode<AstElement>, deltaX: number, deltaY: number,
 
 export class PositionContext {
   constructor (
-    private readonly boundingBoxContext: BoundingBoxContext,
-    private readonly fullWidthManager: FullWidthManager
+    private readonly boundingBoxContext: BoundingBoxContext
   ) { }
 
   /**

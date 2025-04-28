@@ -13,14 +13,14 @@ export const useHeapVizMetaStore = defineStore('heapVizMeta', {
         // first time that we access the given key
         this.metaMap[identifier] = this._getDefaultMeta()
       }
-      return this.metaMap[identifier].isExpanded!!
+      return this.metaMap[identifier].isExpanded!
     },
     isFullyVisibleIdentifier (identifier: string): boolean {
       if (!this.isIdentifierInMap(identifier)) {
         // first time that we access the given key
         this.metaMap[identifier] = this._getDefaultMeta()
       }
-      return this.metaMap[identifier].isFullyVisible!!
+      return this.metaMap[identifier].isFullyVisible!
     },
     isIdentifierInMap (identifier: string): boolean {
       return identifier in this.metaMap

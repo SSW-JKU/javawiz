@@ -27,7 +27,7 @@ export function createLayout (
   fullWidthManager: FullWidthManager
 ): FullHierarchyNode<AstElement> {
   const boundingBoxContext = new BoundingBoxContext(collapsed, inlinedMethods, fullWidthManager)
-  const positionContext = new PositionContext(boundingBoxContext, fullWidthManager)
+  const positionContext = new PositionContext(boundingBoxContext)
 
   const layoutedTree = root.copy()
   layoutedTree.each(d => {

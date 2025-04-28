@@ -18,7 +18,7 @@ def jdkExports = [
         "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
 ]
 
-version '1.7.2'
+version '1.7.3'
 group 'at.jku.ssw'
 
 application {

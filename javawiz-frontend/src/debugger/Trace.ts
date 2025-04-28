@@ -38,7 +38,7 @@ export class Trace {
       inputBufferInfo: this.getInputBufferInfo(stateIndex),
       stateIndex,
       deskTestLines: this.getDeskTestLines(stateIndex),
-      firstTraceState: this.firstState()!!,
+      firstTraceState: this.firstState()!,
       flowChartOverlayLocals: this.getFlowChartOverlayLocals(stateIndex),
       flowChartOverlayStatics: this.getFlowChartOverlayStatics(stateIndex),
       processedTraceState: previousStateIndex === undefined ? undefined : this.delta(previousStateIndex, stateIndex),
@@ -206,8 +206,8 @@ export class Trace {
     }
     let mainClass = state.loadedClasses[0]
     if (state.loadedClasses.length > 1) {
-      const mainClassName = this.trace.at(0)!!.stack[0].class
-      mainClass = state.loadedClasses.find(c => c.class === mainClassName)!!
+      const mainClassName = this.trace.at(0)!.stack[0].class
+      mainClass = state.loadedClasses.find(c => c.class === mainClassName)!
     }
     const staticFields = mainClass.staticFields
 
@@ -313,7 +313,7 @@ export class Trace {
     _.differenceWith(nextStaticVars,
       currentStaticVars,
       (nextVar: StaticVar, currVar: StaticVar) => nextVar.name === currVar.name &&
-      !hasChanged(currVar.value, current.heap, nextVar.value, next.heap))
+            !hasChanged(currVar.value, current.heap, nextVar.value, next.heap))
       .forEach((changedStaticVar: StaticVar) => {
         changedStaticVar.changed = true
       })
@@ -360,18 +360,18 @@ export class Trace {
 
     // heap array
     const currArrayElements =
-      current.heap
-        .filter((heapItem): heapItem is HeapArray => heapItem.kind === 'HeapArray')
-        .flatMap((ha: HeapArray) => ha.elements)
+        current.heap
+          .filter((heapItem): heapItem is HeapArray => heapItem.kind === 'HeapArray')
+          .flatMap((ha: HeapArray) => ha.elements)
     const currArrayElementsLookup = new Map<string, HeapArrayElementVar>()
     currArrayElements.forEach((elem: HeapArrayElementVar) => {
       currArrayElementsLookup.set(elem.arrayId + '_' + elem.index, elem)
     })
 
     const nextArrayElements =
-      next.heap
-        .filter((heapItem): heapItem is HeapArray => heapItem.kind === 'HeapArray')
-        .flatMap((ha: HeapArray) => ha.elements)
+        next.heap
+          .filter((heapItem): heapItem is HeapArray => heapItem.kind === 'HeapArray')
+          .flatMap((ha: HeapArray) => ha.elements)
 
     nextArrayElements.forEach((elem: HeapArrayElementVar) => {
       elem.changed = false

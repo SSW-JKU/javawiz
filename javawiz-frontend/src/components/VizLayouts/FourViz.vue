@@ -15,15 +15,13 @@
   </splitpanes>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { mapStores } from 'pinia'
-import Pane from 'splitpanes-raw/pane.vue'
-import Splitpanes from 'splitpanes-raw/splitpanes.vue'
+<script setup lang="ts">
+import { computed, defineComponent } from 'vue'
+import { Pane, Splitpanes } from 'splitpanes'
+import 'splitpanes/dist/splitpanes.css'
 import VisualizationPane from '@/components/VizLayouts/VisualizationPane.vue'
 import {
   LAYOUT_FOUR,
-  LAYOUT_ONE,
   LAYOUT_THREE_LEFTSINGLE,
   LAYOUT_THREE_RIGHTSINGLE,
   LAYOUT_TWO_HORIZONTALSPLIT,
@@ -31,47 +29,34 @@ import {
   usePaneVisibilityStore
 } from '@/store/PaneVisibilityStore'
 
-export default defineComponent({
-  name: 'FourViz',
+defineComponent({
   components: {
     VisualizationPane,
     Pane,
     Splitpanes
-  },
-  data: function () {
-    return {
-      LAYOUT_ONE,
-      LAYOUT_TWO_VERTICALSPLIT,
-      LAYOUT_TWO_HORIZONTALSPLIT,
-      LAYOUT_THREE_RIGHTSINGLE,
-      LAYOUT_THREE_LEFTSINGLE,
-      LAYOUT_FOUR
-    }
-  },
-  computed: {
-    showPane1 (): boolean {
-      return this.paneVisibilityStore.currentLayout === LAYOUT_TWO_VERTICALSPLIT ||
-        this.paneVisibilityStore.currentLayout === LAYOUT_THREE_RIGHTSINGLE ||
-        this.paneVisibilityStore.currentLayout === LAYOUT_THREE_LEFTSINGLE ||
-        this.paneVisibilityStore.currentLayout === LAYOUT_FOUR
-    },
-    showPane2 (): boolean {
-      return this.paneVisibilityStore.currentLayout === LAYOUT_TWO_HORIZONTALSPLIT ||
-        this.paneVisibilityStore.currentLayout === LAYOUT_THREE_RIGHTSINGLE ||
-        this.paneVisibilityStore.currentLayout === LAYOUT_FOUR
-    },
-    showPane3 (): boolean {
-      return this.paneVisibilityStore.currentLayout === LAYOUT_THREE_LEFTSINGLE ||
-        this.paneVisibilityStore.currentLayout === LAYOUT_FOUR
-    },
-    showVerticalSplitter (): boolean {
-      return this.showPane1
-    },
-    ...mapStores(usePaneVisibilityStore)
-  },
-  methods: {}
-
+  }
 })
+
+const paneVisibilityStore = usePaneVisibilityStore()
+
+const showPane1 = computed(() =>
+  paneVisibilityStore.currentLayout === LAYOUT_TWO_VERTICALSPLIT ||
+  paneVisibilityStore.currentLayout === LAYOUT_THREE_RIGHTSINGLE ||
+  paneVisibilityStore.currentLayout === LAYOUT_THREE_LEFTSINGLE ||
+  paneVisibilityStore.currentLayout === LAYOUT_FOUR
+)
+
+const showPane2 = computed(() =>
+  paneVisibilityStore.currentLayout === LAYOUT_TWO_HORIZONTALSPLIT ||
+  paneVisibilityStore.currentLayout === LAYOUT_THREE_RIGHTSINGLE ||
+  paneVisibilityStore.currentLayout === LAYOUT_FOUR
+)
+const showPane3 = computed(() =>
+  paneVisibilityStore.currentLayout === LAYOUT_THREE_LEFTSINGLE ||
+  paneVisibilityStore.currentLayout === LAYOUT_FOUR
+)
+
+const showVerticalSplitter = showPane1
 </script>
 
 <style scoped>

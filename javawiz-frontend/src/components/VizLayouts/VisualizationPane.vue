@@ -17,15 +17,14 @@
   </pane>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { mapStores } from 'pinia'
+<script setup lang="ts">
+import { computed, defineComponent } from 'vue'
 import VizChooser from '@/components/VizLayouts/VizChooser.vue'
-import Pane from 'splitpanes-raw/pane.vue'
+import { Pane } from 'splitpanes'
+import 'splitpanes/dist/splitpanes.css'
 import CompilationSpinner from '@/components/VizLayouts/CompilationSpinner.vue'
 import BeforeCompilationText from '@/components/VizLayouts/BeforeCompilationText.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
-
 import TheFlowChart from '@/components/TheFlowChart/TheFlowChart.vue'
 import TheHeapVisualization from '@/components/TheHeapVisualization/TheHeapVisualization.vue'
 import TheDeskTest from '@/components/TheDeskTest/TheDeskTest.vue'
@@ -34,10 +33,9 @@ import TheListVisualization from '@/components/DataStructureVisualizations/TheLi
 import TheTreeVisualization from '@/components/DataStructureVisualizations/TheTreeVisualization/TheTreeVisualization.vue'
 import TheSequenceDiagram from '@/components/TheSequenceDiagram/TheSequenceDiagram.vue'
 import TheInViz from '@/components/TheInViz.vue'
-import { ARRAY, BINARYTREE, CONSOLE, DESKTEST, EDITOR, FLOWCHART, HEAP, INVIZ, LINKEDLIST, SEQUENCEDIAGRAM, usePaneVisibilityStore } from '@/store/PaneVisibilityStore'
+import { ARRAY, BINARYTREE, DESKTEST, FLOWCHART, HEAP, INVIZ, LINKEDLIST, SEQUENCEDIAGRAM, usePaneVisibilityStore } from '@/store/PaneVisibilityStore'
 
-export default defineComponent({
-  name: 'VisualizationPane',
+defineComponent({
   components: {
     TheInViz,
     TheSequenceDiagram,
@@ -51,50 +49,28 @@ export default defineComponent({
     CompilationSpinner,
     VizChooser,
     Pane
-  },
-  props: {
-    panelNr: {
-      type: Number,
-      required: true
-    }
-  },
-  data: function () {
-    return {
-      EDITOR,
-      CONSOLE,
-      FLOWCHART,
-      HEAP,
-      ARRAY,
-      LINKEDLIST,
-      BINARYTREE,
-      DESKTEST,
-      SEQUENCEDIAGRAM,
-      INVIZ
-    }
-  },
-  computed: {
-    selectedPane: function () {
-      return this.paneVisibilityStore.panelToPane[this.panelNr]
-    },
-    vizSelected: function () {
-      return this.selectedPane !== -1
-    },
-    style: function () {
-      return {
-        'background-color': this.selectedPane === -1 ? 'rgb(42,70,101)' : 'rgb(255, 255, 255)'
-      }
-    },
-    ...mapStores(useGeneralStore, usePaneVisibilityStore)
-  },
-  methods: {
-    selectViz (id: number) {
-      this.paneVisibilityStore.showPane(id, this.panelNr)
-    }
   }
 })
+const { panelNr } = defineProps<{ panelNr: number }>()
+
+const paneVisibilityStore = usePaneVisibilityStore()
+const selectedPane = computed(() => paneVisibilityStore.panelToPane[panelNr])
+const vizSelected = computed(() => selectedPane.value !== -1)
+const style = computed(() => {
+  return {
+    'background-color': (selectedPane.value === -1 ? 'rgb(42,70,101)' : 'rgb(255, 255, 255)')
+  }
+})
+
+const generalStore = useGeneralStore()
+
+function selectViz (id: number) {
+  paneVisibilityStore.showPane(id, panelNr)
+}
+
 </script>
 
-<style>
+<style scoped>
 .pane-default-text {
   width: 100%;
   height: 100%;

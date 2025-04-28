@@ -16,7 +16,7 @@
         Statements
       </p>
       <input
-        id="method-auto-inline"
+        id="stmt-use-width-limit"
         :checked="statementCap !== Number.MAX_VALUE"
         type="checkbox"
         name="stmt-use-width-limit"
@@ -33,12 +33,12 @@
       </p>
       <p class="no-break">
         <input
-          id="method-auto-inline"
+          id="stmt-follow-active"
           v-model="internalFollowActive"
           type="checkbox"
           name="stmt-follow-active"
           style="margin: 4px;">
-        <label for="stmt-follow active" class="no-break">Follow active Statement</label>
+        <label for="stmt-follow-active" class="no-break">Follow active Statement</label>
       </p>
 
       <p class="settings-header">

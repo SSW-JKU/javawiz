@@ -21,53 +21,34 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 
-import { defineComponent } from 'vue'
-import { mapStores } from 'pinia'
+import { computed, defineComponent, ref, useSlots } from 'vue'
 import { usePaneVisibilityStore } from '@/store/PaneVisibilityStore'
 
-export default defineComponent({
-  name: 'NavigationBarWithSettings',
-  props: {
-    zoomIn: {
-      type: Function,
-      default: null,
-      required: false
-    },
-    zoomOut: {
-      type: Function,
-      default: null,
-      required: false
-    },
-    zoomReset: {
-      type: Function,
-      default: null,
-      required: false
-    },
-    paneKind: {
-      type: Number,
-      required: true
-    }
-  },
-  data () {
-    return {
-      settingsVisible: false
-    }
-  },
-  computed: {
-    hasDefaultSlot () {
-      return !!this.$slots.default
-    },
-    ...mapStores(usePaneVisibilityStore)
-  },
-  methods: {
-    removePane: function () {
-      const vm = this
-      vm.paneVisibilityStore.hidePane(vm.paneKind)
-    }
-  }
+defineComponent({
+  name: 'NavigationBarWithSettings'
 })
+
+const settingsVisible = ref(false)
+const paneVisibilityStore = usePaneVisibilityStore()
+
+const { zoomIn, zoomOut, zoomReset, paneKind } = defineProps<{
+  zoomIn?:(() => void),
+  zoomOut?:(() => void),
+  zoomReset?:(() => void),
+  paneKind: number
+}>()
+
+const slots = useSlots()
+
+const hasDefaultSlot = computed(() => {
+  return !!slots.default
+})
+
+function removePane () {
+  paneVisibilityStore.hidePane(paneKind)
+}
 </script>
 
 <style scoped>
@@ -102,17 +83,4 @@ export default defineComponent({
   border-radius: 5px;
   overflow-y: scroll;
 }
-
-/*
-Broken at the moment, but also not needed
-.settings:before {
-  content: "";
-  width: 0;
-  height: 0;
-  position: absolute;
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
-  border-left: 10px solid lightgray;
-  left: -9px;
-}*/
 </style>

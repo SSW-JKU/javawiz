@@ -1,6 +1,5 @@
 import { FileData } from '@/file-manager/FileData'
-// Import Monaco editor (relies on MonacoWebpackPlugin in vue.config.js)
-import { editor, Uri } from 'monaco-editor/esm/vs/editor/editor.api'
+import { editor, Uri } from 'monaco-editor/esm/vs/editor/editor.api';
 import { FileManagerEvent } from '@/file-manager/FileManagerEvent'
 import { DebuggerProtocol } from '@/dto/DebuggerProtocol'
 import Ajv from 'ajv'
@@ -15,7 +14,7 @@ export class FileManager {
   private _openFile: string | null
   private readonly listeners: ((type: FileManagerEvent) => any)[]
 
-  private ajv: Ajv.Ajv
+  private ajv: Ajv
 
   constructor () {
     this.files = new Map()
@@ -117,7 +116,7 @@ export class FileManager {
       getModel(uri)?.dispose()
       this.files.delete(fileUri)
       if (this._openFile === fileUri) {
-        this._openFile = this.files.keys().next().value!!
+        this._openFile = this.files.keys().next().value!
       }
       this.notifyListeners('FILE_REMOVED')
     }

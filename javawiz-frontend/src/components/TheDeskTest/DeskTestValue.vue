@@ -100,34 +100,16 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { DeskTestStatic, DeskTestVal, DeskTestVar } from '@/components/TheDeskTest/types'
-import { PropType } from 'vue'
+import { defineComponent } from 'vue'
 import { shortTypeName } from '@/helpers/Common'
 
-export default {
-  name: 'DeskTestValue',
-  props: {
-    variable: {
-      type: Object as PropType<DeskTestVar | DeskTestStatic>,
-      required: true
-    },
-    value: {
-      type: Object as PropType<DeskTestVal>,
-      required: true
-    }
-  },
-  data () {
-    return {
-      hovered: false
-    }
-  },
-  methods: {
-    shortTypeName: function (name: string): string {
-      return shortTypeName(name)
-    }
-  }
-}
+defineComponent({
+  name: 'DeskTestValue'
+})
+
+const { variable, value } = defineProps<{variable: DeskTestVar | DeskTestStatic, value: DeskTestVal}>()
 </script>
 
 <style>

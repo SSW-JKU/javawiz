@@ -61,6 +61,20 @@ export type HoverField = {
   readonly objId: number
 }
 
-export type HoverInfo = HoverLine | HoverClass | HoverMethod | HoverCondition | HoverLocal | HoverStatic | HoverThisVar | HoverHeapObject | HoverArrayCell | HoverField
+export type HoverMethodCall = {
+  readonly kind: 'MethodCall'
+  readonly name: string,
+  readonly methodCallId: number,
+  readonly time: number
+}
+
+export type HoverBox = {
+  readonly kind: 'Box'
+  readonly index: number,
+  readonly start: number
+}
+
+// eslint-disable-next-line vue/max-len
+export type HoverInfo = HoverLine | HoverClass | HoverMethod | HoverCondition | HoverLocal | HoverStatic | HoverThisVar | HoverHeapObject | HoverArrayCell | HoverField | HoverMethodCall | HoverBox
 
 export type HoverHandler = (infos: HoverInfo[]) => void

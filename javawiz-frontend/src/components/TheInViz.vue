@@ -12,15 +12,26 @@
         </b>
       </div>
       <div id="info">
-        <div>
-          <span class="monospace">In.done()</span>:&nbsp;
-          <span class="monospace" :class="inputBufferInfo.done ? 'done-true' : 'done-false'"> {{ inputBufferInfo.done }} </span>
+        <div v-if="latestMethod === 'no method called' || latestMethod === ''">
+          <i>No <span class="monospace">In.java</span> method called yet.</i>
+          <br><br>
+          <i style="font-size: 0.8rem;">
+            To use <span class="monospace">In.java</span>, a class developed at JKU Linz for exception-free input handling,
+            you can right-click in your VSCode project and press "Create In.java". (For output, you can also
+            use another utility class using "Create Out.java")
+          </i>
         </div>
-        <div>
-          Latest return value:&nbsp;<span class="monospace"> {{ encodedLatestValue }} </span>
-          <span v-if="latestMethod !== 'no method called'">
-            &nbsp;(<span class="monospace">{{ latestType }}</span>&nbsp;from&nbsp;<span class="monospace">{{ latestMethod }}</span>)
-          </span>
+        <div v-else>
+          <div>
+            <span class="monospace">In.done()</span>:&nbsp;
+            <span class="monospace" :class="inputBufferInfo.done ? 'done-true' : 'done-false'"> {{ inputBufferInfo.done }} </span>
+          </div>
+          <div>
+            <!-- keep the following line breaks to generate correct white spaces -->
+            Latest return value:
+            <span class="monospace">{{ encodedLatestValue }}</span>
+            (<span class="monospace">{{ latestType }}</span>&nbsp;from&nbsp;<span class="monospace">{{ latestMethod }}</span>)
+          </div>
         </div>
       </div>
     </div>
@@ -32,121 +43,105 @@
   </div>
 </template>
 
-<script lang = 'ts'>
-import { defineComponent } from 'vue'
+<script setup lang = 'ts'>
+import { computed, defineComponent } from 'vue'
 import sanitizer from '@/helpers/sanitizer'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
 import { INVIZ } from '@/store/PaneVisibilityStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { mapStores } from 'pinia'
-import { InputBufferInfo } from '@/dto/TraceState'
-export default defineComponent({
+
+defineComponent({
   name: 'TheInViz',
-  components: { NavigationBarWithSettings },
-  data: function () {
-    return {
-      INVIZ
-    }
-  },
-  computed: {
-    ...mapStores(useGeneralStore),
-    inputBufferInfo (): InputBufferInfo | undefined {
-      return this.generalStore.currentTraceData?.inputBufferInfo
-    },
-    inDone: function (): string {
-      if (this.inputBufferInfo && this.inputBufferInfo.done) {
-        return '<span class="done-true">true</span>'
-      } else {
-        return '<span class="done-false">false</span>'
-      }
-    },
-    /* TODO: double/float shortening */
-    encodedLatestValue: function (): string {
-      if (!this.inputBufferInfo) {
-        return ''
-      }
-      switch (this.latestType) {
-        case 'char':
-          return `'${sanitizer.sanitizeCharValue(this.inputBufferInfo.latestValue)}'`
-        case 'boolean':
-          return this.inputBufferInfo.latestValue
-        case 'String':
-          return `"${sanitizer.generateVizString(this.inputBufferInfo.latestValue)}"`
-        case 'int':
-          return this.inputBufferInfo.latestValue
-        case 'long':
-          return this.inputBufferInfo.latestValue
-        case 'float':
-          return sanitizer.sanitizeFloatValue(this.inputBufferInfo.latestValue)
-        case 'double':
-          return sanitizer.sanitizeFloatValue(this.inputBufferInfo.latestValue)
-        default:
-          return ''
-      }
-    },
-    latestType: function (): string {
-      switch (this.inputBufferInfo?.latestMethod) {
-        case 'no method called':
-          return 'no type'
-        case 'read()':
-          return 'char'
-        case 'readChar()':
-          return 'char'
-        case 'readBoolean()':
-          return 'boolean'
-        case 'readIdentifier()':
-          return 'String'
-        case 'readWord()':
-          return 'String'
-        case 'readLine()':
-          return 'String'
-        case 'readFile()':
-          return 'String'
-        case 'readString()':
-          return 'String'
-        case 'readInt()':
-          return 'int'
-        case 'readLong()':
-          return 'long'
-        case 'readFloat()':
-          return 'float'
-        case 'readDouble()':
-          return 'double'
-        case 'peek()':
-          return 'char'
-        case 'open()':
-          return 'void'
-        case 'close()':
-          return 'void'
-        default:
-          return 'unknown type'
-      }
-    },
-    latestMethod: function (): string {
-      return this.inputBufferInfo?.latestMethod ?? ''
-    }
-  },
-  methods: {
-    displayBuffer: function (s: String): string {
-      const newString: string[] = []
-      const num: number = s.length
-      let i: number
-      for (i = 0; i < num; i++) {
-        if (s.charAt(i) === '\n') {
-          newString.push('\\n')
-          newString.push('\n')
-        } else if (s.charAt(i) === '\r') {
-          newString.push('\\r')
-        } else if (s.charAt(i) === ' ') {
-          newString.push('\u2423')
-        } else {
-          newString.push(s.charAt(i))
-        }
-      }
-      return newString.join('')
-    }
+  components: { NavigationBarWithSettings }
+})
+const generalStore = useGeneralStore()
+const inputBufferInfo = computed(() => generalStore.currentTraceData?.inputBufferInfo)
+const latestType = computed(() => {
+  switch (inputBufferInfo.value?.latestMethod) {
+    case '':
+      return 'no type'
+    case 'no method called':
+      return 'no type'
+    case 'read()':
+      return 'char'
+    case 'readChar()':
+      return 'char'
+    case 'readBoolean()':
+      return 'boolean'
+    case 'readIdentifier()':
+      return 'String'
+    case 'readWord()':
+      return 'String'
+    case 'readLine()':
+      return 'String'
+    case 'readFile()':
+      return 'String'
+    case 'readQuoted()':
+      return 'String'
+    case 'readInt()':
+      return 'int'
+    case 'readLong()':
+      return 'long'
+    case 'readFloat()':
+      return 'float'
+    case 'readDouble()':
+      return 'double'
+    case 'peek()':
+      return 'char'
+    case 'open()':
+      return 'void'
+    case 'close()':
+      return 'void'
+    default:
+      return 'unknown type'
   }
 })
+
+const encodedLatestValue = computed(() => {
+  if (!inputBufferInfo.value) {
+    return ''
+  }
+  switch (latestType.value) {
+    case 'char':
+      return `'${sanitizer.sanitizeCharValue(inputBufferInfo.value.latestValue)}'`
+    case 'boolean':
+      return inputBufferInfo.value.latestValue
+    case 'String':
+      return `"${sanitizer.generateVizString(inputBufferInfo.value.latestValue)}"`
+    case 'int':
+      return inputBufferInfo.value.latestValue
+    case 'long':
+      return inputBufferInfo.value.latestValue
+    case 'float':
+      return sanitizer.sanitizeFloatValue(inputBufferInfo.value.latestValue)
+    case 'double':
+      return sanitizer.sanitizeFloatValue(inputBufferInfo.value.latestValue)
+    case 'void':
+      return '-'
+    default:
+      return ''
+  }
+})
+const latestMethod = computed(() => inputBufferInfo.value?.latestMethod ?? '')
+function displayBuffer (s: string): string {
+  const newString: string[] = []
+  const num: number = s.length
+  let i: number
+  for (i = 0; i < num; i++) {
+    if (s.charAt(i) === '\n') {
+      newString.push('\\n')
+      newString.push('\n')
+    } else if (s.charAt(i) === '\r') {
+      newString.push('\\r')
+    } else if (s.charAt(i) === ' ') {
+      newString.push('\u2423')
+    } else {
+      newString.push(s.charAt(i))
+    }
+  }
+  return newString.join('')
+}
+
 </script>
 
 <style>

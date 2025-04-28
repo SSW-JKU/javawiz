@@ -1,5 +1,15 @@
 All notable changes to this project will be documented in this file.
 
+[1.7.3] (released on 2025-04-28)
+* JW-290: Migrate to composition API
+* JW-293: Migrate from webpack to vite
+* JW-305: Flowchart: Rectangles for inline methods are not correctly sized for constructor calls
+* JW-306: Failed In.open() produces ugly output in Input view
+* JW-307: StepOver targetReached incorrect
+* JW-308: Reunify eslint versions
+* JW-312: Update In.java, Out.java and Rand.java to match JKU-SW1-Style
+* JW-313: Put the HTML code for javawiz.net in the repository
+
 [1.7.2] (released on 2025-02-03)
 * JW-302: "Auto inline methods" in flowchart broken
 * JW-303: Rectangle that indicates method in flowchart is not wide enough

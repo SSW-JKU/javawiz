@@ -39,17 +39,17 @@ export class SequenceDiagramHistory {
 
   // returns all lifelines up until a specified state index
   getLifeLines (stateIndex: number) {
-    return this.lifeLines.filter(l => stateIndex >= this.timeIdxStateIdxMap.get(l.start)!!)
+    return this.lifeLines.filter(l => stateIndex >= this.timeIdxStateIdxMap.get(l.start)!)
   }
 
   // returns all arrows up until a specified state index
   getArrows (stateIndex: number) {
-    return this.arrows.filter(a => a.time && stateIndex >= this.timeIdxStateIdxMap.get(a.time)!!)
+    return this.arrows.filter(a => a.time && stateIndex >= this.timeIdxStateIdxMap.get(a.time)!)
   }
 
   // returns all boxes up until a specified state index
   getBoxes (stateIndex: number) {
-    return this.boxes.filter(b => stateIndex >= this.timeIdxStateIdxMap.get(b.start)!!)
+    return this.boxes.filter(b => stateIndex >= this.timeIdxStateIdxMap.get(b.start)!)
   }
 
   // returns all visited lines
@@ -221,9 +221,9 @@ export class SequenceDiagramHistory {
       return
     }
     for (let i = 0; i < (previous.stack.length - current.stack.length); i++) {
-      const fromLifeLine = this.getLifeLine(previous.stack[i])!!
-      const toLifeLine = this.getLifeLine(current.stack[0])!!
-      if (previous.stack[i]!!.class.includes('java.') || !current.stack[i]) {
+      const fromLifeLine = this.getLifeLine(previous.stack[i])!
+      const toLifeLine = this.getLifeLine(current.stack[0])!
+      if (previous.stack[i]!.class.includes('java.') || !current.stack[i]) {
         continue
       }
       if (this.getLabel(current, i).includes('void <init', 0)) {
@@ -310,7 +310,7 @@ export class SequenceDiagramHistory {
   private getLastBoxForLifeLine (lifeLine: LifeLine) {
     const boxesForLifeLine = getBoxesForLifeLine(lifeLine, this.boxes)
     let time = 0
-    let lastBox = getFirstBox(this.boxes, lifeLine)!!
+    let lastBox = getFirstBox(this.boxes, lifeLine)!
     for (let i = 0; i < boxesForLifeLine.length; i++) {
       const endTime = boxesForLifeLine[i].end ?? this.timeIdx
       if (endTime > time) {
@@ -325,7 +325,7 @@ export class SequenceDiagramHistory {
     if (current === null) {
       return
     }
-    const lifeLine = this.getLifeLine(current.stack[0])!!
+    const lifeLine = this.getLifeLine(current.stack[0])!
     const label: string = this.getLabel(current, 0)
     lifeLine.currState = 'expanded'
     const mainArrow: Arrow = {
@@ -412,7 +412,7 @@ export class SequenceDiagramHistory {
     if (previous.heap.length <= current.heap.length) {
       this.createConstructorArrows(previous, current)
     }
-    if (previous.stack[0]!!.class.includes('java.')) {
+    if (previous.stack[0]!.class.includes('java.')) {
       return
     }
     for (let i = 0; i < (current.stack.length - previous.stack.length); i++) {
@@ -519,7 +519,7 @@ export class SequenceDiagramHistory {
           stepOver: false,
           changed: true
         }
-        const newToLifeLine = this.getLifeLineByIndex(toLifeLine.index)!! // TODO: ===toLifeLine?
+        const newToLifeLine = this.getLifeLineByIndex(toLifeLine.index)! // TODO: ===toLifeLine?
         if (methodCallBox.currState === 'hidden') {
           const boxesForLifeLine = getBoxesForLifeLine(newToLifeLine, this.boxes)
           const allHidden = boxesForLifeLine.every(box => box.currState === 'hidden')
@@ -563,13 +563,13 @@ export class SequenceDiagramHistory {
       const arrow = this.boxes[i].callArrow
       if (!arrow) continue
       const lifeLineMatch = arrow.from === to && arrow.to === from
-      if (lifeLineMatch && arrow.kind === 'Call' && arrow.time!! < time && !this.boxes[i].end && arrow.fromDepth === maxDepth) {
+      if (lifeLineMatch && arrow.kind === 'Call' && arrow.time! < time && !this.boxes[i].end && arrow.fromDepth === maxDepth) {
         return {
           id: arrow.methodCallId,
           toDepth: arrow.toDepth,
           fromDepth: maxDepth,
-          fromBoxIndex: arrow.fromBoxIndex!!,
-          toBoxIndex: arrow.toBoxIndex!!
+          fromBoxIndex: arrow.fromBoxIndex!,
+          toBoxIndex: arrow.toBoxIndex!
         }
       }
     }
@@ -598,18 +598,26 @@ export class SequenceDiagramHistory {
   private addArrow (arrow: Arrow): boolean {
     let foundCallArrow: boolean = false
     let foundReturnArrow: boolean = false
-    for (let i = 0; i < this.arrows.length; i++) {
-      if (this.arrows[i].from === arrow.from && this.arrows[i].to === arrow.to && this.arrows[i].label === arrow.label && this.arrows[i].kind === arrow.kind) {
-        const thisReferenceMatch = !!arrow.this && this.arrows[i] && this.arrows[i].this?.reference === arrow.this?.reference
-        const staticMatch = !arrow.this && !this.arrows[i].this && !arrow.reference && !this.arrows[i].reference
-        const implicitReferenceMatch = arrow.reference && this.arrows[i].reference && arrow.reference === this.arrows[i].reference
-        if (thisReferenceMatch || staticMatch || implicitReferenceMatch) {
-          foundCallArrow = true
-        }
-        for (let j = 0; j < this.arrows.length; j++) { // TODO: does loop need to be nested?
-          if (this.arrows[j].from === arrow.to && this.arrows[j].to === arrow.from && this.arrows[j].label === 'return' && this.arrows[j].kind === 'Return') {
-            foundReturnArrow = true
+    if (arrow.kind !== 'Constructor') {
+      for (let i = 0; i < this.arrows.length; i++) {
+        if (this.arrows[i].from === arrow.from && this.arrows[i].to === arrow.to && this.arrows[i].label === arrow.label && this.arrows[i].kind === arrow.kind) {
+          const thisReferenceMatch = !!arrow.this && this.arrows[i] && this.arrows[i].this?.reference === arrow.this?.reference
+          const staticMatch = !arrow.this && !this.arrows[i].this && !arrow.reference && !this.arrows[i].reference
+          const implicitReferenceMatch = arrow.reference && this.arrows[i].reference && arrow.reference === this.arrows[i].reference
+          if (thisReferenceMatch || staticMatch || implicitReferenceMatch) {
+            foundCallArrow = true
           }
+          for (let j = 0; j < this.arrows.length; j++) { // TODO: does loop need to be nested?
+            if (this.arrows[j].from === arrow.to && this.arrows[j].to === arrow.from && this.arrows[j].label === 'return' && this.arrows[j].kind === 'Return') {
+              foundReturnArrow = true
+            }
+          }
+        }
+      }
+    } else {
+      for (let i = 0 ; i < this.arrows.length; i++) {
+        if (this.arrows[i].from === arrow.from && this.arrows[i].reference && this.arrows[i].reference === arrow.reference) {
+          foundCallArrow = true
         }
       }
     }
@@ -788,7 +796,6 @@ export class SequenceDiagramHistory {
     }
     this.timeIdxStateIdxMap.set(this.timeIdx, stateIdx)
     this.timeIdx++
-
     const newLifeLine: LifeLine = {
       index: this.eventIdx,
       label,
@@ -814,23 +821,22 @@ export class SequenceDiagramHistory {
         arrow.fromDepth = box.depth
       }
     }
-
     this.lifeLines.push(newLifeLine)
     this.eventIdx++
     this.timeIdxStateIdxMap.set(this.timeIdx, stateIdx)
     this.timeIdx++
     if (!newLifeLine.label.includes('[')) {
-      const filteredArrows = this.arrows.filter(a => a !== undefined && a.time !== undefined) // TODO: use library function? not sure what this block does
+      const filteredArrows = this.arrows.filter(a => a !== undefined) // TODO: use library function? not sure what this block does
       const sortedArrows: Arrow[] = []
       let max = 0
       for (let i = 0; i < filteredArrows.length; i++) {
-        if (filteredArrows[i] !== undefined && filteredArrows[i].time!! > max) {
-          max = filteredArrows[i].time!!
+        if (filteredArrows[i] !== undefined && filteredArrows[i].time! > max) {
+          max = filteredArrows[i].time!
         }
       }
       for (let i = 0; i < filteredArrows.length; i++) {
         for (let j = 0; j < filteredArrows.length; j++) {
-          if (filteredArrows[j].time!! < filteredArrows[i].time!! && !sortedArrows.includes(filteredArrows[j])) {
+          if (filteredArrows[j].time! < filteredArrows[i].time! && !sortedArrows.includes(filteredArrows[j])) {
             sortedArrows.push(filteredArrows[j])
           }
         }
