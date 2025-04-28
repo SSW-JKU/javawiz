@@ -21,13 +21,19 @@ sealed class Request {
     abstract val task: TaskKind
 }
 
-data class Compile(val classContents: List<FilepathAndContent>, val vscExtensionActive: Boolean, val internalClassPatterns: List<String>?, val openEditorLocalUri: String? =
-    null) : Request() {
+data class Compile(
+    val classContents: List<FilepathAndContent>, val vscExtensionActive: Boolean, val internalClassPatterns: List<String>?, val openEditorLocalUri: String? = null
+) : Request() {
     override val task: TaskKind = TaskKind.COMPILE
+
+    override fun toString(): String {
+        return "CompileRequest(classes=${classContents.map { cc -> cc.localUri }}, vscExentsionActive=$vscExtensionActive, internalClassPatterns=$internalClassPatterns, " +
+                "openEditorLocalUri=$openEditorLocalUri)"
+    }
 }
 
 abstract class StepRequest : Request() {
-    abstract fun toDebuggerStepTask(debugger: Debugger) : DebuggerStepTask
+    abstract fun toDebuggerStepTask(debugger: Debugger): DebuggerStepTask
 }
 
 class StepInto() : StepRequest() {

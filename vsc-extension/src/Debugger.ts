@@ -6,7 +6,7 @@ import Shared from '../../shared/src/Shared'
 import * as kill from 'tree-kill'
 
 const ASSETS_PATH_SEGMENTS = ['out', 'assets', 'backend', 'libs']
-const WEBSOCKET_DEBUGGER = 'backend-1.7.3.jar'
+const WEBSOCKET_DEBUGGER = 'backend-1.7.4.jar'
 
 export class Debugger {
   private static running = false

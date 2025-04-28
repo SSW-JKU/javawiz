@@ -1,5 +1,9 @@
 All notable changes to this project will be documented in this file.
 
+[1.7.4] (released on 2025-04-28)
+* JW-315: Make backend more quiet by reducing text amount (CompileRequest.toString(), ...)
+* JW-317: Fix extension error "Activating extension 'ssw-jku.javawiz' failed: require() of ES Module not supported."
+
 [1.7.3] (released on 2025-04-28)
 * JW-290: Migrate to composition API
 * JW-293: Migrate from webpack to vite

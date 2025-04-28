@@ -1,6 +1,11 @@
 package at.jku.ssw.wsdebug
 
+import at.jku.ssw.wsdebug.communication.CompileSuccessResponse
+import at.jku.ssw.wsdebug.communication.ErrorResponse
+import at.jku.ssw.wsdebug.communication.Response
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.sun.jdi.VirtualMachine
+import org.java_websocket.WebSocket
 
 fun <A> A?.packIntoMutableList() = if (this == null) mutableListOf<A>() else mutableListOf(this)
 
@@ -29,3 +34,26 @@ fun VirtualMachine.getEnabledRequests() = listOf(
 ).flatten().filter { it.isEnabled }
 
 fun Exception.asSingleLineStringWithStackTrace() = asStringWithStackTrace().replace("\r\n", "\n").replace("\n", " ### ")
+
+fun String.shorten(len: Int) =
+    take(len) + if (length > len) "..." else ""
+
+fun WebSocket.sendAndPrintResponse(response: Response, shortenProductionPrintTo: Int = Integer.MAX_VALUE) {
+    val message = jacksonObjectMapper().writeValueAsString(response)
+    println("  Response status: ${response.status}")
+    if (response is ErrorResponse) {
+        println("  Response error: ${response.error}")
+    }
+    if (response is CompileSuccessResponse) {
+        with(response.data.toString().replace("\n", " ")) {
+            val dataStr =
+                if (DEVELOPMENT_MODE) {
+                    toString()
+                } else {
+                    shorten(shortenProductionPrintTo)
+                }
+            println("  Response data: $dataStr")
+        }
+    }
+    send(message)
+}

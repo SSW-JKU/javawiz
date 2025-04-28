@@ -183,6 +183,7 @@ onMounted(async () => {
     generalStore.debugger.shareInitialState()
 
     const contents = await ExtensionCommunication.sendGetFileContents()
+    console.log(contents)
     generalStore.fileManager.setFileContents(contents.fileContents)
 
     shared.logDebug(`file contents: ${contents.fileContents}`)
