@@ -169,7 +169,7 @@ const generalStore = useGeneralStore()
   display: none !important;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 850px) {
   .hide-on-narrow {
     display: none !important;
   }

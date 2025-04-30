@@ -4,6 +4,7 @@
     <TheNotifications />
     <TheHelpOverlay />
     <TheAboutOverlay />
+    <TheReportOverlay />
     <TheToolbar
       @connect="connect"
       @start-compilation="startCompilation"
@@ -37,6 +38,7 @@ import TheCodeEditor from '@/components/TheCodeEditor.vue'
 import TheConsole from '@/components/TheConsole.vue'
 import TheHelpOverlay from '@/components/Overlays/TheHelpOverlay.vue'
 import TheAboutOverlay from '@/components/Overlays/TheAboutOverlay.vue'
+import TheReportOverlay from '@/components/Overlays/TheReportOverlay.vue'
 import TheNotifications from '@/components/TheNotifications/TheNotifications.vue'
 import TheFileHandler from '@/components/TheFileHandler.vue'
 import { Pane, Splitpanes } from 'splitpanes'

@@ -12,7 +12,7 @@
 import * as d3 from 'd3'
 import { graphviz } from 'd3-graphviz'
 import 'd3-transition'
-import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ProcessedTraceState } from '@/dto/TraceState'
 import {
   HeapVizHeapArray,
@@ -20,7 +20,7 @@ import {
   HeapVizHeapItem, HeapVizHeapObject,
   HeapVizHeapString,
   HeapVizReferenceVal,
-  HeapVizStackFrame,
+  HeapVizStackFrame, HeapVizTraceState,
   HeapVizVar
 } from '@/components/TheHeapVisualization/types'
 import { fromProcessedTraceState } from './mapping'
@@ -346,37 +346,38 @@ export default defineComponent({
     const highlightedItems = ref<HoverInfo[]>([])
     const generalStore = useGeneralStore()
     const heapVizMetaStore = useHeapVizMetaStore()
-    const currentHeapVizTraceState = computed(() => {
-      /*  we want to use processedTrace to access the already computed changed-flag for highlighting changed elements,
-       *  but it's only available after the first step, so the first state still has to come from the original trace
-       *  (because we want to display static fields, args etc. _before_ the first step)
-      */
-      if (generalStore.currentTraceData?.processedTraceState) {
-        return fromProcessedTraceState(generalStore.currentTraceData?.processedTraceState)
-      }
-      const first = generalStore.currentTraceData!.firstTraceState
-      const processedState: ProcessedTraceState = {
-        kind: 'ProcessedTraceState',
-        localUri: first.sourceFileUri,
-        line: first.line,
-        heapBeforeExecution: first.heap,
-        stackBeforeExecution: first.stack,
-        loadedClassesBeforeExecution: first.loadedClasses,
-        stateIndex: 0,
-        heapAfterExecution: first.heap,
-        stackAfterExecution: first.stack,
-        loadedClassesAfterExecution: first.loadedClasses
-      }
+    const cachedTraceState = ref<HeapVizTraceState>()
 
-      processedState.stackAfterExecution!.flatMap(frame => frame.localVariables).forEach(lv => {
-        lv.changed = true
-      })
-      processedState.loadedClassesAfterExecution!.flatMap(clazz => clazz.staticFields).forEach(sf => {
-        sf.changed = true
-      })
+    watch(() => generalStore.currentTraceData, (newData) => {
+      if (newData?.processedTraceState) {
+        cachedTraceState.value = fromProcessedTraceState(newData.processedTraceState)
+      } else {
+        const first = newData?.firstTraceState
+        const processedState: ProcessedTraceState = {
+          kind: 'ProcessedTraceState',
+          localUri: first!.sourceFileUri,
+          line: first!.line,
+          heapBeforeExecution: first!.heap,
+          stackBeforeExecution: first!.stack,
+          loadedClassesBeforeExecution: first!.loadedClasses,
+          stateIndex: 0,
+          heapAfterExecution: first!.heap,
+          stackAfterExecution: first!.stack,
+          loadedClassesAfterExecution: first!.loadedClasses
+        }
 
-      return fromProcessedTraceState(processedState)
-    })
+        processedState.stackAfterExecution!.flatMap(frame => frame.localVariables).forEach(lv => {
+          lv.changed = true
+        })
+        processedState.loadedClassesAfterExecution!.flatMap(clazz => clazz.staticFields).forEach(sf => {
+          sf.changed = true
+        })
+
+        cachedTraceState.value = fromProcessedTraceState(processedState)
+      }
+    }, { immediate: true })
+
+    const currentHeapVizTraceState = cachedTraceState
 
     function stackTableFrameHeaderRow (stackFrame: HeapVizStackFrame): string {
       const title = sanitizer.escapeHtml(stackFrame.displayText)
@@ -416,7 +417,7 @@ export default defineComponent({
           .replaceAll('###HIGHLIGHT_TAG###', varTag(v))
           .replaceAll('###VALUE###', v.type === 'char' ? `'${value}'` : value)
           .replaceAll('###TOOL_TIP###', v.value.title ?? '')
-          .replaceAll('###BG_COLOR###', () => getItemColorOnHover(v, highlightedItems.value, currentHeapVizTraceState.value))
+          .replaceAll('###BG_COLOR###', () => getItemColorOnHover(v, highlightedItems.value, currentHeapVizTraceState.value!))
       }
       return DOT_PARTS.referenceVarRow
         .replaceAll('###TYPE###', shortTypeName(v.type))
@@ -426,7 +427,7 @@ export default defineComponent({
         .replaceAll('###HIGHLIGHT_COLOR###', varColor(v))
         .replaceAll('###HIGHLIGHT_TAG###', varTag(v))
         .replaceAll('###VALUE###', value)
-        .replaceAll('###BG_COLOR###', getItemColorOnHover(v, highlightedItems.value, currentHeapVizTraceState.value))
+        .replaceAll('###BG_COLOR###', getItemColorOnHover(v, highlightedItems.value, currentHeapVizTraceState.value!))
     }
     function stringRow (s: HeapVizHeapString): string {
       const value = s.vizString
@@ -435,7 +436,7 @@ export default defineComponent({
         .replaceAll('###HIGHLIGHT_TAG###', varTag(s.charArr))
         .replaceAll('###VALUE###', sanitizer.escapeHtml(value))
         .replaceAll('###IDENTIFIER###', s.identifier)
-        .replaceAll('###BG_COLOR###', getItemColorOnHover(s, highlightedItems.value, currentHeapVizTraceState.value))
+        .replaceAll('###BG_COLOR###', getItemColorOnHover(s, highlightedItems.value, currentHeapVizTraceState.value!))
     }
     function staticsTableClassHeaderRow (clazz: string): string {
       return DOT_PARTS.staticsTableClassHeaderRow.replaceAll('###CLASS###', sanitizer.escapeHtml(shortTypeName(clazz)))
@@ -469,7 +470,7 @@ export default defineComponent({
         .replaceAll('###HIGHLIGHT_COLOR###', varColor(elem))
         .replaceAll('###HIGHLIGHT_TAG###', varTag(elem))
         .replaceAll('###VALUE###', varValue(elem))
-        .replaceAll('###BG_COLOR###', getItemColorOnHover(elem, highlightedItems.value, currentHeapVizTraceState.value))
+        .replaceAll('###BG_COLOR###', getItemColorOnHover(elem, highlightedItems.value, currentHeapVizTraceState.value!))
       // .replaceAll('###TOOL_TIP###', vm.varTitle(elem))
     }
     function isCollapsedArray (arr: HeapVizHeapArray): boolean {
@@ -502,12 +503,12 @@ export default defineComponent({
     function heapArrayEmptyRow (heapArray: HeapVizHeapArray): string {
       return DOT_PARTS.arrayEmptyRow
         .replaceAll('###IDENTIFIER###', heapArray.identifier)
-        .replaceAll('###BG_COLOR###', getItemColorOnHover(heapArray, highlightedItems.value, currentHeapVizTraceState.value))
+        .replaceAll('###BG_COLOR###', getItemColorOnHover(heapArray, highlightedItems.value, currentHeapVizTraceState.value!))
     }
 
     // Must be called with valid ID!!!
     function getHeapItemById (id: number): HeapVizHeapItem {
-      return currentHeapVizTraceState.value.heapAfterExecution.find(ho => ho.id === id)!
+      return currentHeapVizTraceState.value!.heapAfterExecution.find(ho => ho.id === id)!
     }
 
     function numberOfVisibleArrayElements (arr: HeapVizHeapArray): number {
@@ -689,7 +690,7 @@ export default defineComponent({
               const nVisibleElements = numberOfVisibleArrayElements(heapArray)
               for (let i = 0; i < nVisibleElements; i++) {
                 const varValueColor = varColor(heapArray.elements[i])
-                const itemColor = getItemColorOnHover(heapArray.elements[i], highlightedItems.value, currentHeapVizTraceState.value)
+                const itemColor = getItemColorOnHover(heapArray.elements[i], highlightedItems.value, currentHeapVizTraceState.value!)
                 dotString += `<td width="${MIN_WIDTH}" bgcolor="${itemColor}"><font color="${varValueColor}">[${i}]</font></td>`
               }
 
@@ -710,7 +711,7 @@ export default defineComponent({
               dotString += '<tr><td sides="R"></td>'
               for (let i = 0; i < nVisibleElements; i++) {
                 const varValueColor = varColor(heapArray.elements[i])
-                const bgcolor = getItemColorOnHover(heapArray.elements[i], highlightedItems.value, currentHeapVizTraceState.value)
+                const bgcolor = getItemColorOnHover(heapArray.elements[i], highlightedItems.value, currentHeapVizTraceState.value!)
                 dotString += `<td
                   width="${MIN_WIDTH}"
                   href = "${heapArray.identifier}:i_${i}"
@@ -812,7 +813,7 @@ export default defineComponent({
 
     function edge (v: HeapVizVar | HeapVizHeapArrayElementVar): string {
       let additionalProperties
-      if (isHighlightedEdge(v.identifier, refTarget(v), highlightedItems.value, currentHeapVizTraceState.value)) {
+      if (isHighlightedEdge(v.identifier, refTarget(v), highlightedItems.value, currentHeapVizTraceState.value!)) {
         additionalProperties = '[color="#eda167" penwidth="2.0"]'
       } else if (v.changed) {
         additionalProperties = '[color="red" penwidth="2.0"]'
@@ -1032,12 +1033,12 @@ export default defineComponent({
                 let hoverInfos = []
                 // check if a heap object is hovered
                 if (identifier.charAt(0) === 'o') {
-                  hoverInfos = getHeapItemToHeapItemHoverInfos(identifier, currentHeapVizTraceState.value)
+                  hoverInfos = getHeapItemToHeapItemHoverInfos(identifier, currentHeapVizTraceState.value!)
                   // check if a stack or statics item is hovered
                 } else if (identifier.search('l_') >= 0 || identifier.search('s_') >= 0 || identifier.search('localvar_') >= 0) {
-                  hoverInfos = getLocalOrStaticsToHeapItemHoverInfos(identifier.split(':')[1], currentHeapVizTraceState.value)
+                  hoverInfos = getLocalOrStaticsToHeapItemHoverInfos(identifier.split(':')[1], currentHeapVizTraceState.value!)
                 } else { // otherwise a method is hovered
-                  hoverInfos = getMethodHoverInfos(identifier, currentHeapVizTraceState.value)
+                  hoverInfos = getMethodHoverInfos(identifier, currentHeapVizTraceState.value!)
                 }
                 HoverSynchronizer.hover(hoverInfos)
               })
@@ -1099,7 +1100,7 @@ export default defineComponent({
       - object is not in map, but one of its fields is already in map (because isExpanded was accessed) => don't touch
       - object is not in map and none of its fields have been accessed before => must be fresh large objs => set isExpanded for all fields to false
        */
-      currentHeapVizTraceState.value.heapAfterExecution
+      currentHeapVizTraceState.value!.heapAfterExecution
         .filter(heapItem => isLargeObject(heapItem) && !heapVizMetaStore.isIdentifierInMap(heapItem.identifier))
         .forEach(heapObject => {
           const fields = (heapObject as HeapVizHeapObject).fields
@@ -1107,7 +1108,6 @@ export default defineComponent({
             fields.forEach(field => heapVizMetaStore.setExpandedIdentifier({ identifier: field.identifier, e: false }))
           }
         })
-
       redraw()
     })
     onMounted(() => {

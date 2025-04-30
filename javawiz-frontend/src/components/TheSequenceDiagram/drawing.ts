@@ -21,7 +21,6 @@ import {
   getSecondYForVerticalLine,
   getCYForDot,
   getUpdatedHeight,
-  getDotOpacity,
   getCXForDot,
   getArrowOpacity,
   getLifeLineOpacity,
@@ -47,7 +46,7 @@ import {
   wasVisible,
   toggleLifeLine,
   getActiveTimeIndices,
-  getBoxEnd
+  getBoxEnd, getLifeLineClassWithoutPackageAndOuterClass
 } from '@/components/TheSequenceDiagram/data-utils'
 import { TRANSFORMATION } from '@/helpers/constants'
 import {
@@ -127,8 +126,8 @@ export function drawLifeLines (
           .attr('font-weight', LAYOUT.text.fontWeight)
           .style('opacity', d => getLifeLineOpacity(d))
           .append('xhtml:div')
-          .text(d => d.heapId ? `${d.label} : ${d.className}` : `${d.className}`)
-          .attr('title', d => d.heapId ? `${d.label} : ${d.className}` : `${d.className}`)
+          .text(d => d.heapId ? `${d.label} : ${getLifeLineClassWithoutPackageAndOuterClass(d.className)}` : `${getLifeLineClassWithoutPackageAndOuterClass(d.className)}`)
+          .attr('title', d => d.heapId ? `${d.label} : ${getLifeLineClassWithoutPackageAndOuterClass(d.className)}` : `${getLifeLineClassWithoutPackageAndOuterClass(d.className)}`)
         group.append('line')
           .attr('id', HTML.ids.horizontalLine)
           .attr('x1', d => getXForHorizontal(d, elems.lifeLines)[0])
@@ -421,6 +420,7 @@ export function drawArrows (
  * @param activeTimeIndices all currently active time indices
  * @param vm
  * @param hoveredInfos currently hovered items
+ * @param currHeapVizTraceState
  */
 export function drawBoxes (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
@@ -483,7 +483,7 @@ export function drawBoxes (
           .attr('fill', d => d.currState === 'collapsed' && d.isDrawn ? LAYOUT.altBoxColor : LAYOUT.mainBoxColor)
           .attr('stroke-width', LAYOUT.strokeWidth)
           .attr('stroke', 'black')
-          .style('opacity', d => (d.currState === 'expanded' || (d.currState === 'collapsed' && d.isDrawn)) ? '1' : '0')
+          .style('opacity', d => d.lifeLine.index === 0 ? '1' : '0')
         group.append('circle')
           .attr('id', `${HTML.ids.dot1}`)
           .attr('cx', d => getCXForDot(d, elems.lifeLines))
@@ -492,13 +492,7 @@ export function drawBoxes (
           .attr('stroke', LAYOUT.dotColor)
           .attr('stroke-width', LAYOUT.circle.strokeWidth)
           .attr('fill', LAYOUT.dotColor)
-          .style('opacity', d => {
-            if (d.currState === 'collapsed' && d.isDrawn && d.stepOver) {
-              d.prevState = 'collapsed'
-              d.wasDrawn = true
-            }
-            return getDotOpacity(d)
-          })
+          .style('opacity', '0')
         group.append('circle')
           .attr('id', `${HTML.ids.dot2}`)
           .attr('cx', d => getCXForDot(d, elems.lifeLines))
@@ -507,9 +501,7 @@ export function drawBoxes (
           .attr('stroke', LAYOUT.dotColor)
           .attr('stroke-width', LAYOUT.circle.strokeWidth)
           .attr('fill', LAYOUT.dotColor)
-          .style('opacity', d => {
-            return getDotOpacity(d)
-          })
+          .style('opacity', '0')
         group.append('circle')
           .attr('id', `${HTML.ids.dot3}`)
           .attr('cx', d => getCXForDot(d, elems.lifeLines))
@@ -518,9 +510,7 @@ export function drawBoxes (
           .attr('stroke', LAYOUT.dotColor)
           .attr('stroke-width', LAYOUT.circle.strokeWidth)
           .attr('fill', LAYOUT.dotColor)
-          .style('opacity', d => {
-            return getDotOpacity(d)
-          })
+          .style('opacity', '0')
         blendInAnimation(group)
         return group
       },

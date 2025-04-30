@@ -1,5 +1,10 @@
 All notable changes to this project will be documented in this file.
 
+[1.7.5] (released on 2025-04-30)
+* JW-227: Bug Report Feature
+* JW-318: Infinite loop caused by watcher in HeapViz
+* JW-319: Add icon image to Visual Studio Code extension marketplace
+
 [1.7.4] (released on 2025-04-28)
 * JW-315: Make backend more quiet by reducing text amount (CompileRequest.toString(), ...)
 * JW-317: Fix extension error "Activating extension 'ssw-jku.javawiz' failed: require() of ES Module not supported."

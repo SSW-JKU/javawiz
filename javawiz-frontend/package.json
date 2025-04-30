@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "private": true,
   "scripts": {
     "serve": "vite",
@@ -15,6 +15,7 @@
     "d3-graphviz": "5.2.0",
     "jszip": "^3.10.1",
     "lodash": "^4.17.21",
+    "marked": "^15.0.11",
     "monaco-editor": "^0.33.0",
     "pinia": "^2.1.7",
     "splitpanes": "^3.1.8",
@@ -26,15 +27,16 @@
     "@types/d3": "^7.4.3",
     "@types/d3-graphviz": "2.6.7",
     "@types/lodash": "^4.14.171",
+    "@types/marked": "^5.0.2",
     "@types/node": "^22.10.2",
     "@types/splitpanes": "^2.2.6",
-    "typescript-eslint": "^8.24.1",
     "@typescript-eslint/eslint-plugin": "^8.24.1",
     "@typescript-eslint/parser": "^8.24.1",
     "@vitejs/plugin-vue": "^5.2.1",
     "eslint": "^9.20.1",
     "eslint-plugin-vue": "^9.32.0",
     "typescript": "~5.7.3",
+    "typescript-eslint": "^8.24.1",
     "vite": "^6.1.0",
     "vue-tsc": "^2.2.0"
   }

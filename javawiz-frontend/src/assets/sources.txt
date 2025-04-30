@@ -26,3 +26,5 @@ download: Icons made by <a href="https://www.flaticon.com/authors/pixel-perfect"
 open file: Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
 
 question mark: Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+
+bug: <a href="https://www.flaticon.com/free-icons/test" title="test icons">Test icons created by Freepik - Flaticon</a>

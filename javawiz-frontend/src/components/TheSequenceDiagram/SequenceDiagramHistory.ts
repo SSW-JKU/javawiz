@@ -1,6 +1,6 @@
 import { Arrow, Box, LifeLine } from '@/components/TheSequenceDiagram/types'
 import { HeapItem, HeapObject, LoadedClass, LocalVar, StackFrame, TraceState, Val, Var } from '@/dto/TraceState'
-import { getArrowDirection, getBoxesForLifeLine, getElemLabel } from '@/components/TheSequenceDiagram/data-utils'
+import { getArrowDirection, getBoxesForLifeLine, getLifeLineClassWithoutPackageAndOuterClass } from '@/components/TheSequenceDiagram/data-utils'
 import { getFirstBox } from '@/components/TheSequenceDiagram/drawing-utils'
 
 export class SequenceDiagramHistory {
@@ -169,7 +169,7 @@ export class SequenceDiagramHistory {
         return [added, null]
       }
     }
-    const className = getElemLabel(field.type)
+    const className = field.type
     const arrow: Arrow = {
       from: lifeLine,
       label: `${className} ()`,
@@ -384,7 +384,7 @@ export class SequenceDiagramHistory {
       if (!fromBox) {
         continue
       }
-      const constructorLabel = getElemLabel(`${item.type} ()`)
+      const constructorLabel = `${item.type} ()`
       const arrow: Arrow = {
         kind: 'Constructor',
         from: fromBox.lifeLine,
@@ -426,8 +426,8 @@ export class SequenceDiagramHistory {
         continue
       }
       if (toLifeLine === null && label === 'constructor') {
-        label = current.stack[0].class.includes('[]') ? `${current.stack[0].class}` : `${current.stack[0].class} ()`
-        label = getElemLabel(label)
+        label = current.stack[0].class.includes('[]') ? `${getLifeLineClassWithoutPackageAndOuterClass(current.stack[0].class)}` : 
+          `${getLifeLineClassWithoutPackageAndOuterClass(current.stack[0].class)} ()`
 
         let fromBoxIndex
         let from
@@ -491,7 +491,8 @@ export class SequenceDiagramHistory {
         line
       }
       if (label === 'constructor') {
-        label = getElemLabel(toLifeLine.className.includes('[]') ? `${toLifeLine.className}` : `${toLifeLine.className} ()`)
+        label = toLifeLine.className.includes('[]') ? `${getLifeLineClassWithoutPackageAndOuterClass(toLifeLine.className)}` : 
+          `${getLifeLineClassWithoutPackageAndOuterClass(toLifeLine.className)} ()`
         newArrow = {
           label,
           this: current.stack[0].this,
@@ -785,7 +786,7 @@ export class SequenceDiagramHistory {
     if (!reference) {
       return
     }
-    const className = getElemLabel(arrow.label.substring(0, arrow.label.indexOf(' ')))
+    const className = arrow.label.substring(0, arrow.label.indexOf(' '))
     const diffObject = this.getRefObject(current, reference)
     const label = diffObject.objectName
     if (diffObject.objectId === 0 || !label) {
@@ -861,9 +862,6 @@ export class SequenceDiagramHistory {
         name = 'java'
       } else if (name.includes('jdk.')) {
         name = 'jdk'
-      }
-      if (name !== 'java' && name !== 'jdk') {
-        name = getElemLabel(name)
       }
       let label = this.getLabel(current, i)
       if (label.includes('void <init', 0)) {

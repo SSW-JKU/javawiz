@@ -489,7 +489,7 @@ export function pushUnlessIncluded<A> (array: A[], elem: A) {
   }
 }
 
-export function getElemLabel (label: string) {
+export function getLifeLineClassWithoutPackageAndOuterClass (label: string) {
   let idx = -1
   if (label.includes('$')) {
     idx = label.lastIndexOf('$')

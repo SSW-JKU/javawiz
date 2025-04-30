@@ -8,10 +8,6 @@
     </div>
     <div v-if="generalStore.debugger.connected" class="float-container-center-aligned">
       <IconWithTooltip
-        :tooltip="{ text: 'Help', arrow: 'left', placement: 'below' }"
-        :icon="help"
-        @action="() => overlayStore.toggleHelpState()" />
-      <IconWithTooltip
         v-if="!generalStore.vscExtensionMode"
         :tooltip="{ text: 'Open Files', arrow: 'left', placement: 'below' }"
         :shortcut="{ firstKey: 'Alt', secondKey: 'O' }"
@@ -50,7 +46,6 @@ import TheDebuggerButtons from '@/components/TheToolbar/TheDebuggerButtons.vue'
 import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { useOverlayStore } from '@/store/OverlayStore'
-import help from '../../assets/icons/controls/help.svg'
 import open from '../../assets/icons/controls/open.svg'
 import start_ from '../../assets/icons/controls/start.svg'
 import save from '../../assets/icons/controls/save.svg'

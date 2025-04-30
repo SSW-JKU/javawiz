@@ -1,8 +1,8 @@
 # JavaWiz
 
-Visualization tool / Graphical debugger ***JavaWiz***.
+***JavaWiz*** is an educational *visualization tool* / *graphical debugger*.
 
-Find us on https://javawiz.net
+Find us on [javawiz.net](https://javawiz.net).
 
 ## Structure
 
@@ -41,6 +41,10 @@ To locally run the debugger, run `gradlew :debugger:run` in the root folder.
 
 Both of these tasks are also included as *IntelliJ Run Configurations*, i.e., if you import this project in IntelliJ you can start both projects from within your IDE without 
 using the command line.
+
+## Icons
+
+Icons taken from [Flaticon](https://www.flaticon.com/), for detailed attribution [see here](https://github.com/SSW-JKU/javawiz/blob/main/javawiz-frontend/src/assets/sources.txt).
 
 ## Icons
 
