@@ -45,7 +45,3 @@ using the command line.
 ## Icons
 
 Icons taken from [Flaticon](https://www.flaticon.com/), for detailed attribution [see here](https://github.com/SSW-JKU/javawiz/blob/main/javawiz-frontend/src/assets/sources.txt).
-
-## Icons
-
-Icons taken from [Flaticon](https://www.flaticon.com/), for detailed attribution [see here](https://github.com/SSW-JKU/javawiz/blob/main/javawiz-frontend/src/assets/sources.txt).
