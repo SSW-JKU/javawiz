@@ -76,7 +76,7 @@ defineComponent({
 })
 
 // releaseDate is modified by build script
-const releaseDate = '2025-04-30-20-12'
+const releaseDate = '2025-05-14-16-47'
 const overlayStore = useOverlayStore()
 
 function hide () {

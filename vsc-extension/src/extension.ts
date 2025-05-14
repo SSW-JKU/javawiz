@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import { Communication } from './Communication'
 import { Editors } from './Editors'
 import { codeLensProvider } from './Codelens'
-import { Debugger } from './Debugger'
+import { Backend } from './Backend'
 import { Frontend } from './Frontend'
 import { Webview } from './Webview'
 import { Console } from './Console'
@@ -62,7 +62,7 @@ export class Extension {
       const debuggerPort = ports[2]
       shared.logDebug(`frontend port: ${frontendPort}, communication port: ${communicationPort}, debugger port: ${debuggerPort}`)
       await Communication.start(communicationPort)
-      await Debugger.start(context.extensionUri, debuggerPort) // risk: port might no longer be free
+      await Backend.start(context.extensionUri, debuggerPort) // risk: port might no longer be free
       await Frontend.start(context.extensionUri, frontendPort) // risk: port might no longer be free
       const name = path.basename(activeEditor.document.uri.fsPath)
       Webview.activate(name, frontendPort, communicationPort, debuggerPort)
@@ -88,7 +88,7 @@ export class Extension {
     let retries = 2
     while(retries > 0) {
       try {
-        await Debugger.end()
+        await Backend.end()
         break
       } catch(e) {
         shared.logDebug('killing the debugger caused an error: ')

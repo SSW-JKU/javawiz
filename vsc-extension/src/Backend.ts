@@ -6,25 +6,25 @@ import Shared from '../../shared/src/Shared'
 import * as kill from 'tree-kill'
 
 const ASSETS_PATH_SEGMENTS = ['out', 'assets', 'backend', 'libs']
-const WEBSOCKET_DEBUGGER = 'backend-1.7.5.jar'
+const BACKEND_JAR = 'backend-1.7.6.jar'
 
-export class Debugger {
+export class Backend {
   private static running = false
   private static process: child_process.ChildProcess
   private static timeout: NodeJS.Timeout
 
 
   static async start(extensionPath: vscode.Uri, port: number) {
-    if (Debugger.running) {
+    if (Backend.running) {
       return
     }
-    Debugger.running = true
+    Backend.running = true
 
-    const debuggerPath = vscode.Uri.joinPath(extensionPath, ...ASSETS_PATH_SEGMENTS, WEBSOCKET_DEBUGGER).fsPath
+    const backendPath = vscode.Uri.joinPath(extensionPath, ...ASSETS_PATH_SEGMENTS, BACKEND_JAR).fsPath
 
 
-    if (!fs.existsSync(debuggerPath)) {
-      throw new Error(`Debugger backend not found under the file name ${debuggerPath}`)
+    if (!fs.existsSync(backendPath)) {
+      throw new Error(`Backend not found under the file name ${backendPath}`)
     }
 
     let workspacePath;
@@ -32,13 +32,13 @@ export class Debugger {
       workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath
     }
 
-    Debugger.process = child_process.spawn(
+    Backend.process = child_process.spawn(
       'java',
       [
         '--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
         '--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
         '--add-exports', 'jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED',
-        '-jar', debuggerPath, port.toString()],
+        '-jar', backendPath, port.toString()],
       {
         /* 
         the working directory is inherited to the debuggee process,
@@ -47,9 +47,9 @@ export class Debugger {
         cwd: workspacePath
       }
     )
-    Debugger.process.stderr?.on('data', (data) => {
-      Shared.logDebug(`Websocket Debugger error: ${data}`)
-      if (Debugger.running) {
+    Backend.process.stderr?.on('data', (data) => {
+      Shared.logDebug(`Backend error: ${data}`)
+      if (Backend.running) {
         vscode.window.showErrorMessage('JavaWiz failed.\n' +
                     'Maybe your JDK / PATH environment variable was not correctly set up.\n' +
                     'Please contact the developers and provide following error message:\n' +
@@ -69,11 +69,11 @@ export class Debugger {
     })
       */
     await new Promise((resolve, reject) => {
-      Debugger.timeout = setTimeout(() => reject('could not launch debugger within 15 seconds'), 15000)
-      Debugger.process.stdout!.on('data', (data) => {
+      Backend.timeout = setTimeout(() => reject('could not launch backend within 15 seconds'), 15000)
+      Backend.process.stdout!.on('data', (data) => {
         Shared.logDebug(`${data}`)
         if(`${data}`.includes('confirming_start')) {
-          clearTimeout(Debugger.timeout)
+          clearTimeout(Backend.timeout)
           resolve(undefined)
         }
       })
@@ -82,12 +82,12 @@ export class Debugger {
   }
 
   static async end(): Promise<void> {
-    clearTimeout(Debugger.timeout)
-    if(Debugger.running) {
-      Debugger.running = false
-      Debugger.process.stderr?.removeAllListeners('data') // suppress shutdown errors
+    clearTimeout(Backend.timeout)
+    if(Backend.running) {
+      Backend.running = false
+      Backend.process.stderr?.removeAllListeners('data') // suppress shutdown errors
       await new Promise((resolve, reject) => {
-        kill(Debugger.process.pid, e => { // risk: process typically exits after this callback is executed
+        kill(Backend.process.pid, e => { // risk: process typically exits after this callback is executed
           if(e) {
             reject(e)
           }
