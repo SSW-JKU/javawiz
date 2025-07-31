@@ -1,6 +1,6 @@
 {
   "name": "shared",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "Shared files used by the Frontend and the Extension",
   "main": "",
   "scripts": {

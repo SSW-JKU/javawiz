@@ -58,7 +58,7 @@ class ArrayAccessVisitor(val pos: Positioning) : TreeScanner() {
         isTarget = false
         sourceVariableNames = listOf()
         scan(tree.rhs)
-        targets.pop()
+        if(targets.isNotEmpty()) { targets.pop() } // Quick fix for JW-325, but must be fixed properly / investigated in more detail (see TODO above)
     }
 
     override fun visitIndexed(tree: JCTree.JCArrayAccess) {

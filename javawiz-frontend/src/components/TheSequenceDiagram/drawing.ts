@@ -483,7 +483,9 @@ export function drawBoxes (
           .attr('fill', d => d.currState === 'collapsed' && d.isDrawn ? LAYOUT.altBoxColor : LAYOUT.mainBoxColor)
           .attr('stroke-width', LAYOUT.strokeWidth)
           .attr('stroke', 'black')
-          .style('opacity', d => d.lifeLine.index === 0 ? '1' : '0')
+          .style('opacity', d => {
+            return d.lifeLine.index === 0 && d.methodCallId === 0 ? '1' : '0'
+          })
         group.append('circle')
           .attr('id', `${HTML.ids.dot1}`)
           .attr('cx', d => getCXForDot(d, elems.lifeLines))

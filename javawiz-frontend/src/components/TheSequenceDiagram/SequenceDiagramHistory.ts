@@ -313,7 +313,7 @@ export class SequenceDiagramHistory {
     let lastBox = getFirstBox(this.boxes, lifeLine)!
     for (let i = 0; i < boxesForLifeLine.length; i++) {
       const endTime = boxesForLifeLine[i].end ?? this.timeIdx
-      if (endTime > time) {
+      if (endTime >= time) {
         time = endTime
         lastBox = boxesForLifeLine[i]
       }
@@ -367,7 +367,7 @@ export class SequenceDiagramHistory {
     this.boxIndex++
   }
 
-  private createConstructorArrows (previous: TraceState, current: TraceState) {
+  private createConstructorArrows (previous: TraceState, current: TraceState, stateIdx: number) {
     for (let i = 0; i < (current.heap.length - previous.heap.length); i++) { // TODO: check if new heap objects are only added at end
       const item = current.heap[current.heap.length - 1 - i]
       if (item.kind !== 'HeapObject') {
@@ -400,6 +400,11 @@ export class SequenceDiagramHistory {
         line: previous.stack[0].line
       }
       this.addArrow(arrow)
+
+      this.createLifeLines(current, stateIdx)
+
+      // create lifelines for objects created inside constructors
+      this.createFieldObjects(current, stateIdx)
     }
   }
 
@@ -410,7 +415,7 @@ export class SequenceDiagramHistory {
       return
     }
     if (previous.heap.length <= current.heap.length) {
-      this.createConstructorArrows(previous, current)
+      this.createConstructorArrows(previous, current, stateIdx)
     }
     if (previous.stack[0]!.class.includes('java.')) {
       return
@@ -456,6 +461,11 @@ export class SequenceDiagramHistory {
         }
 
         this.addArrow(newArrow)
+
+        this.createLifeLines(current, stateIdx)
+
+        // create lifelines for objects created inside constructors
+        this.createFieldObjects(current, stateIdx)
       }
       if (fromLifeLine === null || toLifeLine === null) {
         return
@@ -470,6 +480,9 @@ export class SequenceDiagramHistory {
           }
         }
       }
+      console.log('lastBox: ', lastBox)
+      console.log('arrow name: ', label)
+      console.log('arrow fromBoxIndex: ', lastBox.index)
       const toBoxIndex = this.boxIndex
       fromLifeLine.currState = 'expanded'
       toLifeLine.currState = 'expanded'

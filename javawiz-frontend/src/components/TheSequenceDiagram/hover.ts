@@ -27,8 +27,7 @@ export function isHighlightedArrow (hoveredInfos: HoverInfo[], arrow: Arrow, box
 
 export function isHighlightedBox (hoveredInfos: HoverInfo[], box: Box): boolean {
   return hoveredInfos.some(info => {
-    return (info.kind === 'Box' && info.index === box.index) || (info.kind === 'MethodCall' && info.methodCallId === box.methodCallId && info.time === box.start) ||
-        (info.kind === 'Method' && box.lifeLine.className === info.class && box.callArrow && box.callArrow.label.includes(info.method))
+    return (info.kind === 'Box' && info.index === box.index) || (info.kind === 'MethodCall' && info.methodCallId === box.methodCallId && info.time === box.start)
   })
 }
 
@@ -70,7 +69,7 @@ export function isHighlightedLifeLine (hoveredInfos: HoverInfo[], arrows: Arrow[
     if ((info.kind === 'MethodCall' && info.time === lifeLine.start - 1 && arrows.some(a => a.kind === 'Constructor' && a.to === lifeLine)) ||
         ((info.kind === 'HeapObject' && lifeLine.heapId && info.objId === lifeLine.heapId) ||
             (info.kind === 'Class' && lifeLine.heapId === undefined && info.class === lifeLine.className)) ||
-        (info.kind === 'Method' && lifeLine.className === info.class)) {
+        (info.kind === 'Local' && info.name === lifeLine.label && info.reference === lifeLine.heapId)) {
       return true
     }
   }
@@ -79,7 +78,17 @@ export function isHighlightedLifeLine (hoveredInfos: HoverInfo[], arrows: Arrow[
 
 export function getArrowHoverInfo (arrow: Arrow, state: HeapVizTraceState) {
   const hoverInfos: HoverInfo[] = []
-  if (arrow.methodCallId !== -1 && arrow.time) hoverInfos.push(createHoverMethodCall(arrow.label, arrow.methodCallId, arrow.time))
+  if (arrow.methodCallId !== -1 && arrow.time) {
+    if (arrow.kind === 'Constructor' && arrow.to && arrow.to.heapId) {
+      const hoverHeapObject = createHoverHeapObject(arrow.to.heapId)
+      if (!hoverInfos.includes(hoverHeapObject)) hoverInfos.push(hoverHeapObject)
+      const addHoverInfos = getReferencesOfHoveredHeapItem(arrow.to.heapId, state)
+      for (const info of addHoverInfos) {
+        if (!hoverInfos.includes(info)) hoverInfos.push(info)
+      }
+    }
+    hoverInfos.push(createHoverMethodCall(arrow.label, arrow.methodCallId, arrow.time))
+  }
   if ((arrow.reference || arrow.this) && arrow.to) {
     const addHoverInfos = getLifeLineHoverInfo(arrow.to.className, arrow.to.heapId, state)
     for (const info of addHoverInfos) {
