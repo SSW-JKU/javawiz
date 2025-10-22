@@ -15,7 +15,7 @@ task copyBackendToVscExtension(type: Copy) {
         include 'resources/main/additionalclasses/*.java'
     }
 
-    destinationDir(rootDir.toPath().resolve('vsc-extension/out/assets/backend').toFile())
+    destinationDir = rootDir.toPath().resolve('vsc-extension/out/assets/backend').toFile()
     doLast {
         println(source.files.collect { it.path }.join("\n"))
         println("copied to")
@@ -27,7 +27,7 @@ task copyFrontendToVscExtension(type: Copy) {
     dependsOn(':frontend:build')
     from(rootDir.toPath().resolve('javawiz-frontend/dist/'))
 
-    destinationDir(rootDir.toPath().resolve('vsc-extension/out/assets/frontend').toFile())
+    destinationDir = rootDir.toPath().resolve('vsc-extension/out/assets/frontend').toFile()
     doLast {
         println(source.files.collect { it.path }.join("\n"))
         println("copied to")

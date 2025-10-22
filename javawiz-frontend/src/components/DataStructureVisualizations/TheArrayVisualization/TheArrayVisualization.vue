@@ -265,10 +265,10 @@ export default defineComponent({
         arrays,
         tempVariables,
         svg.value.select(`#${HTML.ids.arrayWriteAccesses.writeAccesses}`),
-        {}
+        {traceState: traceState.value}
       )
       // detect indexes and add to settings
-      detectArrayAccesses(arrays, hiddenIndexes, { traceState: traceState.value, processedIndexes: processedIndexes.value, indexes: indexes.value })
+      detectArrayAccesses(arrays, hiddenIndexes, { traceState: traceState.value, processedIndexes: processedIndexes, indexes: indexes.value })
 
       const indices = createIndexesStructure(arrays, heapTree, ghostIndexes, { processedIndexes: processedIndexes.value })
 

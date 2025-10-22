@@ -3,11 +3,13 @@ import org.gradle.internal.jvm.Jvm
 plugins {
     id 'base'
     id 'application'
-    id 'org.jetbrains.kotlin.jvm' version '1.7.10'
+    // Keep Kotlin version and Gradle version compatible:
+    // https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-compatibility-guide.html#version-compatibility
+    id 'org.jetbrains.kotlin.jvm' version "2.2.20"
 }
 
 def jvm = Jvm.current()
-println("Gradle Configuration Java (Jvm.current()): " + jvm)
+println("Gradle Configuration Backend (Jvm.current()): " + jvm)
 
 def javaHome = System.getProperty('java.home')
 println("System property java.home: " + javaHome)
@@ -18,8 +20,8 @@ def jdkExports = [
         "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
 ]
 
-version '1.7.7'
-group 'at.jku.ssw'
+version = '1.7.8'
+group = 'at.jku.ssw'
 
 application {
     mainClass = "at.jku.ssw.wsdebug.MainKt"
@@ -27,14 +29,8 @@ application {
 
 repositories {
     mavenCentral()
-    maven { url "https://jitpack.io" }
+    maven { url = "https://jitpack.io" }
 }
-
-// kotlin {
-//     js {
-//         binaries.executable()
-//     }
-// }
 
 dependencies {
     // # Kotlin coroutines
@@ -74,16 +70,22 @@ dependencies {
  since we use non-public features of java.compiler, we must test against all jdk versions the user might have.
  */
 def jdks = [
-        "JDK17": JavaLanguageVersion.of(17),
-        "JDK18": JavaLanguageVersion.of(18),
-        "JDK19": JavaLanguageVersion.of(19),
-        "JDK20": JavaLanguageVersion.of(20),
+        // "JDK17": JavaLanguageVersion.of(17),
+        // "JDK18": JavaLanguageVersion.of(18),
+        // "JDK19": JavaLanguageVersion.of(19),
+        // "JDK20": JavaLanguageVersion.of(20), // Since we build with JDK 21, JavaWiz can only be run with JDK 21 or higher
         "JDK21": JavaLanguageVersion.of(21),
         "JDK22": JavaLanguageVersion.of(22),
-        "JDK23": JavaLanguageVersion.of(23)
+        "JDK23": JavaLanguageVersion.of(23),
+        "JDK24": JavaLanguageVersion.of(24),
+        "JDK25": JavaLanguageVersion.of(25),
 ]
-def ltsJdks = [ "JDK17", "JDK21"]
-def latestJdk = "JDK23"
+def ltsJdks = [
+//        "JDK17",
+        "JDK21",
+        "JDK25"
+]
+def latestJdk = "JDK25"
 
 tasks.withType(Test) {
     jvmArgs = jdkExports
@@ -119,5 +121,5 @@ check { // test all LTS jdks
 }
 
 tasks.register("testAll") {
-  dependsOn tasks.withType(Test)
+    dependsOn tasks.withType(Test)
 }

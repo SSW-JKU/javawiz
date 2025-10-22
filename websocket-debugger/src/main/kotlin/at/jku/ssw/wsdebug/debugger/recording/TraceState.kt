@@ -10,5 +10,7 @@ data class TraceState(
     val output: String, // stdout output produced since the last step
     val error: String, // stderr output produced since the last step
     val input: String, // stdin since the last step
-    val inputBufferInfo: InputBufferInfo // info on how far the buffer in the modified In.java class has read
+    val inputBufferInfo: InputBufferInfo, // info on how far the buffer in the modified In.java class has read
+    val timeSinceLastStep : Long, // milliseconds since last step was processed
+    val stepProcessingTime : Long // time passed between receiving the step requesst and building the trace state
 ) : Recordable

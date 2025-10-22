@@ -19,6 +19,7 @@ import { getAnimationArray, visualizeValueCopy } from './animation'
 import { checkIndexCoverage, getDisplayString } from './index-processing'
 import { REGEX as COMMON_REGEX, SVG } from '../constants'
 import { blendOutAnimation } from '../animations'
+import { ComputedRef } from 'vue';
 
 export function createTempVariablesStructure (heapTree: HeapTreeNode, component: { traceState?: ProcessedTraceState, minCellWidth: number, onlyCurrentStackFrame: boolean }) {
   const tempVariables: TempVariable[] = []
@@ -408,7 +409,7 @@ export function createGhostIdxAndTempVarsStruct (
 export function detectArrayAccesses (
   arrays: ArrayNode[],
   hiddenIndexes: SettingsIndex[],
-  component: { traceState?: ProcessedTraceState, indexes: SettingsIndex[], processedIndexes: ProcessedIndex[] }
+  component: { traceState?: ProcessedTraceState, indexes: SettingsIndex[], processedIndexes: ComputedRef<ProcessedIndex[]> }
 ) {
   if (component.traceState) {
     let nrOfDetected = 0
@@ -436,7 +437,7 @@ export function detectArrayAccesses (
 
             const name = accessArray.name
             const index = arrayAccessValue.arrayAccess.indexExpressions.length - 1 - i
-            const indexInSettings = component.processedIndexes
+            const indexInSettings = component.processedIndexes.value
               .find(idx => idx.isValid &&
                 checkIndexCoverage(idx, { arrayName: name, variableNames: index === 0 ? [indexExpression.expression] : [REGEX.arrayWildcard, indexExpression.expression] }))
             if (array && !indexInSettings) {

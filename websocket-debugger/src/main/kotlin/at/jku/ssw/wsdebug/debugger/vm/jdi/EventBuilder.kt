@@ -18,7 +18,9 @@ fun buildTraceState(
     input: String,
     relevantClasses: List<ReferenceType>,
     inputBufferInfo: InputBufferInfo,
-    internalClassPatterns: List<String>
+    internalClassPatterns: List<String>,
+    timeSinceLastStep : Long,
+    stepProcessingTime : Long
 ): TraceState {
     val heap: MutableMap<Long, HeapItem> = mutableMapOf()
 
@@ -51,7 +53,9 @@ fun buildTraceState(
         output,
         error,
         input,
-        inputBufferInfo
+        inputBufferInfo,
+        timeSinceLastStep,
+        stepProcessingTime
     )
 }
 

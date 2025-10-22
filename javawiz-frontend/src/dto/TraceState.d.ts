@@ -179,6 +179,8 @@ export interface TraceState {
   readonly error: string // stderr output produced since the last step
   readonly input: string // stdin since the last step
   readonly inputBufferInfo: InputBufferInfo // info on how far the input buffer was read
+  readonly timeSinceLastStep : number, // milliseconds since last step was processed
+  readonly stepProcessingTime : number // time passed between receiving the step requesst and building the trace state
 }
 
 export interface ProcessedTraceState {
