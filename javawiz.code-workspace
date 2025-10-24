@@ -1,0 +1,68 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "Overall"
+    },
+    {
+      "path": "websocket-debugger",
+      "name": "Backend"
+    },
+    {
+      "path": "javawiz-frontend",
+      "name": "Frontend"
+    },
+    {
+      "path": "vsc-extension",
+      "name": "VSCode Extension"
+    },
+    {
+      "path": "shared",
+      "name": "Shared"
+    },
+    {
+      "path": "pages",
+      "name": "Website"
+    },
+  ],
+  "settings": {
+    "eslint.alwaysShowStatus": true,
+    "eslint.format.enable": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "eslint.validate": [
+      "typescript",
+      "typescriptreact",
+      "javascript",
+      "html",
+      "vue"
+    ],
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "[java]": {
+      "editor.suggest.showClasses": true,
+      "editor.suggest.showMethods": true,
+      "editor.suggest.showConstructors": true,
+      "editor.suggest.showConstants": true,
+      "editor.suggest.showEnumMembers": true,
+      "editor.suggest.showEnums": true,
+      "editor.suggest.showEvents": true,
+      "editor.suggest.showFields": true,
+      "editor.suggest.showInterfaces": true,
+      "editor.suggest.showKeywords": true,
+      "editor.suggest.showVariables": true,
+      "editor.suggest.showSnippets": true,
+      "editor.suggest.showWords": true,
+      "editor.quickSuggestions": {
+        "other": "on"
+      }
+    },
+    "java.inlayHints.parameterNames.exclusions": [],
+    "java.project.resourceFilters": [
+      "node_modules",
+      ".git",
+      "resources"
+    ],
+    "liveServer.settings.multiRootWorkspaceName": "Website"
+  }
+}

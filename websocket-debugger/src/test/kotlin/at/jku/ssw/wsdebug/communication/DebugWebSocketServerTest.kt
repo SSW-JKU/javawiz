@@ -1157,7 +1157,9 @@ internal class DebugWebSocketServerTest {
         val stepResponse = request(stepRequest)
         assert(stepResponse is StepResultResponse)
         assert((stepResponse as StepResultResponse).data.traceStates.size > 1)
-        assert(stepResponse.data.traceStates.last().error.contains("java.lang.OutOfMemoryError"))
+        assert(stepResponse.data.traceStates.last().error.contains("java.lang.OutOfMemoryError")) {
+            "Last trace state was not the expected OutOfMemoryError (as identified by error text) but instead the trace was\n" + stepResponse.data.traceStates.toString()
+        }
     }
 
     @ParameterizedTest

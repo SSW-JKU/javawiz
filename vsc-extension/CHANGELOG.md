@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+[1.7.9] (released on 2025-10-24)
+* JW-346: Move build logic out of extension project into root project
+
 [1.7.8] (released on 2025-10-22)
 * JW-333: Frontend suffers from strong performance degradation, especially when performing multi-step operations
 * JW-334: Add time tracking for step processing to trace states
