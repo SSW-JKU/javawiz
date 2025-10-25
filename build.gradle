@@ -9,7 +9,7 @@ plugins {
   id 'org.barfuin.gradle.taskinfo' version '2.2.0'
 }
 
-var jvmVersion = 21
+def jvmVersion = 21
 
 // This is executed on all subprojects
 subprojects {
@@ -68,14 +68,13 @@ subprojects {
         }
 
         tasks.register('copyRuntimeLibrariesToLib', Copy) {
-            var runtimeClasspath = project.configurations.runtimeClasspath.files.collect { it.getName() }.join(', ')
             doFirst {
                 println "copyRuntimeClasspathToLib:"
-                println "copy project.configurations.runtimeClasspath.files -> layout.buildDirectory\\libs"
-                println "[$runtimeClasspath] -> ${layout.buildDirectory}\\libs"
+                println "into ${layout.buildDirectory.dir("libs").get()}"
+                println "from project.configurations.runtimeClasspath (${configurations.runtimeClasspath.files.collect { it.getName() }.join(' ')})"
             }
-            into "${layout.buildDirectory}/libs"
-            from project.configurations.runtimeClasspath
+            into layout.buildDirectory.dir("libs")
+            from project.configurations.runtimeClasspath.files
             exclude "tools.jar"
         }
         startScripts.dependsOn(":${project.name}:copyRuntimeLibrariesToLib")
@@ -102,13 +101,13 @@ subprojects {
         tasks.register('jarSettings') {
             doFirst {
                 println("Main-Class: " + application.mainClass.get())
-                println("Class-Path: " + configurations.runtimeClasspath.files.toSet().collect { it.getName() }.join(' '))
+                println("Class-Path: " + configurations.runtimeClasspath.files.collect { it.getName() }.join(' '))
                 println("Version: " + project.version)
                 jar {
                     manifest {
                         attributes(
                                 "Main-Class": application.mainClass.get(),
-                                'Class-Path': configurations.runtimeClasspath.files.toSet().collect { it.getName() }.join(' '),
+                                'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
                                 'Version': project.version
                         )
                     }

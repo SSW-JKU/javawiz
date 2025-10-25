@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+[1.8.0] (released on 2025-10-25)
+* JW-347: Fix :backend:copyRuntimeLibrariesToLib introduced by Gradle version upgrade
+
 [1.7.9] (released on 2025-10-24)
 * JW-346: Move build logic out of extension project into root project
 
