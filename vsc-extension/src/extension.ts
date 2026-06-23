@@ -12,7 +12,7 @@ import * as path from 'path'
 import shared from '../../shared/src/Shared'
 import * as child_process from 'child_process'
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider({language: 'java'}, codeLensProvider),
     vscode.commands.registerCommand('javawiz.start', () => Extension.startDebug(context)),
@@ -22,9 +22,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('javawiz.createOut',  (...args: any[]) => createAdditionalClass('Out', context, args))
   )
   checkJavaVersion()
+  console.log('### JavaWiz extension activated ###')
 }
 
-export function deactivate() {
+export function deactivate(): void {
   Extension.endDebug()
 }
 
@@ -35,7 +36,7 @@ export class Extension {
   static textDocuments: vscode.TextDocument[] = []
   static openTextDocumentLocalUri: string | undefined = undefined // try to run currently open editor as main by default
 
-  static async startDebug(context : vscode.ExtensionContext) {
+  static async startDebug(context : vscode.ExtensionContext): Promise<void> {
     await Extension.endDebug()
     if(Extension.state !== 'notrunning') {
       return
@@ -67,15 +68,15 @@ export class Extension {
       const name = path.basename(activeEditor.document.uri.fsPath)
       Webview.activate(name, frontendPort, communicationPort, debuggerPort)
       Extension.state = 'running'
-    } catch (e : any) { // some of these initialization operations might fail; in that case, we want to clean up everything else we did
+    } catch (e: any) { // some of these initialization operations might fail; in that case, we want to clean up everything else we did
       vscode.window.showErrorMessage(`Could not start javawiz due to an internal error: ${e}`)
-      shared.logDebug(e)
+      shared.logDebug(String(e))
       Extension.state = 'running' // ensure endDebug() is executed
       await this.endDebug()
     }
   }
 
-  static async endDebug(focusOn?: vscode.TextDocument) {
+  static async endDebug(focusOn?: vscode.TextDocument): Promise<void> {
     if(Extension.state !== 'running') {
       /*
       endDebug() is usually called multiple times by various event listeners in the components.
@@ -179,7 +180,7 @@ async function toggleJavaFeatures(enable: boolean) {
       'editor.suggest.showWords': false,
       'editor.lightbulb.enabled': false,
       'editor.quickSuggestions': {
-        'other': 'off'
+        other: 'off'
       },
     },
     // this is paradoxically not a language-specific setting, so we need to treat it seperately when overwriting config
@@ -262,9 +263,12 @@ function checkJavaVersion() {
 
 
 function createAdditionalClass(name: 'In' | 'Out', context: vscode.ExtensionContext, ...args: any[]) {
-  let uri = vscode.workspace.workspaceFolders![0].uri
-  if('scheme' in args[0][0]) {
-    uri = args[0][0]
+  let uri = vscode.workspace.workspaceFolders?.[0].uri
+  if(!uri) {
+    return
+  }
+  if(Array.isArray(args[0]) && args[0].length > 0 && typeof args[0][0] === 'object' && args[0][0] !== null && 'scheme' in (args[0][0] as object)) {
+    uri = args[0][0] as vscode.Uri
   }
   const filename = name + '.java'
   const ressourcesUri = vscode.Uri.joinPath(context.extensionUri, 'out', 'assets', 'backend', 'resources', 'main', 'additionalclasses', filename)

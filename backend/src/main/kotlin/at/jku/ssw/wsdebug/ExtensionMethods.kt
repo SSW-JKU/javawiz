@@ -1,0 +1,70 @@
+package at.jku.ssw.wsdebug
+
+import at.jku.ssw.wsdebug.communication.CompileSuccessResponse
+import at.jku.ssw.wsdebug.communication.ErrorResponse
+import at.jku.ssw.wsdebug.communication.Response
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.sun.jdi.VirtualMachine
+import org.java_websocket.WebSocket
+
+fun <A> A?.packIntoMutableList() = if (this == null) mutableListOf<A>() else mutableListOf(this)
+
+fun String.identEachLine(amount: Int, shortenTo: Int = Integer.MAX_VALUE): String {
+    return this.split("\n").joinToString("\n") { line -> (" ".repeat(amount) + line).take(shortenTo) }
+}
+
+fun String.outerClassMatchesOuterClassPattern(internalClassPatterns: List<String>): Boolean {
+    return internalClassPatterns.any { pattern ->
+        val outerClass = this.split("$").first()
+        val outerClassPattern = pattern.split("$").first()
+        when (val i = outerClassPattern.indexOf('*')) {
+            // No star in pattern: Exact match
+            -1 -> outerClass == outerClassPattern
+            // Start at start: class name must end with pattern
+            0 -> outerClass.endsWith(outerClassPattern.drop(1))
+            // Star at end: class must start with
+            outerClassPattern.length - 1 -> outerClass.startsWith(outerClassPattern.dropLast(1))
+            else -> error("glob at beginning or end expected")
+        }
+    }
+}
+
+fun Exception.asStringWithStackTrace() = this.toString() + "\nStack Trace: " + this.stackTrace.joinToString("\n") { it.toString() }
+
+fun VirtualMachine.getEnabledRequests() = listOf(
+    eventRequestManager().accessWatchpointRequests(),
+    eventRequestManager().breakpointRequests(),
+    eventRequestManager().classPrepareRequests(),
+    eventRequestManager().classUnloadRequests(),
+    eventRequestManager().exceptionRequests(),
+    eventRequestManager().methodEntryRequests(),
+    eventRequestManager().methodExitRequests(),
+    eventRequestManager().modificationWatchpointRequests(),
+    eventRequestManager().monitorContendedEnterRequests(),
+    eventRequestManager().monitorWaitRequests(),
+    eventRequestManager().monitorWaitedRequests(),
+    eventRequestManager().stepRequests(),
+    eventRequestManager().threadDeathRequests(),
+    eventRequestManager().threadStartRequests(),
+    eventRequestManager().vmDeathRequests()
+).flatten().filter { it.isEnabled }
+
+fun Exception.asSingleLineStringWithStackTrace() = asStringWithStackTrace().replace("\r\n", "\n").replace("\n", " ### ")
+
+fun String.shorten(len: Int) =
+    take(len) + if (length > len) "..." else ""
+
+fun WebSocket.sendAndPrintResponse(response: Response, shortenProductionPrintTo: Int = Integer.MAX_VALUE) {
+    val message = jacksonObjectMapper().writeValueAsString(response)
+    println("  Response status: ${response.status}")
+    if (response is ErrorResponse) {
+        println("  Response error: ${response.error}")
+    }
+    if (response is CompileSuccessResponse) {
+        with(response.data.toString().replace("\n", " ")) {
+            val dataStr = shorten(shortenProductionPrintTo)
+            println("  Response data: $dataStr")
+        }
+    }
+    send(message)
+}

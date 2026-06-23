@@ -60,7 +60,7 @@ export class Console {
 
   private static inputBuffer: InputBuffer;
 
-  public static initialize() {
+  public static initialize(): void {
     Console.compileError = false // clear compile error flag from potential previous run
     if (Console.existsTerminal) {
       return
@@ -147,7 +147,7 @@ export class Console {
     })
   }
 
-  public static closeIfNoCompileError() {
+  public static closeIfNoCompileError(): void {
     if(!this.compileError) {
       Console.terminal?.dispose()
       Console.writeEmitter?.dispose()
@@ -155,7 +155,7 @@ export class Console {
     }
   }
 
-  public static setWritingEnabled(enabled: boolean) {
+  public static setWritingEnabled(enabled: boolean): void {
     if (!Console.writingEnabled && enabled) {
       Console.terminal.show()
       //TODO: check if there is a way to make the cursor blink
@@ -163,14 +163,14 @@ export class Console {
     Console.writingEnabled = enabled
   }
 
-  public static showCompileError(error: string) {
+  public static showCompileError(error: string): void {
     Console.compileError = true
     Console.write(ACTIONS.CLEAR)
     Console.write(COLOR.RED)
     Console.write(error)
   }
 
-  public static changeConsoleHistory(newHistory: ConsoleLine[]) {
+  public static changeConsoleHistory(newHistory: ConsoleLine[]): void {
     Console.write(ACTIONS.CLEAR)
     Console.inputBuffer = new InputBuffer()
     Console.inputLine = ''
@@ -197,7 +197,7 @@ export class Console {
     Console.write(COLOR.GREEN) //for user input
   }
 
-  public static show() {
+  public static show(): void {
     Console.terminal.show(true)
   }
 

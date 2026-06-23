@@ -11,7 +11,7 @@ export class Frontend {
   private static running = false
   private static server: http.Server
 
-  static async start(extensionPath: vscode.Uri, port: number) {
+  static async start(extensionPath: vscode.Uri, port: number): Promise<void> {
     if (Frontend.running) {
       return
     }
@@ -46,7 +46,7 @@ export class Frontend {
     // TODO: react to server closing
   }
 
-  static end() {
+  static end(): void {
     // console.log('Frontend.end called')
     Frontend.server?.close() // ignored error callback
     Frontend.running = false

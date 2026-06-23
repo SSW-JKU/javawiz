@@ -16,7 +16,7 @@ export class Communication {
 
   private static running = false
 
-  public static async start(port: number) { // server listen is awaited
+  public static async start(port: number): Promise<void> {
     if (Communication.running) {
       return //don't start a new server if we already have one
     }
@@ -32,7 +32,7 @@ export class Communication {
       Communication.javawizConnection = connection
       Shared.logDebug('Connected to Frontend Server')
       Communication.javawizConnection.on('message', async msg => {
-        const data = JSON.parse((msg as ws.IUtf8Message).utf8Data!)
+        const data = JSON.parse((msg as ws.IUtf8Message).utf8Data ?? '')
         if (data.kind) { // check that message wasn't a Response
           const response = await Communication.receive(data as protocol.FrontendToExtensionMessage)
           Communication.respond(response)
@@ -45,7 +45,7 @@ export class Communication {
     })
   }
 
-  public static end() {
+  public static end(): void {
     Communication.websocketServer?.shutDown()
     Communication.httpServer?.close(e => {
       if(e) {
@@ -56,7 +56,7 @@ export class Communication {
     Communication.running = false
   }
 
-  public static sendConsoleInput(input: string) {
+  public static sendConsoleInput(input: string): void {
     Communication.send({ kind: 'consoleInput', consoleInput: input })
   }
 
@@ -65,7 +65,7 @@ export class Communication {
     Communication.javawizConnection.send(JSON.stringify(message))
     return new Promise(resolve => {
       function handle(msg: ws.Message) {
-        const data = JSON.parse((msg as ws.IUtf8Message).utf8Data!)
+        const data = JSON.parse((msg as ws.IUtf8Message).utf8Data ?? '')
 
         if (data.message && _.isEqual(data.message, message)) {
           Communication.javawizConnection.removeListener('message', handle)
@@ -93,13 +93,17 @@ export class Communication {
         Extension.editors.hoverLine(message.line, message.uri)
         return defaultResponse
       case 'getFileContents': {
-        const internalClassPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.hideClassPatterns')
+        const excludeFromSteppingPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.excludeFromSteppingPatterns')
+        const excludeFieldsPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.excludeFieldsPatterns')
+        const detailedFieldsPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.detailedFieldsPatterns')
         return {
           message: message, 
           result: 'SUCCESS', 
           data: { 
             fileContents: await getAllFilesWithContents(),
-            internalClassPatterns,
+            excludeFromSteppingPatterns,
+            excludeFieldsPatterns,
+            detailedFieldsPatterns,
             openEditorLocalUri: Extension.openTextDocumentLocalUri
           } 
         }

@@ -5,11 +5,11 @@
       "name": "Overall"
     },
     {
-      "path": "websocket-debugger",
+      "path": "backend",
       "name": "Backend"
     },
     {
-      "path": "javawiz-frontend",
+      "path": "frontend",
       "name": "Frontend"
     },
     {
@@ -21,9 +21,13 @@
       "name": "Shared"
     },
     {
-      "path": "pages",
+      "path": "docs",
       "name": "Website"
     },
+    {
+      "path": "intellij-plugin",
+      "name": "IntelliJ Plugin"
+    }
   ],
   "settings": {
     "eslint.alwaysShowStatus": true,

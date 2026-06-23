@@ -1,0 +1,42 @@
+{
+  "name": "frontend",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint"
+  },
+  "type": "module",
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "d3": "7.9.0",
+    "d3-graphviz": "5.6.0",
+    "globals": "^16.4.0",
+    "jszip": "^3.10.1",
+    "lodash": "^4.17.20",
+    "marked": "^16.4.1",
+    "monaco-editor": "^0.54.0",
+    "pinia": "^3.0.3",
+    "splitpanes": "^4.0.4",
+    "vue": "^3.5.22",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@types/d3": "^7.4.3",
+    "@types/d3-graphviz": "2.6.10",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.9.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "eslint": "^9.38.0",
+    "eslint-plugin-vue": "^10.5.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^7.1.10",
+    "vue-tsc": "^3.2.6"
+  }
+}

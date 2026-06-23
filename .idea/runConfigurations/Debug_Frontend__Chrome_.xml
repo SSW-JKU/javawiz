@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Debug Frontend (Chrome)" type="JavascriptDebugType" uri="http://localhost:5173" useFirstLineBreakpoints="true">
+    <mapping url="http://localhost:5173" local-file="$PROJECT_DIR$/frontend" />
+    <mapping url="http://localhost:5173/@fs/$PROJECT_DIR$/shared" local-file="$PROJECT_DIR$/shared" />
+    <method v="2" />
+  </configuration>
+</component>

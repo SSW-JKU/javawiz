@@ -1,0 +1,135 @@
+import org.gradle.internal.jvm.Jvm
+
+plugins {
+    id 'base'
+    id 'application'
+    // Keep Kotlin version and Gradle version compatible:
+    // https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-compatibility-guide.html#version-compatibility
+    id 'org.jetbrains.kotlin.jvm' version "2.3.21"
+}
+
+def jvm = Jvm.current()
+println("Gradle Configuration Backend (Jvm.current()): " + jvm)
+
+def javaHome = System.getProperty('java.home')
+println("System property java.home: " + javaHome)
+
+def jdkExports = [
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+        "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+]
+
+version = '2.0.0'
+group = 'at.jku.ssw'
+
+application {
+    mainClass = "at.jku.ssw.wsdebug.MainKt"
+}
+
+repositories {
+    mavenCentral()
+    maven { url = "https://jitpack.io" }
+}
+
+dependencies {
+    // # Kotlin coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+
+    // # WebSocket
+    implementation 'org.java-websocket:Java-WebSocket:1.5.1'
+    // ## WebSocket logging dependency
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'org.slf4j:slf4j-simple:1.7.30'
+
+    // # JSON
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3'
+    // implementation 'com.google.code.gson:gson:2.9.0'
+
+    // # JavaParser
+    // (no longer needed as jdk.compiler is used instead)
+    // implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.24.2'
+
+    // # tools.jar
+    // Seems to be not needed since the Compiler classes are now (as of Java 17) stored
+    // in the default module jdk.compiler
+    // implementation files("${System.getProperty('java.home')}/../lib/tools.jar")
+
+    // # JUnit
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+
+    // # Unicode converter
+    implementation 'com.github.michaelgantman:MgntUtils:1.6.0.3'
+
+    // # Java Version Printing
+    implementation 'com.github.NeonMika:neon-util:v0.0.5'
+}
+
+/*
+ since we use non-public features of java.compiler, we must test against all jdk versions the user might have.
+ */
+def jdks = [
+        // "JDK17": JavaLanguageVersion.of(17),
+        // "JDK18": JavaLanguageVersion.of(18),
+        // "JDK19": JavaLanguageVersion.of(19),
+        // "JDK20": JavaLanguageVersion.of(20),
+        // "JDK21": JavaLanguageVersion.of(21),
+        // "JDK22": JavaLanguageVersion.of(22),
+        // "JDK23": JavaLanguageVersion.of(23),
+        // "JDK24": JavaLanguageVersion.of(24), // Since we build with JDK 25, JavaWiz can only be run with JDK 25 or higher
+        "JDK25": JavaLanguageVersion.of(25),
+        "JDK26": JavaLanguageVersion.of(26),
+]
+def ltsJdks = [
+        "JDK25"
+]
+def latestJdk = "JDK25"
+
+tasks.withType(Test) {
+    jvmArgs = jdkExports
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+    useJUnitPlatform()
+    doFirst {
+        def originalFilters = filter.commandLineIncludePatterns as List
+        def normalizedFilters = originalFilters.collect { pattern ->
+            pattern.replaceFirst(/\[\d+]$/, '')
+        }
+        if (normalizedFilters != originalFilters) {
+            filter.commandLineIncludePatterns.clear()
+            filter.commandLineIncludePatterns.addAll(normalizedFilters)
+        }
+    }
+}
+
+jdks.each { key, version ->
+    tasks.register("testOn$key", Test) {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion.set(version)
+        }
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        description = "Runs the tests using JDK $version"
+    }
+}
+
+test { // Tests only with current jdk
+    jvmArgs = jdkExports
+    useJUnitPlatform()
+}
+
+tasks.run {
+    jvmArgs = jdkExports
+}
+
+check { // test all LTS jdks
+    dependsOn tasks.withType(Test).matching(task -> ltsJdks.any(lts -> task.name.contains(lts)) || task.name.contains(latestJdk))
+}
+
+tasks.register("testAll") {
+    dependsOn tasks.withType(Test)
+}

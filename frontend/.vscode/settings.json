@@ -1,0 +1,21 @@
+{
+  "eslint.alwaysShowStatus": true,
+  "prettier.enable": false,
+  "eslint.format.enable": true,
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+
+    "typescript",
+    "typescriptreact",
+    "javascript",
+    "html",
+    "vue"
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "[vue]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  }
+}

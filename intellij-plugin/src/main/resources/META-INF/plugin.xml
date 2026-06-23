@@ -1,0 +1,67 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>${pluginId}</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>${pluginName}</name>
+
+    <!-- Vendor name and contact info displayed on the Plugins Page.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html -->
+    <vendor email="ssw@jku.at" url="https://ssw.jku.at">SSW JKU Linz</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+        <p>JavaWiz is a visual, trace-based time-travel debugger for Java programs developed at the
+        Software Systems Engineering Institute (SSW) at JKU Linz.</p>
+        <p>The plugin integrates JavaWiz directly into IntelliJ IDEA, allowing you to:</p>
+        <ul>
+            <li>Launch a JavaWiz debug session from the editor toolbar, the Run menu, or via a code lens on any <code>main</code> method.</li>
+            <li>Visualise heap, stack, and control flow in a live, interactive frontend view.</li>
+            <li>Send standard input to the running program via an integrated I/O terminal panel.</li>
+        </ul>
+        <p>For more information, visit the <a href="https://ssw.jku.at/Research/Projects/JavaWiz/">JavaWiz project page</a>.</p>
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <actions>
+        <action id="${actionID}"
+                class="at.jku.ssw.javawiz.intellij.action.DebugWithJavaWiz"
+                text="${actionName}"
+                description="${actionName}"
+                icon="AllIcons.Actions.StartDebugger">
+            <add-to-group group-id="RunMenu" anchor="first"/>
+            <add-to-group group-id="MainToolbarRight" anchor="first"/>
+            <add-to-group group-id="EditorPopupMenu.Run" anchor="first"/>
+        </action>
+    </actions>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- JavaWiz Tool Windows -->
+        <toolWindow id="${guiFrontendId}" anchor="right" factoryClass="at.jku.ssw.javawiz.intellij.toolwindows.JavaWizToolWindowFactory" secondary="true" doNotActivateOnStart="false"/>
+        <toolWindow id="${guiTerminalId}" anchor="bottom" factoryClass="at.jku.ssw.javawiz.intellij.toolwindows.TerminalToolWindowFactory" secondary="true" doNotActivateOnStart="false"/>
+
+        <!-- Code lens on Java main methods -->
+        <runLineMarkerContributor
+                id="SSW.JKU.RunLineMarkerContributor"
+                language="JAVA"
+                order="first"
+                implementationClass="at.jku.ssw.javawiz.intellij.contributors.RunLineMarkerContributor"
+        />
+
+        <!-- Notifications -->
+        <notificationGroup id="${notificationGroupId}" displayType="BALLOON"/>
+
+        <!-- Custom executor that groups JavaWiz run configurations -->
+        <executor implementation="at.jku.ssw.javawiz.intellij.action.JWExecutor" order="first"/>
+    </extensions>
+</idea-plugin>

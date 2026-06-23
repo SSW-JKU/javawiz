@@ -3,10 +3,10 @@ import {Extension} from './extension'
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import Shared from '../../shared/src/Shared'
-import * as kill from 'tree-kill'
+import kill from 'tree-kill'
 
 const ASSETS_PATH_SEGMENTS = ['out', 'assets', 'backend', 'libs']
-const BACKEND_JAR = 'backend-1.8.0.jar'
+const BACKEND_JAR = 'backend-2.0.0.jar'
 
 export class Backend {
   private static running = false
@@ -14,7 +14,7 @@ export class Backend {
   private static timeout: NodeJS.Timeout
 
 
-  static async start(extensionPath: vscode.Uri, port: number) {
+  static async start(extensionPath: vscode.Uri, port: number): Promise<void> {
     if (Backend.running) {
       return
     }
@@ -47,6 +47,9 @@ export class Backend {
         cwd: workspacePath
       }
     )
+    Backend.process.stdout?.on('data', (data) => {
+      Shared.logDebug(`Backend output: ${data}`)
+    })
     Backend.process.stderr?.on('data', (data) => {
       Shared.logDebug(`Backend error: ${data}`)
       if (Backend.running) {
@@ -70,7 +73,7 @@ export class Backend {
       */
     await new Promise((resolve, reject) => {
       Backend.timeout = setTimeout(() => reject('could not launch backend within 15 seconds'), 15000)
-      Backend.process.stdout!.on('data', (data) => {
+      Backend.process.stdout?.on('data', (data) => {
         Shared.logDebug(`${data}`)
         if(`${data}`.includes('confirming_start')) {
           clearTimeout(Backend.timeout)
@@ -86,8 +89,12 @@ export class Backend {
     if(Backend.running) {
       Backend.running = false
       Backend.process.stderr?.removeAllListeners('data') // suppress shutdown errors
+      const pid = Backend.process.pid
+      if (pid === undefined) {
+        throw new Error('Cannot stop backend process because no process id is available')
+      }
       await new Promise((resolve, reject) => {
-        kill(Backend.process.pid, e => { // risk: process typically exits after this callback is executed
+        kill(pid, (e?: Error) => { // risk: process typically exits after this callback is executed
           if(e) {
             reject(e)
           }

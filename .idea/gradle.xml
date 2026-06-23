@@ -9,10 +9,11 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/javawiz-frontend" />
+            <option value="$PROJECT_DIR$/backend" />
+            <option value="$PROJECT_DIR$/frontend" />
+            <option value="$PROJECT_DIR$/intellij-plugin" />
             <option value="$PROJECT_DIR$/shared" />
             <option value="$PROJECT_DIR$/vsc-extension" />
-            <option value="$PROJECT_DIR$/websocket-debugger" />
           </set>
         </option>
       </GradleProjectSettings>

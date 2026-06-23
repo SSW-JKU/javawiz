@@ -10,7 +10,7 @@ node {
 
 task copyBackendToVscExtension(type: Copy) {
     dependsOn(':backend:build')
-    from(rootDir.toPath().resolve('websocket-debugger/build/')) {
+    from(rootDir.toPath().resolve('backend/build/')) {
         include 'libs/**/*'
         include 'resources/main/additionalclasses/*.java'
     }
@@ -25,7 +25,7 @@ task copyBackendToVscExtension(type: Copy) {
 
 task copyFrontendToVscExtension(type: Copy) {
     dependsOn(':frontend:build')
-    from(rootDir.toPath().resolve('javawiz-frontend/dist/'))
+    from(rootDir.toPath().resolve('frontend/dist/'))
 
     destinationDir = rootDir.toPath().resolve('vsc-extension/out/assets/frontend').toFile()
     doLast {

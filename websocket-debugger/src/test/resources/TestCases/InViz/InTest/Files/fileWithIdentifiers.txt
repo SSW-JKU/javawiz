@@ -1,4 +1,0 @@
-true
-false
-java a x x2
-45u

@@ -2,10 +2,10 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "publisher": "ssw-jku",
   "engines": {
-    "vscode": "^1.64.0"
+    "vscode": "^1.87.0"
   },
   "license": "SEE LICENSE IN LICENSE.txt",
   "categories": [
@@ -48,7 +48,7 @@
     "commands": [
       {
         "command": "javawiz.start",
-        "title": "Run in JavaWiz",
+        "title": "Debug with JavaWiz",
         "category": "JavaWiz"
       },
       {
@@ -112,9 +112,9 @@
       }
     ],
     "configuration": {
-      "title": "Hidden JavaWiz classes",
+      "title": "JavaWiz",
       "properties": {
-        "javawiz.hideClassPatterns": {
+        "javawiz.excludeFromSteppingPatterns": {
           "type": "array",
           "default": [
             "java.*",
@@ -130,7 +130,33 @@
             "Out",
             "Rand"
           ],
-          "description": "Use glob patterns to prevent JavaWiz from stepping into classes. Changing this configuration might break functionality."
+          "description": "Glob patterns for classes that JavaWiz will not step into and will not instrument (no condition or array-access tracking). Changing this configuration might break functionality."
+        },
+        "javawiz.excludeFieldsPatterns": {
+          "type": "array",
+          "default": [
+            "java.*",
+            "javax.*",
+            "javafx.*",
+            "sun.*",
+            "com.sun.*",
+            "jdk.*",
+            "*.In",
+            "*.Out",
+            "*.Rand",
+            "In",
+            "Out",
+            "Rand"
+          ],
+          "description": "Glob patterns for classes whose fields JavaWiz will not collect. Classes matching detailedFieldsPatterns take precedence over this setting. Changing this configuration might break functionality."
+        },
+        "javawiz.detailedFieldsPatterns": {
+          "type": "array",
+          "default": [
+            "java.util.*",
+            "java.util.concurrent.*"
+          ],
+          "description": "Glob patterns for classes whose fields are collected (for specialised visualisations such as the List or Tree view) but are hidden in the Memory View. Takes precedence over excludeFieldsPatterns."
         }
       }
     }
@@ -138,22 +164,24 @@
   "scripts": {
     "compile": "tsc -p ./",
     "lint": "eslint",
-    "watch": "cd .. && gradlew.bat clean && gradlew.bat build -x test -x check && cd vsc-extension && tsc -watch -p ./"
+    "watch": "cd .. && gradlew.bat clean && gradlew.bat build -PexcludeTests && cd vsc-extension && tsc -watch -p ./"
   },
   "devDependencies": {
     "@types/http-server": "^0.12.1",
     "@types/lodash": "^4.17.0",
-    "@types/node": "^12.20.45",
-    "@types/vscode": "^1.64.0",
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.87.0",
     "@types/websocket": "^1.0.5",
-    "typescript-eslint": "^8.24.1",
-    "@typescript-eslint/eslint-plugin": "^8.24.1",
-    "@typescript-eslint/parser": "^8.24.1",
-    "eslint": "^9.20.1",
-    "typescript": "~5.7.3"
+    "@eslint/js": "^9.38.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "eslint": "^9.38.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2"
   },
   "dependencies": {
     "child-process": "^1.0.2",
+    "globals": "^16.4.0",
     "http-server": "^14.1.1",
     "lodash": "^4.17.21",
     "tree-kill": "^1.2.2",

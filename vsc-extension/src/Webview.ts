@@ -9,7 +9,7 @@ export class Webview {
 
 
 
-  static activate(fileName: string, port: number, communicationPort: number, debuggerPort: number) {
+  static activate(fileName: string, port: number, communicationPort: number, debuggerPort: number): void {
     if (Webview.active) {
       return
     }
@@ -34,7 +34,7 @@ export class Webview {
     )
   }
 
-  static close() {
+  static close(): void {
     Webview.subscriptions?.forEach(resource => resource?.dispose())
     Webview.subscriptions = []
     Webview.active = false

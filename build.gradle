@@ -9,7 +9,7 @@ plugins {
   id 'org.barfuin.gradle.taskinfo' version '2.2.0'
 }
 
-def jvmVersion = 21
+def jvmVersion = 25
 
 // This is executed on all subprojects
 subprojects {
@@ -32,7 +32,6 @@ subprojects {
             //     }
         // }
         build {
-            dependsOn('copyRuntimeLibrariesToLib')
             doFirst {
                 println "Build Kotlin (Toolchain specification): " + java.toolchain.displayName
                 JavaCompiler compiler = javaToolchains.compilerFor(java.toolchain).get()
@@ -41,13 +40,15 @@ subprojects {
                 println "Build Kotlin (Java Compiler - Executable path): " + compiler.executablePath
             }
         }
-        run {
-            doFirst {
-                println "Run Kotlin (Toolchain specification): " + java.toolchain.displayName
-                JavaLauncher compiler = javaToolchains.launcherFor(java.toolchain).get()
-                println "Run Kotlin (Java Compiler): ${compiler.metadata.languageVersion}, ${compiler.metadata.jvmVersion}, ${compiler.metadata.javaRuntimeVersion}, ${compiler.metadata.vendor}"
-                println "Run Kotlin (Java Compiler - Installation path): ${compiler.metadata.installationPath}"
-                println "Run Kotlin (Java Compiler - Executable path): " + compiler.executablePath
+        tasks.configureEach { task ->
+            if (task.name == 'run') {
+                task.doFirst {
+                    println "Run Kotlin (Toolchain specification): " + java.toolchain.displayName
+                    JavaLauncher launcher = javaToolchains.launcherFor(java.toolchain).get()
+                    println "Run Kotlin (Java Launcher): ${launcher.metadata.languageVersion}, ${launcher.metadata.jvmVersion}, ${launcher.metadata.javaRuntimeVersion}, ${launcher.metadata.vendor}"
+                    println "Run Kotlin (Java Launcher - Installation path): ${launcher.metadata.installationPath}"
+                    println "Run Kotlin (Java Launcher - Executable path): " + launcher.executablePath
+                }
             }
         }
     }
@@ -69,7 +70,6 @@ subprojects {
 
         tasks.register('copyRuntimeLibrariesToLib', Copy) {
             doFirst {
-                println "copyRuntimeClasspathToLib:"
                 println "into ${layout.buildDirectory.dir("libs").get()}"
                 println "from project.configurations.runtimeClasspath (${configurations.runtimeClasspath.files.collect { it.getName() }.join(' ')})"
             }
@@ -102,13 +102,13 @@ subprojects {
             doFirst {
                 println("Main-Class: " + application.mainClass.get())
                 println("Class-Path: " + configurations.runtimeClasspath.files.collect { it.getName() }.join(' '))
-                println("Version: " + project.version)
+                println("Version: " + version)
                 jar {
                     manifest {
                         attributes(
                                 "Main-Class": application.mainClass.get(),
                                 'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
-                                'Version': project.version
+                                'Version': version
                         )
                     }
                 }
@@ -148,6 +148,13 @@ subprojects {
         // for task runJar and all other tasks of type JavaExec, use the specified toolchain to run
         tasks.withType(JavaExec).configureEach {
             javaLauncher = javaToolchains.launcherFor(java.toolchain)
+        }
+
+        if (project.hasProperty('excludeTests')) {
+            println "Tests are excluded."
+            tasks.withType(Test).configureEach {
+                enabled = false
+            }
         }
     }
 

@@ -41,13 +41,13 @@ export class Editors implements vscode.Disposable {
     this.warned = false
   }
 
-  public async highlightLine(line: number, localUri: string) {
+  public async highlightLine(line: number, localUri: string): Promise<void> {
     this.highlightedLine = line - 1
     this.highlightedLocalUri = localUri
     await this.updateDebugLine(true) // TODO MW: change focus flag to toggle whether highlighted line should be focused or not
   }
 
-  public async hoverLine(line: number, localUri: string) {
+  public async hoverLine(line: number, localUri: string): Promise<void> {
     this.hoveredLine = line - 1;
     this.hoveredLocalUri = localUri;
     await this.updateHoveredLine();
@@ -87,7 +87,7 @@ export class Editors implements vscode.Disposable {
     if(focus) {
       let uri = (await vscode.workspace.findFiles(`${this.highlightedLocalUri}`, undefined, 1))?.pop()
       if(!uri) { // start searching for files with the same name; this happens when the file is not in a workspace and the local uri is just the base path
-        uri = vscode.workspace.textDocuments.find(doc => doc.uri.path.endsWith(this.highlightedLocalUri!))?.uri
+        uri = vscode.workspace.textDocuments.find(doc => doc.uri.path.endsWith(this.highlightedLocalUri ?? ''))?.uri
       }
       if(!uri) {
         if(!this.warned) {
@@ -129,7 +129,7 @@ export class Editors implements vscode.Disposable {
     this.updateHoveredLine();
   }
 
-  public dispose() {
+  public dispose(): void {
     this.subscriptions.forEach(s => s.dispose())
   }
 }

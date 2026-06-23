@@ -1,16 +1,27 @@
 {
   "compilerOptions": {
-    "target": "es2019",
-    "module": "commonjs",
-    "strict": true,
+    "target": "ES2022",
+    /* module/moduleResolution: node16/node16 is the required pairing for CommonJS output consumed by Node.js (VS Code extension host). */
+    "module": "node16",
+    "moduleResolution": "node16",
     "lib": [
-      "ES2019"
+      "ES2022"
     ],
-    "noImplicitAny": true,
+    "types": [
+      "node"
+    ],
     "outDir": "out",
+    "rootDir": "..",
     "sourceMap": true,
-    // "rootDir": "src", // we do not use src as rootDir here because we have shared data in the "shared" project (e.g., Protocol.js)
-    "baseUrl": ".",
+    /* Interop */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    /* Type Checking */
+    "strict": true,
+    /* noImplicitAny is already implied by strict — not repeated here. */
+    "noUncheckedSideEffectImports": true, /* Explicit: TS 6 default; lock in to prevent silent regressions on future TS changes. */
+    /* Completeness */
+    "skipLibCheck": true,
     "paths": {
       "@/*": [
         "./src/*"

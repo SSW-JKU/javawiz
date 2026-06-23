@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaWiz Changelog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+    <nav class="container mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="img/wizard-hat.svg" alt="JavaWiz Logo" class="h-12" />
+        <span class="text-xl font-bold">JavaWiz</span>
+      </a>
+      <a href="index.html#current-version-section" class="border border-white/70 px-4 py-2 rounded-lg hover:bg-white hover:text-blue-700 transition">Current Version</a>
+    </nav>
+    <div class="container mx-auto px-4 py-12">
+      <h1 class="text-4xl md:text-5xl font-bold mb-4">Changelog</h1>
+      <p class="text-xl opacity-90">Notable changes for JavaWiz releases.</p>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 space-y-8">
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 2.0.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2026-06-23</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-304" class="text-blue-600 hover:text-blue-500">JW-304</a>: Add frontend debug configurations for VS Code and IntelliJ</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-338" class="text-blue-600 hover:text-blue-500">JW-338</a>: IntelliJ Plugin</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-339" class="text-blue-600 hover:text-blue-500">JW-339</a>: IntelliJ Plugin: Correctly fill in plugin.xml according to JetBrains documentation</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-343" class="text-blue-600 hover:text-blue-500">JW-343</a>: Update Java (25), Kotlin (2.3) and Gradle (9.x) version</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-344" class="text-blue-600 hover:text-blue-500">JW-344</a>: Upgrade all Frontend dependencies to latest version</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-348" class="text-blue-600 hover:text-blue-500">JW-348</a>: Enhance build script such that it can work with four-place numbers (A.B.C.D)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-349" class="text-blue-600 hover:text-blue-500">JW-349</a>: Provide setting to release without testing (for quick-fixes after broken releases)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-350" class="text-blue-600 hover:text-blue-500">JW-350</a>: Do not access the `Project` object at run time in Gradle build script as this is deprecated</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-351" class="text-blue-600 hover:text-blue-500">JW-351</a>: Enable bug report feature -- without leaking Discord webhook this time</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-352" class="text-blue-600 hover:text-blue-500">JW-352</a>: Add globals.browser to eslint definition</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-353" class="text-blue-600 hover:text-blue-500">JW-353</a>: Fix build script such that versions with numbers &gt;= 10 are working (such as 1.8.10)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-354" class="text-blue-600 hover:text-blue-500">JW-354</a>: Rename CNAME.txt to CNAME</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-355" class="text-blue-600 hover:text-blue-500">JW-355</a>: Rename &quot;javawiz-frontend&quot; project to &quot;frontend&quot;, rename &quot;websocket-debugger&quot; to &quot;backend&quot;, and clean up IntelliJ project</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-356" class="text-blue-600 hover:text-blue-500">JW-356</a>: Check whether &quot;defineComponent&quot; is really needed in &lt;script setup&gt;</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-357" class="text-blue-600 hover:text-blue-500">JW-357</a>: Refactor visualization store to provide uniform way to define new visualizations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-358" class="text-blue-600 hover:text-blue-500">JW-358</a>: Convert every component to &lt;script setup&gt; Composition API</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-361" class="text-blue-600 hover:text-blue-500">JW-361</a>: Current line is offset by one trace state</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-362" class="text-blue-600 hover:text-blue-500">JW-362</a>: Fix broken VS Code logo on website</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-363" class="text-blue-600 hover:text-blue-500">JW-363</a>: Split class-pattern settings into three orthogonal concerns</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-364" class="text-blue-600 hover:text-blue-500">JW-364</a>: Enable recording of Java data structures (java.util.List, ...)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-365" class="text-blue-600 hover:text-blue-500">JW-365</a>: Add paper preprint to website</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-367" class="text-blue-600 hover:text-blue-500">JW-367</a>: Get rid of all &quot;defineComponent&quot; calls by upgrading all components from options API to composition API</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-368" class="text-blue-600 hover:text-blue-500">JW-368</a>: Establish agent/AI workflow conventions in copilot instructions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-369" class="text-blue-600 hover:text-blue-500">JW-369</a>: Fix Vue warning: visualization components stored as reactive objects in VisualizationStore</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-370" class="text-blue-600 hover:text-blue-500">JW-370</a>: Add runJavaWiz Copilot CLI skill</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-371" class="text-blue-600 hover:text-blue-500">JW-371</a>: Add YouTrack → Discord webhook notifications for new issues and comments</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-372" class="text-blue-600 hover:text-blue-500">JW-372</a>: Extract publish ignore list to FILES_AND_DIRS_TO_IGNORE_ON_PUBLISH.txt</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-373" class="text-blue-600 hover:text-blue-500">JW-373</a>: Refine agent workflow conventions in copilot instructions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-374" class="text-blue-600 hover:text-blue-500">JW-374</a>: Upgrade all Typescript-based systems to Typescript 6.0</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-375" class="text-blue-600 hover:text-blue-500">JW-375</a>: Add run-javawiz Copilot skill for browser-based JavaWiz interaction</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-376" class="text-blue-600 hover:text-blue-500">JW-376</a>: Add familiarize Copilot skill for pre-task codebase briefing</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-377" class="text-blue-600 hover:text-blue-500">JW-377</a>: Rework TheHeapVisualization d3-graphviz rendering architecture</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-378" class="text-blue-600 hover:text-blue-500">JW-378</a>: Fix ESLint config to correctly parse Vue template blocks</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-380" class="text-blue-600 hover:text-blue-500">JW-380</a>: Settings dialog in Memory View is unclickable when SVG is present</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-381" class="text-blue-600 hover:text-blue-500">JW-381</a>: Memory View: Add &quot;Show internal class fields&quot; settings panel</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-382" class="text-blue-600 hover:text-blue-500">JW-382</a>: Refactor JDI pipeline for readability</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-383" class="text-blue-600 hover:text-blue-500">JW-383</a>: Fix wrong identifier prefix &quot;localvar_&quot; in thisVar (should be &quot;l_&quot;)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-384" class="text-blue-600 hover:text-blue-500">JW-384</a>: Rename DOT placeholder ###CLASS### to ###CSSCLASS### for heap elements</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-385" class="text-blue-600 hover:text-blue-500">JW-385</a>: Extract and fix click listener setup logic in HeapVisualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-387" class="text-blue-600 hover:text-blue-500">JW-387</a>: Improve .github/copilot-instructions.md</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-390" class="text-blue-600 hover:text-blue-500">JW-390</a>: Audit and reduce unnecessary TypeScript/tooling drift across TS subprojects</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-393" class="text-blue-600 hover:text-blue-500">JW-393</a>: Memory View: Add title attribute to all DOT template cells</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-394" class="text-blue-600 hover:text-blue-500">JW-394</a>: Improve run-javawiz Copilot skill: reliable editor setValue and process shutdown</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-395" class="text-blue-600 hover:text-blue-500">JW-395</a>: Secure .serena folder and document publishing process</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-396" class="text-blue-600 hover:text-blue-500">JW-396</a>: Add agent instructions for Claude Code and OpenCode</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-398" class="text-blue-600 hover:text-blue-500">JW-398</a>: Fix npm install failure in frontend due to alpha typescript-eslint versions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-399" class="text-blue-600 hover:text-blue-500">JW-399</a>: Fix frontend TypeScript build errors (duplicate identifiers and type incompatibility)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-400" class="text-blue-600 hover:text-blue-500">JW-400</a>: Fix frontend build and lint errors</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-401" class="text-blue-600 hover:text-blue-500">JW-401</a>: Do not add faked objects when we just left a lambda</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-402" class="text-blue-600 hover:text-blue-500">JW-402</a>: Do not track static fields of detail-classes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-403" class="text-blue-600 hover:text-blue-500">JW-403</a>: Add more comprehensive compilation output on backend</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-404" class="text-blue-600 hover:text-blue-500">JW-404</a>: Set up ESLint and fix all warnings across frontend, shared, and vsc-extension</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-405" class="text-blue-600 hover:text-blue-500">JW-405</a>: Align TypeScript compilation targets to ES2022 across all subprojects</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-406" class="text-blue-600 hover:text-blue-500">JW-406</a>: Add Kiro steering files for AI-assisted development</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-407" class="text-blue-600 hover:text-blue-500">JW-407</a>: Standardize MCP server configuration across all AI coding tools</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-408" class="text-blue-600 hover:text-blue-500">JW-408</a>: IntelliJ Plugin: Fix action labeling, duplicate actions block, and missing Kotlin code lens</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-411" class="text-blue-600 hover:text-blue-500">JW-411</a>: IntelliJ Plugin: Improve port discovery robustness</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-412" class="text-blue-600 hover:text-blue-500">JW-412</a>: IntelliJ Plugin: Fix WebSocket connection list management (stale sessions, multi-connection inconsistency)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-413" class="text-blue-600 hover:text-blue-500">JW-413</a>: IntelliJ Plugin: Migrate to modern IntelliJ plugin standards (Gradle plugin 2.x, untilBuild, invalid module dependency)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-414" class="text-blue-600 hover:text-blue-500">JW-414</a>: IntelliJ Plugin: Clean up stale files from previous plugin versions on startup</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-415" class="text-blue-600 hover:text-blue-500">JW-415</a>: IntelliJ Plugin: Fix startup/shutdown resilience and partial-failure cleanup</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-416" class="text-blue-600 hover:text-blue-500">JW-416</a>: IntelliJ Plugin: Update release mechanism to include plugin builds and publishing</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-417" class="text-blue-600 hover:text-blue-500">JW-417</a>: IntelliJ Plugin: Integrate into root multi-project Gradle build</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-419" class="text-blue-600 hover:text-blue-500">JW-419</a>: Fix .gitignore to exclude generated/local files from IntelliJ plugin</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-420" class="text-blue-600 hover:text-blue-500">JW-420</a>: Inject Frontend and Backend resources into IntelliJ plugin at build time</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-421" class="text-blue-600 hover:text-blue-500">JW-421</a>: Java Stream API Visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-422" class="text-blue-600 hover:text-blue-500">JW-422</a>: IntelliJ Plugin: Prioritize editor content over file content; add Java diagnostic logging</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-423" class="text-blue-600 hover:text-blue-500">JW-423</a>: Memory View: Title-based attribute injection + HeapLookup bounding-box helper</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-424" class="text-blue-600 hover:text-blue-500">JW-424</a>: Fix AI assistant MCP server connections</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-425" class="text-blue-600 hover:text-blue-500">JW-425</a>: Refresh AI assistant repository guidance</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-426" class="text-blue-600 hover:text-blue-500">JW-426</a>: Harden YouTrack MCP startup after restart</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-427" class="text-blue-600 hover:text-blue-500">JW-427</a>: Stream visualization controls are clipped</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-428" class="text-blue-600 hover:text-blue-500">JW-428</a>: Use value type for stream marble colors</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-429" class="text-blue-600 hover:text-blue-500">JW-429</a>: Exclude internal agent files from public mirror</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-430" class="text-blue-600 hover:text-blue-500">JW-430</a>: Add local public mirror preview script</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-431" class="text-blue-600 hover:text-blue-500">JW-431</a>: Exclude local build cache directories from public mirror</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-432" class="text-blue-600 hover:text-blue-500">JW-432</a>: Support path-based public mirror exclusions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-434" class="text-blue-600 hover:text-blue-500">JW-434</a>: IntelliJ Plugin: Store extracted resources in home-based version directory</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-435" class="text-blue-600 hover:text-blue-500">JW-435</a>: Release backend.jar, frontend.zip, intellij-plugin.jar as well as vsc-extension.vsix as GitHub release assests when new version is published.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-436" class="text-blue-600 hover:text-blue-500">JW-436</a>: Update AI guidance for YouTrack issue field handling</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-437" class="text-blue-600 hover:text-blue-500">JW-437</a>: Keep backend compile timing output contiguous</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-438" class="text-blue-600 hover:text-blue-500">JW-438</a>: Improve request logging timing output</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-439" class="text-blue-600 hover:text-blue-500">JW-439</a>: IntelliJ rerun of parameterized Gradle tests fails with invocation index (generated by AI)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-440" class="text-blue-600 hover:text-blue-500">JW-440</a>: Adjust stream instrumentation collection for statement-scoped calls</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-441" class="text-blue-600 hover:text-blue-500">JW-441</a>: Add backend test for multiple stream visualization statements</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-442" class="text-blue-600 hover:text-blue-500">JW-442</a>: Add backend test for stream collect inside string concatenation</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-443" class="text-blue-600 hover:text-blue-500">JW-443</a>: Add backend test for operation after stream min</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-444" class="text-blue-600 hover:text-blue-500">JW-444</a>: Add backend test that stream field initializer is not instrumented</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-445" class="text-blue-600 hover:text-blue-500">JW-445</a>: Disable flaky backend OutOfMemory test</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.8.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-10-25</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-347" class="text-blue-600 hover:text-blue-500">JW-347</a>: Fix broken :backend:copyRuntimeLibrariesToLib introduced by Gradle version upgrade</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.9</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-10-24</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-346" class="text-blue-600 hover:text-blue-500">JW-346</a>: Move build logic out of extension project into root project</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.8</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-10-22</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-331" class="text-blue-600 hover:text-blue-500">JW-331</a>: Array visualization shows same index indicator multiple times</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-333" class="text-blue-600 hover:text-blue-500">JW-333</a>: Frontend suffers from strong performance degradation, especially when performing multi-step operations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-334" class="text-blue-600 hover:text-blue-500">JW-334</a>: Add time tracking for step processing to trace states</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-336" class="text-blue-600 hover:text-blue-500">JW-336</a>: ArrayViz creates multiple index descriptors for same accessor</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-340" class="text-blue-600 hover:text-blue-500">JW-340</a>: ArrayViz does not have &quot;aggregation animations&quot; anymore.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-341" class="text-blue-600 hover:text-blue-500">JW-341</a>: ArrayViz does not show &quot;off-by-one&quot; / ArrayIndexOutOfBoundsException highlighting</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-342" class="text-blue-600 hover:text-blue-500">JW-342</a>: Upgrade Java (21), Kotlin (2.2.20) and Gradle (8.14) version</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.7</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-07-31</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-326" class="text-blue-600 hover:text-blue-500">JW-326</a>: Various Sequence Diagram Fixes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-327" class="text-blue-600 hover:text-blue-500">JW-327</a>: Add BibTex to Website</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-328" class="text-blue-600 hover:text-blue-500">JW-328</a>: Delete old /pages folder for website, use /docs instead</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-329" class="text-blue-600 hover:text-blue-500">JW-329</a>: Add info about publishing token management</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.6</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-05-14</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-320" class="text-blue-600 hover:text-blue-500">JW-320</a>: Remove duplicated Icons info in README.md</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-321" class="text-blue-600 hover:text-blue-500">JW-321</a>: Make &quot;How to get&quot; centered on narrow screen.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-322" class="text-blue-600 hover:text-blue-500">JW-322</a>: Clone website to /docs folder so we can publish it as Github Pages</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-323" class="text-blue-600 hover:text-blue-500">JW-323</a>: Rename Debugger.ts to Backend.ts to better reflect the current naming scheme</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-324" class="text-blue-600 hover:text-blue-500">JW-324</a>: Automatically create code release on GitHub after publish</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.5</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-04-30</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-227" class="text-blue-600 hover:text-blue-500">JW-227</a>: Bug Report Feature</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-318" class="text-blue-600 hover:text-blue-500">JW-318</a>: Infinite loop caused by watcher in HeapViz</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-319" class="text-blue-600 hover:text-blue-500">JW-319</a>: Add icon image to Visual Studio Code extension marketplace</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.4</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-04-28</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-315" class="text-blue-600 hover:text-blue-500">JW-315</a>: Make backend more quiet by reducing text amount (CompileRequest.toString(), ...)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-317" class="text-blue-600 hover:text-blue-500">JW-317</a>: Fix extension error &quot;Activating extension &#x27;ssw-jku.javawiz&#x27; failed: require() of ES Module not supported.&quot;</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.3</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-04-28</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-290" class="text-blue-600 hover:text-blue-500">JW-290</a>: Migrate to composition API</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-293" class="text-blue-600 hover:text-blue-500">JW-293</a>: Migrate from webpack to vite</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-305" class="text-blue-600 hover:text-blue-500">JW-305</a>: Flowchart: Rectangles for inline methods are not correctly sized for constructor calls</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-306" class="text-blue-600 hover:text-blue-500">JW-306</a>: Failed In.open() produces ugly output in Input view</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-307" class="text-blue-600 hover:text-blue-500">JW-307</a>: StepOver targetReached incorrect</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-308" class="text-blue-600 hover:text-blue-500">JW-308</a>: Reunify eslint versions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-312" class="text-blue-600 hover:text-blue-500">JW-312</a>: Update In.java, Out.java and Rand.java to match JKU-SW1-Style</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-313" class="text-blue-600 hover:text-blue-500">JW-313</a>: Put the HTML code for javawiz.net in the repository</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.2</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-02-03</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-302" class="text-blue-600 hover:text-blue-500">JW-302</a>: &quot;Auto inline methods&quot; in flowchart broken</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-303" class="text-blue-600 hover:text-blue-500">JW-303</a>: Rectangle that indicates method in flowchart is not wide enough</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-01-13</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-295" class="text-blue-600 hover:text-blue-500">JW-295</a>: Change changelog.md to CHANGELOG.md</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-296" class="text-blue-600 hover:text-blue-500">JW-296</a>: Add a SUPPORT.md to the VSC extension</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-297" class="text-blue-600 hover:text-blue-500">JW-297</a>: Add galleryBanner information to package.json to provide nicer marketplace experience</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-298" class="text-blue-600 hover:text-blue-500">JW-298</a>: Check package.json for adherence to https://code.visualstudio.com/api/references/extension-manifest</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-300" class="text-blue-600 hover:text-blue-500">JW-300</a>: Set license to GPL3</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-301" class="text-blue-600 hover:text-blue-500">JW-301</a>: Test on latest JDK and LTS JDKs on build; provide testAll gradle task to test on all JDKs</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.7.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2025-01-07</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-154" class="text-blue-600 hover:text-blue-500">JW-154</a>: Do not show &quot;Wont Fix&quot; issues on release changelog.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-180" class="text-blue-600 hover:text-blue-500">JW-180</a>: Move from javaparser to java.compiler API</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-223" class="text-blue-600 hover:text-blue-500">JW-223</a>: Sequence Diagrams</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-246" class="text-blue-600 hover:text-blue-500">JW-246</a>: Warn the user if they use unsupported features</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-247" class="text-blue-600 hover:text-blue-500">JW-247</a>: Flowcharts: Method expansion</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-264" class="text-blue-600 hover:text-blue-500">JW-264</a>: Hover Sync: Unhover in heap not always triggered</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-265" class="text-blue-600 hover:text-blue-500">JW-265</a>: Replace ClassVisitor by Symbol table resolution</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-267" class="text-blue-600 hover:text-blue-500">JW-267</a>: Create context menu item to auto-generate In/Out/Rand</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-269" class="text-blue-600 hover:text-blue-500">JW-269</a>: Error messages in frontend broken:</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-270" class="text-blue-600 hover:text-blue-500">JW-270</a>: List Viz broken on complex nodes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-271" class="text-blue-600 hover:text-blue-500">JW-271</a>: Cannot manually create In/Out inside package in web version</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-272" class="text-blue-600 hover:text-blue-500">JW-272</a>: First class is main by default feature broken</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-273" class="text-blue-600 hover:text-blue-500">JW-273</a>: Desk Test: Uri resolution broken</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-274" class="text-blue-600 hover:text-blue-500">JW-274</a>: Frontend randomly freezes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-275" class="text-blue-600 hover:text-blue-500">JW-275</a>: Sequence diagrams: No expand feature if nothing to expand</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-277" class="text-blue-600 hover:text-blue-500">JW-277</a>: Hover Sync: Statics highlighting broken for classes inside packages</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-279" class="text-blue-600 hover:text-blue-500">JW-279</a>: Sequence Diagrams: Collapse broken</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-280" class="text-blue-600 hover:text-blue-500">JW-280</a>: NullPointerException: sym.owner null</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-281" class="text-blue-600 hover:text-blue-500">JW-281</a>: &quot;Disable/Enable Advanced Java Support&quot; context menu entries are also visible in non-Java files</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-282" class="text-blue-600 hover:text-blue-500">JW-282</a>: Refactor main-branch to simplify merging into Espresso&amp;WebImage-branch</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-283" class="text-blue-600 hover:text-blue-500">JW-283</a>: Cache backend.js (WebImage)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-285" class="text-blue-600 hover:text-blue-500">JW-285</a>: Editor broken on reload</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-287" class="text-blue-600 hover:text-blue-500">JW-287</a>: Hover performance: Heap view is redrawn even without relevant changes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-288" class="text-blue-600 hover:text-blue-500">JW-288</a>: Pattern matching instanceof (e.g., x instanceof Person p) not working</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-289" class="text-blue-600 hover:text-blue-500">JW-289</a>: List view properties in dropdows (class names) cannot be changed</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-291" class="text-blue-600 hover:text-blue-500">JW-291</a>: Extension: File loading unreliable</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.6.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2024-08-22</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-18" class="text-blue-600 hover:text-blue-500">JW-18</a>: Check the Java version of the user and give a warning if it&#x27;s too low</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-156" class="text-blue-600 hover:text-blue-500">JW-156</a>: Show better error message when no Java is found on path</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-174" class="text-blue-600 hover:text-blue-500">JW-174</a>: Synchronized highlight across visualizations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-186" class="text-blue-600 hover:text-blue-500">JW-186</a>: Compile in extension mode even though unused java files in workspace have syntax errors</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-187" class="text-blue-600 hover:text-blue-500">JW-187</a>: Warn user when they use threads</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-235" class="text-blue-600 hover:text-blue-500">JW-235</a>: Check all z-index in the whole frontend and try to somehow find a suitable system to organize them (central documentation?)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-253" class="text-blue-600 hover:text-blue-500">JW-253</a>: Repeatedly hitting &#x27;Run in JavaWiz&#x27; breaks line highlighting</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-254" class="text-blue-600 hover:text-blue-500">JW-254</a>: InViz shows incorrect return type on &#x27;In.open()&#x27;</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-256" class="text-blue-600 hover:text-blue-500">JW-256</a>: Extension cannot be restarted after being stopped</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-257" class="text-blue-600 hover:text-blue-500">JW-257</a>: Auto-reconnect in front end causes disconnection</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-263" class="text-blue-600 hover:text-blue-500">JW-263</a>: Extension does not reliably kill debugger</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-286" class="text-blue-600 hover:text-blue-500">JW-286</a>: Frontend extremely slow in development mode</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.6.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2024-07-24</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-139" class="text-blue-600 hover:text-blue-500">JW-139</a>: InViz: Pane should have correct height on first show</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-185" class="text-blue-600 hover:text-blue-500">JW-185</a>: DeskTest: Header hidden when scrolling down, make sticky</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-190" class="text-blue-600 hover:text-blue-500">JW-190</a>: Extension: Don&#x27;t stop debug on editor close</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-193" class="text-blue-600 hover:text-blue-500">JW-193</a>: Improve splitpanes layouting</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-194" class="text-blue-600 hover:text-blue-500">JW-194</a>: Generate WebImage configuration for reflection with a script</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-198" class="text-blue-600 hover:text-blue-500">JW-198</a>: Close running JavaWiz if &quot;Run in JavaWiz&quot; is pressed again</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-200" class="text-blue-600 hover:text-blue-500">JW-200</a>: Connection failed error on javawiz startup</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-202" class="text-blue-600 hover:text-blue-500">JW-202</a>: Add &quot;About&quot; and &quot;Developers&quot; information</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-206" class="text-blue-600 hover:text-blue-500">JW-206</a>: Flowcharts: zoom to home activated when stepping into method of class defined in seperate file</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-207" class="text-blue-600 hover:text-blue-500">JW-207</a>: Re-enable static examples loadable via uri</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-208" class="text-blue-600 hover:text-blue-500">JW-208</a>: [ArrayViz] Animation for array movements does not work if array becomes pointed by two local variables</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-209" class="text-blue-600 hover:text-blue-500">JW-209</a>: ArrayViz: Null pointers are not visible</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-210" class="text-blue-600 hover:text-blue-500">JW-210</a>: Parameterize Tests</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-211" class="text-blue-600 hover:text-blue-500">JW-211</a>: FlowDiagram: Visualization should remember whether true-false or false-true order was selected for if-statements.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-212" class="text-blue-600 hover:text-blue-500">JW-212</a>: InputViz and Console (I/O view) are separated by a splitpane, but InputViz is not resizeable -&gt; Make InputViz resizable</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-213" class="text-blue-600 hover:text-blue-500">JW-213</a>: Separate console from InViz</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-214" class="text-blue-600 hover:text-blue-500">JW-214</a>: Remove fakedLocals</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-215" class="text-blue-600 hover:text-blue-500">JW-215</a>: Backend Support for Object Structure Visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-218" class="text-blue-600 hover:text-blue-500">JW-218</a>: Clean up code (Reduce amount of Code in Home.vue, introduce Pinia stores, etc.)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-219" class="text-blue-600 hover:text-blue-500">JW-219</a>: Remove minimap from Monaco</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-220" class="text-blue-600 hover:text-blue-500">JW-220</a>: Make DeskTest correctly scrolling again</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-221" class="text-blue-600 hover:text-blue-500">JW-221</a>: Give JavaWiz a real favicon and drop the default vue one</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-222" class="text-blue-600 hover:text-blue-500">JW-222</a>: Object Structure Visualization: Do not call method while in constructor</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-224" class="text-blue-600 hover:text-blue-500">JW-224</a>: [SplitPanes]: &quot;Open XYZ&quot; to &quot;Move XYZ&quot; and make all buttons purely white</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-225" class="text-blue-600 hover:text-blue-500">JW-225</a>: [SplitPanes]: ToolTips are cut off</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-226" class="text-blue-600 hover:text-blue-500">JW-226</a>: Show compilation erros in console instead of pop-up</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-228" class="text-blue-600 hover:text-blue-500">JW-228</a>: Rework toolbar, unify color format, remove unnecessary borders, ...</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-229" class="text-blue-600 hover:text-blue-500">JW-229</a>: Update help pop-up</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-230" class="text-blue-600 hover:text-blue-500">JW-230</a>: Automatically reconnect if &quot;Connect&quot; button does not succeed</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-231" class="text-blue-600 hover:text-blue-500">JW-231</a>: [SplitPanes]: Center visualization chooser</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-232" class="text-blue-600 hover:text-blue-500">JW-232</a>: Rework Icon Tooltips</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-233" class="text-blue-600 hover:text-blue-500">JW-233</a>: [Toolbar] Show all step buttons side-by-side by default and switch to &quot;dropdown mode&quot; for small-width screens</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-234" class="text-blue-600 hover:text-blue-500">JW-234</a>: [Toolbar] Fix that tooltips do not disappear if mouse moves over them</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-237" class="text-blue-600 hover:text-blue-500">JW-237</a>: Flowchart: statics overlay overlaps with navbar</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-239" class="text-blue-600 hover:text-blue-500">JW-239</a>: Line stays highlighted on debug end</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-240" class="text-blue-600 hover:text-blue-500">JW-240</a>: Refactor Notifications into separate component</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-241" class="text-blue-600 hover:text-blue-500">JW-241</a>: graphviz loading broken in extension mode</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-242" class="text-blue-600 hover:text-blue-500">JW-242</a>: Splitpanes not rendered correctly</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-243" class="text-blue-600 hover:text-blue-500">JW-243</a>: Top toolbar jiggly when compilation spinner is shown</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-244" class="text-blue-600 hover:text-blue-500">JW-244</a>: Help Overlay overflows screen</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-248" class="text-blue-600 hover:text-blue-500">JW-248</a>: Make Gradle toolchains work again</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-249" class="text-blue-600 hover:text-blue-500">JW-249</a>: Introduce general &quot;Overlay&quot; component to allow easy adding of new dialogs</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-250" class="text-blue-600 hover:text-blue-500">JW-250</a>: Show JavaWiz version in title bar and about overlay</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-252" class="text-blue-600 hover:text-blue-500">JW-252</a>: Make OutOfMemoryError-Test more robust</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-258" class="text-blue-600 hover:text-blue-500">JW-258</a>: Multifile Handling: Line highlighting broken in web editor</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.5.3</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2024-04-14</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-9" class="text-blue-600 hover:text-blue-500">JW-9</a>: Automatic zoom does not work perfectly sometimes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-13" class="text-blue-600 hover:text-blue-500">JW-13</a>: Discuss future of web version</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-24" class="text-blue-600 hover:text-blue-500">JW-24</a>: Discuss future of hiding configuration</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-173" class="text-blue-600 hover:text-blue-500">JW-173</a>: Multifile in web version</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-178" class="text-blue-600 hover:text-blue-500">JW-178</a>: Remove Feature: Keyboard navigation</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-191" class="text-blue-600 hover:text-blue-500">JW-191</a>: Remove bootstrap dependency</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-203" class="text-blue-600 hover:text-blue-500">JW-203</a>: No value present error on startup in extension version</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-204" class="text-blue-600 hover:text-blue-500">JW-204</a>: Web Version: Store Editor Text in Local Storage and Retrieve on Load</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-205" class="text-blue-600 hover:text-blue-500">JW-205</a>: Input Viz does not show anything</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.5.2</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2024-02-20</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-171" class="text-blue-600 hover:text-blue-500">JW-171</a>: Make internal class patterns modifiable</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-179" class="text-blue-600 hover:text-blue-500">JW-179</a>: Remove websockethistory</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-182" class="text-blue-600 hover:text-blue-500">JW-182</a>: Hide inner classes of hidden classes automatically</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-183" class="text-blue-600 hover:text-blue-500">JW-183</a>: InViz does not work</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.5.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2024-02-13</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-181" class="text-blue-600 hover:text-blue-500">JW-181</a>: Fix which panes are hidden by default</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.5.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2024-02-13</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-57" class="text-blue-600 hover:text-blue-500">JW-57</a>: Changes are currently calculated from trace state to trace state. Yet, after performing a STEP_OVER, STEP_OUT or RUN_TO_LINE, changes should be calculated across all relevant trace states.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-144" class="text-blue-600 hover:text-blue-500">JW-144</a>: DebugWebSocketServerTest.kt: Get rid of warnings (unnecessary casts, etc.)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-148" class="text-blue-600 hover:text-blue-500">JW-148</a>: Flowchart: Variable info box stops moving during animation if one hovers it</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-152" class="text-blue-600 hover:text-blue-500">JW-152</a>: Parse error in vsc does not indicate File name where problem occurred</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-155" class="text-blue-600 hover:text-blue-500">JW-155</a>: Desktest: Array dropdown broken</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-157" class="text-blue-600 hover:text-blue-500">JW-157</a>: Border of second column in Desk Test is visible when hovering it</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-158" class="text-blue-600 hover:text-blue-500">JW-158</a>: Input buffer visualization is slow when In is in package inout</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-159" class="text-blue-600 hover:text-blue-500">JW-159</a>: ArrayViz: Filter variables by dynamic type rather than static type</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-160" class="text-blue-600 hover:text-blue-500">JW-160</a>: Pressing CTRL+Minus while JavaWiz is running opens settings.json</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-161" class="text-blue-600 hover:text-blue-500">JW-161</a>: First &quot;Run with JavaWiz&quot; after VSCode start (or PC reboot?) is nearly always stuck in endless loop</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-162" class="text-blue-600 hover:text-blue-500">JW-162</a>: Upgrade d3 to v7, d3-graphviz to v5.2.0, @hpcc-js/wasm to 2.14.1 (Graphviz 9.0.0)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-163" class="text-blue-600 hover:text-blue-500">JW-163</a>: Flowchart: Cannot enter &quot;this&quot;-call in constructor.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-164" class="text-blue-600 hover:text-blue-500">JW-164</a>: Flowcharts: inline functions broken for static constructor</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-165" class="text-blue-600 hover:text-blue-500">JW-165</a>: TreeViz: Cannot read properties of undefined (reading &#x27;children&#x27;)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-168" class="text-blue-600 hover:text-blue-500">JW-168</a>: Router paths broken in vue-cli serve</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-169" class="text-blue-600 hover:text-blue-500">JW-169</a>: Processed Trace State in Home.vue stays undefined after first step</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-170" class="text-blue-600 hover:text-blue-500">JW-170</a>: Flowcharts: variable overlay hidden when on last line of while loop</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-172" class="text-blue-600 hover:text-blue-500">JW-172</a>: Discussion: where to put hiding buttons</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-175" class="text-blue-600 hover:text-blue-500">JW-175</a>: On syntax error, javawiz shows javaparser error rather than compiler error</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-176" class="text-blue-600 hover:text-blue-500">JW-176</a>: Flowcharts: to hide or not to hide variable overlay</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-177" class="text-blue-600 hover:text-blue-500">JW-177</a>: Print source file on compile/parse error</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.4.4</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-10-04</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-146" class="text-blue-600 hover:text-blue-500">JW-146</a>: Slow changed detection for array cells in Trace#calculateProcessedTraceState</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-147" class="text-blue-600 hover:text-blue-500">JW-147</a>: In DeskTest, instructions are not cut off at cell end</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-149" class="text-blue-600 hover:text-blue-500">JW-149</a>: Change order of visualizations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-150" class="text-blue-600 hover:text-blue-500">JW-150</a>: Store visualization visibility in local storage and restore settings for subsequent sessions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-153" class="text-blue-600 hover:text-blue-500">JW-153</a>: Change DeskTest borders to better fit its new position</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.4.3</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-09-25</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-145" class="text-blue-600 hover:text-blue-500">JW-145</a>: Do not show sequence diagram icon yet</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.4.2</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-09-22</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-129" class="text-blue-600 hover:text-blue-500">JW-129</a>: Also print stderr and not only stdout during publish - and print them constantly</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-141" class="text-blue-600 hover:text-blue-500">JW-141</a>: Publish Script: Only commit new version to repo if publish was successful</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-143" class="text-blue-600 hover:text-blue-500">JW-143</a>: Build script: Backend is not always copied to extension assets</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.4.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-09-21</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-130" class="text-blue-600 hover:text-blue-500">JW-130</a>: InViz: Use monospace at suitable locations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-131" class="text-blue-600 hover:text-blue-500">JW-131</a>: InViz: Write In.done() value in green (true) and red (false)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-132" class="text-blue-600 hover:text-blue-500">JW-132</a>: InViz: Change &quot;Return value&quot; to &quot;Latest return value&quot; and use correct quotation for strings and chars</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-133" class="text-blue-600 hover:text-blue-500">JW-133</a>: InViz: Show type and name of last called In-method</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-134" class="text-blue-600 hover:text-blue-500">JW-134</a>: InViz: Font size should match other visualizations such as desk test</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-135" class="text-blue-600 hover:text-blue-500">JW-135</a>: InViz: Sanitize and escape char values, shorten long strings and long floating point numbers</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-136" class="text-blue-600 hover:text-blue-500">JW-136</a>: Change generateVizString in DataProcessor to put ellipsis in the middle of the string and not at the end</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-138" class="text-blue-600 hover:text-blue-500">JW-138</a>: Flowcharts: Hide variable info pane on hover (or make it (semi-)transparent)</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-140" class="text-blue-600 hover:text-blue-500">JW-140</a>: print_changelog_from_youtrack.py should only consider resolved issues</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.4.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-09-21</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-26" class="text-blue-600 hover:text-blue-500">JW-26</a>: Create a knowledge base with important information</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-36" class="text-blue-600 hover:text-blue-500">JW-36</a>: Zoom buttons for HeapViz</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-84" class="text-blue-600 hover:text-blue-500">JW-84</a>: History-based back stepping</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-88" class="text-blue-600 hover:text-blue-500">JW-88</a>: Order of DeskTest columns should correspond to stack frame order</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-89" class="text-blue-600 hover:text-blue-500">JW-89</a>: DeskTest: move conditions from separate column to their scope</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-91" class="text-blue-600 hover:text-blue-500">JW-91</a>: New Input Stream Visualization system</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-100" class="text-blue-600 hover:text-blue-500">JW-100</a>: Flowcharts: Show variable value on hover</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-101" class="text-blue-600 hover:text-blue-500">JW-101</a>: Flowcharts: Improve Layout</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-105" class="text-blue-600 hover:text-blue-500">JW-105</a>: Flowcharts: Statements are highlighted in all inline methods</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-106" class="text-blue-600 hover:text-blue-500">JW-106</a>: Flowcharts: add sidebar icons analogous to list/array viz</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-107" class="text-blue-600 hover:text-blue-500">JW-107</a>: Flowcharts: Inline methods don&#x27;t work correctly</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-109" class="text-blue-600 hover:text-blue-500">JW-109</a>: Flowchart: crash in following case</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-110" class="text-blue-600 hover:text-blue-500">JW-110</a>: Flowcharts: elements that contain active inline functions are collapsible</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-111" class="text-blue-600 hover:text-blue-500">JW-111</a>: Flowcharts: comments and statements get swapped</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-112" class="text-blue-600 hover:text-blue-500">JW-112</a>: Don&#x27;t show locals that went out of scope</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-113" class="text-blue-600 hover:text-blue-500">JW-113</a>: Flowcharts: Highlight end of method</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-114" class="text-blue-600 hover:text-blue-500">JW-114</a>: HeapViz: add Navigation Bar</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-115" class="text-blue-600 hover:text-blue-500">JW-115</a>: Flowcharts: Don&#x27;t show locals that went out of scope</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-116" class="text-blue-600 hover:text-blue-500">JW-116</a>: Flowcharts: move to active statement</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-117" class="text-blue-600 hover:text-blue-500">JW-117</a>: Flowcharts: Method Inlining broken for DoWhile Conditions</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-118" class="text-blue-600 hover:text-blue-500">JW-118</a>: Debuggee not killed in extension</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-119" class="text-blue-600 hover:text-blue-500">JW-119</a>: Flowcharts: show static values in corner</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-120" class="text-blue-600 hover:text-blue-500">JW-120</a>: Flowchart Layout: IfThenElse broken when condition has inlined method</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-121" class="text-blue-600 hover:text-blue-500">JW-121</a>: Flowcharts: Enable method calls from external classes</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-122" class="text-blue-600 hover:text-blue-500">JW-122</a>: Flowcharts: Inline method hitboxes positioned incorrectly in for loop</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-123" class="text-blue-600 hover:text-blue-500">JW-123</a>: Flowcharts: Properly enable Multi-File Handling</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-124" class="text-blue-600 hover:text-blue-500">JW-124</a>: Flowcharts: Control structures without block don&#x27;t work</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-125" class="text-blue-600 hover:text-blue-500">JW-125</a>: Flowcharts: Autoinlining broken for method calls inside packages</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-126" class="text-blue-600 hover:text-blue-500">JW-126</a>: Flowcharts: end of method triangle positioned inconsistently</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-127" class="text-blue-600 hover:text-blue-500">JW-127</a>: Flowcharts: Method bounding box calculation not updated</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-128" class="text-blue-600 hover:text-blue-500">JW-128</a>: Flowchart: Inline method render gets without completing</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.3.2</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-07-12</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-50" class="text-blue-600 hover:text-blue-500">JW-50</a>: Discuss representation of floating point values</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-102" class="text-blue-600 hover:text-blue-500">JW-102</a>: Auto-focus console when waiting for input</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-104" class="text-blue-600 hover:text-blue-500">JW-104</a>: Handle InputResponses correctly in frontend</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.3.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-07-05</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-77" class="text-blue-600 hover:text-blue-500">JW-77</a>: Refactor code of data structure visualizations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-93" class="text-blue-600 hover:text-blue-500">JW-93</a>: Support node values of different dynamic types in list visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-98" class="text-blue-600 hover:text-blue-500">JW-98</a>: Certain steps sometimes not correctly resumed after being suspended by input</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.3.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-07-04</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-15" class="text-blue-600 hover:text-blue-500">JW-15</a>: Rework/rethink isInputExpected</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-19" class="text-blue-600 hover:text-blue-500">JW-19</a>: Current date is shortly visible when starting the frontend in the extension</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-31" class="text-blue-600 hover:text-blue-500">JW-31</a>: Implicit toString() (probably in combination with a string concat) can show Java-internal stack frames + Out.print(Object) can show &quot;Out-internal&quot; stack frames</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-34" class="text-blue-600 hover:text-blue-500">JW-34</a>: Special characters are not displayed correctly in outputs</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-43" class="text-blue-600 hover:text-blue-500">JW-43</a>: Trace array access in the backend for visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-44" class="text-blue-600 hover:text-blue-500">JW-44</a>: Array visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-48" class="text-blue-600 hover:text-blue-500">JW-48</a>: processedTrace and deskTestLines should be updated incrementally instead of fully when new trace states are added</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-49" class="text-blue-600 hover:text-blue-500">JW-49</a>: Step buttons should be disabled while vm.currentlyTalking is true</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-52" class="text-blue-600 hover:text-blue-500">JW-52</a>: Make sure that RUN_TO_LINE feature does not only take class name into account but also package name</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-53" class="text-blue-600 hover:text-blue-500">JW-53</a>: When performing &quot;Run in JavaWiz&quot;, WebView sometimes cannot be opened, especially after extension rebuilding and publishing.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-54" class="text-blue-600 hover:text-blue-500">JW-54</a>: Input and output should also work for STEP_OVER and RUN_TO_LINE</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-55" class="text-blue-600 hover:text-blue-500">JW-55</a>: In a for-loop, sometimes the $JavaWiz-internal call is visible on the stack, even though a class filter is set in the debugger</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-56" class="text-blue-600 hover:text-blue-500">JW-56</a>: Remove exception line number adjustment code if not needed anymore.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-60" class="text-blue-600 hover:text-blue-500">JW-60</a>: Runtime exception in backend when starting workspace</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-61" class="text-blue-600 hover:text-blue-500">JW-61</a>: Make Run-To-Line Input field execute on pressing ENTER</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-62" class="text-blue-600 hover:text-blue-500">JW-62</a>: Enable Debugger to handle multiple events per eventSet, as well as multiple eventSets in eventQueue</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-63" class="text-blue-600 hover:text-blue-500">JW-63</a>: Create typing for StepResult on frontend</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-64" class="text-blue-600 hover:text-blue-500">JW-64</a>: Reintroduce the user notification that the program is waiting for input</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-65" class="text-blue-600 hover:text-blue-500">JW-65</a>: Disable step buttons once we reach end of trace and isVMRunning-flag of last step result was false</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-67" class="text-blue-600 hover:text-blue-500">JW-67</a>: Fuzzy checking for class names in data structure visualizations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-68" class="text-blue-600 hover:text-blue-500">JW-68</a>: Inconsistent handling of escape characters</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-69" class="text-blue-600 hover:text-blue-500">JW-69</a>: Enum.valueOf displayed in stack</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-70" class="text-blue-600 hover:text-blue-500">JW-70</a>: In the desk test, for loops do not display the last value of their loop variable once the conditions goes false.</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-71" class="text-blue-600 hover:text-blue-500">JW-71</a>: NullPointerException in backend when calling constructor of static inner class</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-72" class="text-blue-600 hover:text-blue-500">JW-72</a>: Discuss Exception tracing/visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-74" class="text-blue-600 hover:text-blue-500">JW-74</a>: .vscode folder that is created to store settings confuses users, need to get rid of it</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-75" class="text-blue-600 hover:text-blue-500">JW-75</a>: Strings too large in desktest</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-76" class="text-blue-600 hover:text-blue-500">JW-76</a>: NoSuchElementException on backend in recursive program</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-78" class="text-blue-600 hover:text-blue-500">JW-78</a>: More step features</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-79" class="text-blue-600 hover:text-blue-500">JW-79</a>: Opening Array visualization crashes frontend</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-80" class="text-blue-600 hover:text-blue-500">JW-80</a>: Update extension&#x27;s README to include data structure visualizations</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-85" class="text-blue-600 hover:text-blue-500">JW-85</a>: Refactor DeskTest CSS</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-95" class="text-blue-600 hover:text-blue-500">JW-95</a>: RUN_TO_END prematurely kills VM if input is expected</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-96" class="text-blue-600 hover:text-blue-500">JW-96</a>: After input, just continue the previous step request (if existing) instead of performing a single STEP_INTO and then continuing</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-97" class="text-blue-600 hover:text-blue-500">JW-97</a>: Some backend unit tests are broken</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.2.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-01-18</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-17" class="text-blue-600 hover:text-blue-500">JW-17</a>: Update icons in toolbar</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.2.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2023-01-01</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-4" class="text-blue-600 hover:text-blue-500">JW-4</a>: Multi-File support</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-10" class="text-blue-600 hover:text-blue-500">JW-10</a>: More step features: &quot;Step into&quot;, &quot;Step over&quot;, &quot;Run to line X&quot;</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-39" class="text-blue-600 hover:text-blue-500">JW-39</a>: Error messages can be hard to read -&gt; Display error messages in console instead of in popups</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-42" class="text-blue-600 hover:text-blue-500">JW-42</a>: Having a text field selected in the DataStructureViz configuration pane, pressing the arrow keys also steps through trace states</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-45" class="text-blue-600 hover:text-blue-500">JW-45</a>: Multi-File Support: WebView loses focus after opening new editor</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-46" class="text-blue-600 hover:text-blue-500">JW-46</a>: Limiting float precision in visualization doesn&#x27;t work in arrays</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-51" class="text-blue-600 hover:text-blue-500">JW-51</a>: Use JUnit Assertions in test cases</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.1.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2022-12-02</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-41" class="text-blue-600 hover:text-blue-500">JW-41</a>: Additional node is shown when fields of Node class are arranged in certain order</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.1.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2022-12-01</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-2" class="text-blue-600 hover:text-blue-500">JW-2</a>: Condition followed by Blockkommentar seems to break JavaWiz</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-3" class="text-blue-600 hover:text-blue-500">JW-3</a>: Mail Report: Broken Heap Vizualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-5" class="text-blue-600 hover:text-blue-500">JW-5</a>: Dynamic data structure visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-6" class="text-blue-600 hover:text-blue-500">JW-6</a>: Do not show desk test by default</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-7" class="text-blue-600 hover:text-blue-500">JW-7</a>: Changes are not correctly detected in recursive calls</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-8" class="text-blue-600 hover:text-blue-500">JW-8</a>: Reduce amount of pop-up boxes in JavaWiz VSC extenstion</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-14" class="text-blue-600 hover:text-blue-500">JW-14</a>: Stop heap vis. from jiggling after spamming step button</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-21" class="text-blue-600 hover:text-blue-500">JW-21</a>: Make sure the $JavaWiz class is accessible everywhere</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-23" class="text-blue-600 hover:text-blue-500">JW-23</a>: Desk test should auto-scroll</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-25" class="text-blue-600 hover:text-blue-500">JW-25</a>: Display returned objects after return</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-27" class="text-blue-600 hover:text-blue-500">JW-27</a>: Do not enter default constructor</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-29" class="text-blue-600 hover:text-blue-500">JW-29</a>: Synchronize fonts between heapviz and data structure visualization</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-30" class="text-blue-600 hover:text-blue-500">JW-30</a>: Collapse objects if they have more than X fields</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-32" class="text-blue-600 hover:text-blue-500">JW-32</a>: Write &quot; ... show X more fields ...&quot; instead of &quot;! show more&quot; below collapsed large objects in HeapViz</li>
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-33" class="text-blue-600 hover:text-blue-500">JW-33</a>: Instead of / Additionally to collapsing large heap objects in HeapViz, by default do not expand fields of large objects</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.0.1</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2022-11-11</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-92" class="text-blue-600 hover:text-blue-500">JW-92</a>: Tee debugger stdout &amp; stderr into logging files</li>
+          </ul>
+        </section>
+        <section class="border-t border-gray-200 pt-8 first:border-t-0 first:pt-0">
+          <h2 class="text-2xl font-bold text-gray-900">Version 1.0.0</h2>
+          <p class="text-sm text-gray-500 mb-4">Released on 2022-11-09</p>
+          <ul class="list-disc pl-6 space-y-2 text-gray-700">
+            <li><a href="https://javawiz.youtrack.cloud/issue/JW-1" class="text-blue-600 hover:text-blue-500">JW-1</a>: First issue</li>
+          </ul>
+        </section>
+    </div>
+  </main>
+</body>
+
+</html>

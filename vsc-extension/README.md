@@ -20,13 +20,13 @@ At the moment it provides eight visualizations:
   - _Hint: To use this feature, you have to use JavaWiz's `In.java` class to read input. This class can easily be added to your project by right-clicking on the project folder in the explorer and selecting "Create In.java"._
 
 ## How to use
-The extension requires at least **JDK 17** to run.
+The extension requires at least **JDK 21** to run.
 
 ### Start
 
 After installing JavaWiz from the VSCode marketplace and opening a .java file, the tool can be started by either:
-- clicking <kbd>Run in JavaWiz</kbd> above the main method, or
-- right click into the opened editor and selecting <kbd>Run in JavaWiz</kbd> from the context menu, or
+- clicking <kbd>Debug with JavaWiz</kbd> above the main method, or
+- right click into the opened editor and selecting <kbd>Debug with JavaWiz</kbd> from the context menu, or
 - using the shortcut <kbd>CTRL + SHIFT + J</kbd>.
 
 ### Navigation
@@ -60,7 +60,7 @@ Please note that the tool is targeted at beginners and is under active developme
 - Heap button: made by <a href="https://www.flaticon.com/authors/alfredo-hernandez" title="Alfredo Hernandez">Alfredo Hernandez</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
 - Wizard in help menu: made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
 - Live/replay indicators: made by <a href="https://www.flaticon.com/authors/google" title="Google">Google</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
-- Help button: made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.
-  com</a>
+- Help button: made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+- History button: <a href="https://www.svgrepo.com/svg/521702/history" title="history icon">history icon created by Konstantin Filatov - SVGrepo.com</a>
 - Linked list, tree, forwards/backwards, step over, reset button: made by SSW
 </font>

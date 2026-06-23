@@ -1,6 +1,6 @@
 {
   "name": "shared",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "description": "Shared files used by the Frontend and the Extension",
   "main": "",
   "scripts": {
@@ -8,13 +8,15 @@
   },
   "author": "",
   "license": "ISC",
-  "type": "module",
   "devDependencies": {
-    "@eslint/js": "^9.20.0",
-    "typescript-eslint": "^8.24.1",
-    "@typescript-eslint/eslint-plugin": "^8.24.1",
-    "@typescript-eslint/parser": "^8.24.1",
-    "eslint": "^9.20.1",
-    "typescript": "~5.7.3"
+    "@eslint/js": "^9.38.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "eslint": "^9.38.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2"
+  },
+  "dependencies": {
+    "globals": "^16.4.0"
   }
 }

@@ -70,6 +70,11 @@ export interface GetFileContentsResponseData {
 		localUri: string,
 		content: string
 	}[]
-	readonly internalClassPatterns: string[] | undefined
+	/** Patterns for classes excluded from stepping and instrumentation. */
+	readonly excludeFromSteppingPatterns: string[] | undefined
+	/** Patterns for classes whose fields are not collected. */
+	readonly excludeFieldsPatterns: string[] | undefined
+	/** Patterns for classes whose fields are collected but only shown in specialised visualisations, not in the Memory View. */
+	readonly detailedFieldsPatterns: string[] | undefined
 	readonly openEditorLocalUri: string | undefined
 }
