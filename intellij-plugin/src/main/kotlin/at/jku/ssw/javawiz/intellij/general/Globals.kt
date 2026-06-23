@@ -3,8 +3,15 @@ package at.jku.ssw.javawiz.intellij.general
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.util.IconLoader
+import com.intellij.openapi.util.ScalableIcon
 import com.intellij.util.IconUtil
+import com.intellij.util.ui.UIUtil
 import com.intellij.xdebugger.ui.DebuggerColors
+import java.awt.Color
+import java.awt.Component
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.image.BufferedImage
 import java.util.*
 import javax.swing.Icon
 
@@ -99,12 +106,59 @@ object Globals {
   object GUI {
     // GUI Icons
     val GUI_ICON_DISABLED = AllIcons.Actions.Cancel
-    val GUI_ICON_RUN: Icon = IconUtil.scale(IconLoader.getIcon("/wizard-hat.png", Globals::class.java), null, 16f / 640f)
+    val GUI_ICON_RUN: Icon = ThemeAwareMonochromeIcon(
+      IconUtil.scale(IconLoader.getIcon("/wizard-hat.png", Globals::class.java), null, 16f / 640f)
+    )
     val GUI_ICON_STOP = AllIcons.Actions.Suspend
 
     // Editor — resolved lazily to avoid accessing EditorColorsManager outside the EDT at class-load time
     val EDITOR_TEXTATTR_EXEC by lazy {
       EditorColorsManager.getInstance().globalScheme.getAttributes(DebuggerColors.EXECUTIONPOINT_ATTRIBUTES)
     }
+  }
+}
+
+private class ThemeAwareMonochromeIcon(private val delegate: Icon) : ScalableIcon {
+  override fun getIconWidth(): Int = delegate.iconWidth
+
+  override fun getIconHeight(): Int = delegate.iconHeight
+
+  override fun getScale(): Float = (delegate as? ScalableIcon)?.scale ?: 1f
+
+  override fun scale(scaleFactor: Float): Icon = ThemeAwareMonochromeIcon(
+    (delegate as? ScalableIcon)?.scale(scaleFactor)
+      ?: IconUtil.scale(delegate, null, scaleFactor)
+  )
+
+  override fun paintIcon(c: Component?, g: Graphics, x: Int, y: Int) {
+    val image = BufferedImage(iconWidth, iconHeight, BufferedImage.TYPE_INT_ARGB)
+    val imageGraphics = image.createGraphics()
+    try {
+      delegate.paintIcon(c, imageGraphics, 0, 0)
+      imageGraphics.composite = java.awt.AlphaComposite.SrcAtop
+      imageGraphics.color = iconColor()
+      imageGraphics.fillRect(0, 0, iconWidth, iconHeight)
+    } finally {
+      imageGraphics.dispose()
+    }
+
+    (g.create() as Graphics2D).use { graphics ->
+      graphics.drawImage(image, x, y, null)
+    }
+  }
+
+  private fun iconColor(): Color {
+    val background = UIUtil.getPanelBackground()
+    val brightness = (background.red * 299 + background.green * 587 + background.blue * 114) / 1000
+
+    return if (brightness < 128) Color.WHITE else Color.BLACK
+  }
+}
+
+private inline fun Graphics2D.use(block: (Graphics2D) -> Unit) {
+  try {
+    block(this)
+  } finally {
+    dispose()
   }
 }

@@ -1027,6 +1027,27 @@ internal class DebugWebSocketServerTest {
 
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun inputIsPreservedAcrossHiddenRecordConstructorState(testFlags: TestFlags) {
+        val directoryPath = "$INPUT/RecordConstructorInput"
+        val className = "ProblemDemo.java"
+
+        requestCompile(listOf(createFilePathAndContent(directoryPath, className)))
+
+        val runResponse = request(RunToEnd())
+        assertTrue((runResponse as StepResultResponse).data.isWaitingForInput)
+
+        val input = "Anna"
+        val inputResponse = request(Input(input))
+        val traceStates = (inputResponse as InputResponse).data?.traceStates
+
+        assertNotNull(traceStates)
+        assertTrue(traceStates!!.any { it.input == input + System.lineSeparator() }) {
+            "No emitted trace state contained the submitted input"
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun runToEndWithEarlyInput(testFlags: TestFlags) {
         val directoryPath = "$INPUT/RunToEndWithInput"
         val className = "RunToEndWithInput.java"

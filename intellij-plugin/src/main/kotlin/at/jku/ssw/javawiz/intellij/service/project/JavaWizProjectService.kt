@@ -13,6 +13,8 @@ import at.jku.ssw.javawiz.intellij.toolwindows.TerminalToolWindowPanel
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
+import com.intellij.ide.projectView.ProjectView
+import com.intellij.ide.projectView.impl.AbstractProjectViewPane
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -32,6 +34,8 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiFileSystemItem
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.ServerSocket
@@ -483,6 +487,7 @@ class JavaWizProjectService(private val project: Project) : Disposable {
       result = Globals.Strings.MESSAGE_RESULT_SUCCESS,
       data = GetFileContentsData(fileContents, run {
         val selectedFile = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
+          ?: getSelectedProjectViewFile()
         val roots = ProjectRootManager.getInstance(project).contentRoots
         selectedFile?.let { f -> roots.firstNotNullOfOrNull { root -> VfsUtilCore.getRelativePath(f, root) } }
           ?: selectedFile?.name
@@ -492,6 +497,30 @@ class JavaWizProjectService(private val project: Project) : Disposable {
 
     // parse to JSON and send it to the client
     return Json.encodeToString(response)
+  }
+
+  private fun getSelectedProjectViewFile(): VirtualFile? {
+    var selectedFile: VirtualFile? = null
+    val readSelection = Runnable {
+      selectedFile = ProjectView.getInstance(project).currentProjectViewPane
+        ?.selectedUserObjects
+        ?.firstNotNullOfOrNull { selectedElement ->
+          when (val value = AbstractProjectViewPane.extractValueFromNode(selectedElement)) {
+            is VirtualFile -> value.takeUnless { it.isDirectory }
+            is PsiFileSystemItem -> value.virtualFile.takeUnless { it.isDirectory }
+            is PsiClass -> value.containingFile?.virtualFile?.takeUnless { it.isDirectory }
+            else -> null
+          }
+        }
+    }
+
+    val application = ApplicationManager.getApplication()
+    if (application.isDispatchThread) {
+      readSelection.run()
+    } else {
+      application.invokeAndWait(readSelection)
+    }
+    return selectedFile
   }
 
   override fun dispose() {

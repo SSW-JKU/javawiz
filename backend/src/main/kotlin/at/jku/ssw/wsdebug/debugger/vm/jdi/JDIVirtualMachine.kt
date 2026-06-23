@@ -175,9 +175,11 @@ class JDIVirtualMachine(
         if (event.location().method().name().contains("<init>")) {
             val methodLines = parseInfoByTypeNames[className]?.methodLines ?: setOf(line)
             if (line !in methodLines) {
-                // [JW-27] Do not expose trace states for the implicit default constructor,
+                // [JW-27] Do not expose trace states for the implicit default constructor (including record canonical constructors),
                 // but still generate them so that prevTraceState is kept up-to-date for fake heap objects.
-                generateTraceState(uri, event)
+                // Yet, we may not consume the input, since otherwise it gets lost due to us never sending
+                // a trace state containing the input to the frontend.
+                generateTraceState(uri, event, false)
                 return null
             }
         }
@@ -232,6 +234,7 @@ class JDIVirtualMachine(
     private fun generateTraceState(
         sourceFileUri: String,
         event: LocatableEvent,
+        consumeInput: Boolean = true
     ): TraceState {
         val traceStateDiffTime =
             if (timeOfLastTraceStateGeneration == 0L) 0L
@@ -266,7 +269,10 @@ class JDIVirtualMachine(
         }
         val traceStateBuildTime = System.currentTimeMillis() - traceStateBuildStartTime
 
-        inputSinceLastStep = ""
+        if (inputSinceLastStep != "" && consumeInput) {
+            println("[input] Input ${inputSinceLastStep.replace("\n", "")} stored in new trace state, resetting")
+            inputSinceLastStep = ""
+        }
         prevTraceState = traceState
 
         println("[state building timing] built trace state in ${traceStateBuildTime}ms")

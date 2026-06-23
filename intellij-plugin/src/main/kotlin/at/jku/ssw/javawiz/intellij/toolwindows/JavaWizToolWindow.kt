@@ -5,6 +5,7 @@ import at.jku.ssw.javawiz.intellij.service.app.JavaWizApplicationService
 import at.jku.ssw.javawiz.intellij.service.project.JavaWizProjectService
 import at.jku.ssw.javawiz.intellij.service.project.LogSource
 import at.jku.ssw.javawiz.intellij.service.project.LoggerProjectService
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -79,6 +80,11 @@ class JavaWizToolWindowFactory : ToolWindowFactory {
    * https://intellij-support.jetbrains.com/hc/en-us/community/posts/15757368630418-how-to-Open-the-web-page-in-the-file-editor-position-
    */
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    toolWindow.setIcon(Globals.GUI.GUI_ICON_RUN)
+    toolWindow.setTitleActions(
+      listOf(ActionManager.getInstance().getAction(Globals.Props.ACTION_ID_RUN))
+    )
+
     // Initialize ToolWindow Listener
     setUpToolWindowListener(project, toolWindow)
 

@@ -5,10 +5,14 @@ import at.jku.ssw.javawiz.intellij.service.project.JavaWizProjectService
 import at.jku.ssw.javawiz.intellij.service.project.LogSource
 import at.jku.ssw.javawiz.intellij.service.project.LoggerProjectService
 import com.intellij.execution.actions.ExecutorAction
+import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.Project
 
 // https://plugins.jetbrains.com/docs/intellij/action-system.html
 // Every IntelliJ Platform action should override AnAction.update() and must override
@@ -48,8 +52,15 @@ class DebugWithJavaWiz() : ExecutorAction(JWExecutor()) {
     val project = e.project!!
     project.service<LoggerProjectService>().log(LogSource.ACTION, "DebugWithJavaWiz action update")
 
-    if (project.service<JavaWizProjectService>().isJavaWizRunning) {
-      if (project.service<JavaWizProjectService>().connectionInitialized) {
+    val projectService = project.service<JavaWizProjectService>()
+    if (!projectService.isJavaWizRunning && !hasActiveJavaFile(e, project)) {
+      presentation.isEnabled = false
+      presentation.isVisible = false
+      return
+    }
+
+    if (projectService.isJavaWizRunning) {
+      if (projectService.connectionInitialized) {
         presentation.isEnabled = true
         presentation.isVisible = true
         presentation.text = Globals.Props.GUI_BUTTON_STOP
@@ -66,5 +77,12 @@ class DebugWithJavaWiz() : ExecutorAction(JWExecutor()) {
       presentation.text = Globals.Props.GUI_BUTTON_RUN
       presentation.icon = Globals.GUI.GUI_ICON_RUN
     }
+  }
+
+  private fun hasActiveJavaFile(e: AnActionEvent, project: Project): Boolean {
+    val eventFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
+    val activeEditorFile = eventFile ?: FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
+
+    return activeEditorFile?.fileType == JavaFileType.INSTANCE
   }
 }
