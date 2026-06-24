@@ -11,7 +11,7 @@
       About the project
     </p>
     <div class="divider" />
-    JavaWiz is a visualization tool ("visual debugger") for Java programs targeted at programming novices.<br>
+    JavaWiz is a visual / graphical debugger for Java programs targeted at programming novices.<br>
     Users can step through their programs line by line and follow the execution in different visualization panels.<br><br>
     JavaWiz is developed and maintained by the <a href="https://ssw.jku.at/" target="_blank" rel="noopener noreferrer">Institute for System Software at the Johannes Kepler University Linz, Austria</a>.
     <div class="divider" />
@@ -71,7 +71,7 @@ import { useOverlayStore } from '@/store/OverlayStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-06-24-01-37'
+const releaseDate = '2026-06-24-12-40'
 const overlayStore = useOverlayStore()
 
 function hide () {

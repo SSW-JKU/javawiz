@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.0.2] (released on 2026-06-24)
+* JW-452: IntelliJ Plugin: Show complete changelog and project links in change notes
+* JW-453: IntelliJ Plugin: Align marketplace description with VS Code extension
+* JW-454: IntelliJ Plugin: Add wizard-hat marketplace icon
+* JW-455: IntelliJ Plugin: Document processResources build logic
+* JW-456: Release: Link Discord notification to GitHub release artifacts
+* JW-457: Release: Link GitHub release-note issues to YouTrack
+* JW-458: VS Code Extension: Update marketplace README for version 2.0.2
+* JW-459: Backend: Run all tests on Windows and Linux in GitHub Actions
+* JW-460: Website: Make public repository README more appealing to users
+
 [2.0.1] (released on 2026-06-24)
 * JW-446: IntelliJ-Plugin: Show Debug With JavaWiz only for active Java files
 * JW-447: IntelliJ-Plugin: Adapt Debug With JavaWiz icon color to IDE theme

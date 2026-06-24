@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -15,7 +15,7 @@
     "Other"
   ],
   "keywords": [
-    "Visual Debugger",
+    "Visual / Graphical Debugger",
     "Trace-based Time-Travel Debugger",
     "Software Education and Visualization",
     "Visual Teaching",

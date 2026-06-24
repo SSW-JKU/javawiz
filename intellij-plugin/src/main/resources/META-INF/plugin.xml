@@ -15,15 +15,45 @@
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-        <p>JavaWiz is a visual, trace-based time-travel debugger for Java programs developed at the
-        Software Systems Engineering Institute (SSW) at JKU Linz.</p>
-        <p>The plugin integrates JavaWiz directly into IntelliJ IDEA, allowing you to:</p>
+        <p>JavaWiz is a visualization plugin for Java programs targeted at programming beginners.
+        Users can step through the program line by line and follow the execution in the visualization panel.</p>
+        <p>JavaWiz is developed and maintained by the
+        <a href="https://ssw.jku.at/">Institute for System Software</a>,
+        Johannes Kepler University Linz, Austria.</p>
+
+        <h2>Features</h2>
+        <p>At the moment it provides eight visualizations:</p>
         <ul>
-            <li>Launch a JavaWiz debug session from the editor toolbar, the Run menu, or via a code lens on any <code>main</code> method.</li>
-            <li>Visualise heap, stack, and control flow in a live, interactive frontend view.</li>
-            <li>Send standard input to the running program via an integrated I/O terminal panel.</li>
+            <li>Flow charts, visually representing the control flow of the program.</li>
+            <li>A memory visualization. It displays statics, the stack, and the heap, to help understand how program memory works.</li>
+            <li>A "tabular view" displaying the variable changes from line to line, which is useful for understanding simple algorithms.</li>
+            <li>Three dedicated visualizations for arrays, singly linked lists, and binary trees.
+            The goal is a simple and easy-to-follow representation to support understanding algorithms on these data structures.</li>
+            <li>A Java Stream API visualization, which shows how data is processed in a stream pipeline using Marble Diagrams.</li>
+            <li>Sequence diagrams, which show how objects relate to each other by depicting the method calls between them.</li>
+            <li>Input buffer visualization.
+            To use this feature, use JavaWiz's <code>In.java</code> class to read input.</li>
         </ul>
-        <p>For more information, visit the <a href="https://ssw.jku.at/Research/Projects/JavaWiz/">JavaWiz project page</a>.</p>
+
+        <h2>How to use</h2>
+        <p>The plugin requires at least <strong>JDK 25</strong> to run.</p>
+
+        <h3>Start</h3>
+        <p>After installing JavaWiz and opening a Java file, start it by clicking
+        <strong>Debug with JavaWiz</strong> above the <code>main</code> method, from the editor context menu,
+        from the Run menu, or from the JavaWiz tool window.</p>
+
+        <h3>Navigation</h3>
+        <p>An explanation of the user interface can be accessed by clicking the Help button inside JavaWiz.</p>
+        <p>The arrow buttons in the toolbar navigate through the program; the yellow arrow restarts the program.</p>
+        <p>It is possible to step back and repeat parts of the program, so there is no need to restart the program
+        to re-inspect previous steps. The current status (<em>live</em> or <em>replay</em>) is displayed in the toolbar.</p>
+        <p>The visualization tools (heap view, desk test, etc.) can be revealed using the selection buttons on the main view.
+        Tools can be closed with the close button, and some tools can be customized through their settings button.</p>
+
+        <h2>Further information</h2>
+        <p>The tool is targeted at beginners and is under active development, so not all Java language features may be supported.</p>
+        <p>Visit <a href="https://javawiz.net/">javawiz.net</a> for more information.</p>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.

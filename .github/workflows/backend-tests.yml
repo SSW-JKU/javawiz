@@ -1,0 +1,52 @@
+name: Backend Tests
+
+# A push event covers commits pushed to any branch and tags pushed to the repository.
+# Publishing a GitHub release is a separate event, so it is listed explicitly as well.
+on:
+  push:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# The workflow only needs permission to check out the repository.
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      # Install every JDK referenced by backend:testAll. The last version listed becomes JAVA_HOME,
+      # so Gradle itself runs on the project's minimum supported JDK while both toolchains remain
+      # available to the version-specific test tasks.
+      - name: Set up JDKs
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: |
+            26
+            25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      # GitHub's Windows runners include Git Bash, allowing the same wrapper command on both
+      # operating systems. testAll runs the regular backend tests and every configured JDK-specific
+      # backend Test task.
+      - name: Run all backend tests
+        shell: bash
+        run: ./gradlew :backend:testAll --no-daemon --stacktrace

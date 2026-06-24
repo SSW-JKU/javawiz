@@ -1,4 +1,4 @@
-# JavaWiz
+# [JavaWiz](https://javawiz.net)
 
 JavaWiz is a visualization plugin for Java programs targeted at programming beginners. Users can step through the program line by line and follow the execution in the visualization panel.
 
@@ -15,12 +15,13 @@ At the moment it provides eight visualizations:
   - binary trees
   
   The goal is a simple and easy-to-follow representation to support understanding algorithms on these data structures.
+- A Java Stream API visualization, which shows how data is processed in a stream pipeline using Marble Diagrams.
 - Sequence diagrams, which shows how objects relate to each other by depicting the method calls between them.
 - Input buffer visualization
   - _Hint: To use this feature, you have to use JavaWiz's `In.java` class to read input. This class can easily be added to your project by right-clicking on the project folder in the explorer and selecting "Create In.java"._
 
 ## How to use
-The extension requires at least **JDK 21** to run.
+The extension requires at least **JDK 25** to run.
 
 ### Start
 

@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.0.1"
+version = "2.0.2"
 
 fun htmlEscape(value: String): String =
     value
@@ -19,27 +19,68 @@ fun htmlEscape(value: String): String =
         .replace(">", "&gt;")
         .replace("\"", "&quot;")
         .replace("'", "&#39;")
+        .replace("$", "&#36;")
 
 fun renderIntellijChangeNotes(): String {
-    val notesFile = rootProject.file("NEWLY_RESOLVED_ISSUES.md")
+    val notesFile = rootProject.file("CHANGELOG.md")
+    val links = """
+        <p>
+            <a href="https://github.com/SSW-JKU/javawiz/releases">GitHub releases</a>
+            &middot;
+            <a href="https://javawiz.net/">JavaWiz website</a>
+        </p>
+    """.trimIndent()
+
     if (!notesFile.isFile) {
-        return "<p>See CHANGELOG.md for release notes.</p>"
+        return links
     }
 
     val issueLine = Regex("""^\*\s+(JW-\d+):\s*(.+)$""")
-    val items = notesFile.readLines()
-        .mapNotNull { line -> issueLine.matchEntire(line.trim()) }
-        .map { match ->
-            val issueId = match.groupValues[1]
-            val summary = htmlEscape(match.groupValues[2])
-            """<li><a href="https://javawiz.youtrack.cloud/issue/$issueId">$issueId</a>: $summary</li>"""
+    val versionLine = Regex("""^\[([^]]+)]\s+\((.+)\)$""")
+    val changelog = buildString {
+        var listOpen = false
+
+        fun closeList() {
+            if (listOpen) {
+                appendLine("</ul>")
+                listOpen = false
+            }
         }
 
-    return if (items.isEmpty()) {
-        "<p>See CHANGELOG.md for release notes.</p>"
-    } else {
-        items.joinToString(separator = "\n", prefix = "<ul>\n", postfix = "\n</ul>")
+        notesFile.forEachLine { rawLine ->
+            val line = rawLine.trim()
+            when {
+                line.isEmpty() || line == "# CHANGELOG.md" -> closeList()
+
+                versionLine.matches(line) -> {
+                    closeList()
+                    val match = versionLine.matchEntire(line)!!
+                    appendLine("<h2>${htmlEscape(match.groupValues[1])}</h2>")
+                    appendLine("<p>${htmlEscape(match.groupValues[2])}</p>")
+                }
+
+                issueLine.matches(line) -> {
+                    if (!listOpen) {
+                        appendLine("<ul>")
+                        listOpen = true
+                    }
+                    val match = issueLine.matchEntire(line)!!
+                    val issueId = match.groupValues[1]
+                    val summary = htmlEscape(match.groupValues[2])
+                    appendLine("""<li><a href="https://javawiz.youtrack.cloud/issue/$issueId">$issueId</a>: $summary</li>""")
+                }
+
+                else -> {
+                    closeList()
+                    appendLine("<p>${htmlEscape(line)}</p>")
+                }
+            }
+        }
+
+        closeList()
     }
+
+    return "$links\n$changelog"
 }
 
 kotlin {
@@ -153,14 +194,60 @@ tasks {
     // is incompatible with the coroutines-javaagent on IntelliJ 2026+ classloaders.
     named("buildSearchableOptions") { enabled = false }
 
-    // Replace ${placeholder} tokens in plugin.xml with values from config.properties at build time.
-    // Also stamps the resolved backendJarName into the output config.properties so it matches
-    // the actual backend JAR version without requiring a manual update.
+    // `processResources` is Gradle's standard task for copying files from `src/main/resources`
+    // into `build/resources/main`, from where they are later included in the plugin JAR.
+    //
+    // In addition to copying the files, this task performs three build-time transformations:
+    // 1. Copy the JavaWiz logo into the location and filenames expected by JetBrains.
+    // 2. Write the actual backend JAR filename into the copied config.properties.
+    // 3. Replace `${placeholder}` tokens in the copied plugin.xml with values from
+    //    config.properties.
+    //
+    // These transformations affect only generated files below `build/`; the source files in
+    // `src/main/resources` remain unchanged.
     processResources {
+        // The frontend and backend must be built and copied into src/main/resources before
+        // Gradle processes that directory. `dependsOn` establishes this task ordering.
         dependsOn(copyBackendToIntellijPlugin, copyFrontendToIntellijPlugin)
+
+        // The configuration cache can reuse a previously configured task graph. This task reads
+        // config.properties during execution, so explicitly disable that optimization to prevent
+        // Gradle from reusing stale property values.
         notCompatibleWithConfigurationCache("Uses properties loaded at runtime")
 
-        // Rewrite backendJarName in the output config.properties to match the actual backend version.
+        // `from` adds an extra file to the resources copied by this task. JetBrains discovers
+        // plugin logos only when they are stored in META-INF with these exact filenames.
+        //
+        // The black logo is used on light backgrounds. `into` selects its directory inside the
+        // generated resources tree, while `rename` changes only the copied file's name.
+        from(rootProject.file("docs/img/wizard-hat-black.svg")) {
+            into("META-INF")
+            rename { "pluginIcon.svg" }
+
+            // `filter` is called once for every line copied from the SVG. The source artwork uses
+            // 512pt dimensions; JetBrains requires plugin logos to declare a size of 40 × 40.
+            filter { line ->
+                line.replace("height=\"512pt\"", "height=\"40\"")
+                    .replace("width=\"512pt\"", "width=\"40\"")
+            }
+        }
+
+        // The white variant is packaged under JetBrains' conventional dark-theme filename.
+        from(rootProject.file("docs/img/wizard-hat.svg")) {
+            into("META-INF")
+            rename { "pluginIcon_dark.svg" }
+            filter { line ->
+                line.replace("height=\"512pt\"", "height=\"40\"")
+                    .replace("width=\"512pt\"", "width=\"40\"")
+            }
+        }
+
+        // `filesMatching` applies the enclosed transformation only to copied files whose relative
+        // path matches this glob. As above, `filter` examines the file line by line.
+        //
+        // Replace the configured backendJarName with the filename derived from the version in
+        // backend/build.gradle. This keeps the generated configuration synchronized with the JAR
+        // produced by the backend build without modifying the source config.properties.
         filesMatching("**/Config/config.properties") {
             filter { line ->
                 if (line.startsWith("backendJarName=")) "backendJarName=libs/backend-${backendVersion}.jar"
@@ -168,13 +255,22 @@ tasks {
             }
         }
 
+        // `doFirst` registers work that runs immediately before processResources performs its
+        // normal copy actions. Deferring this code until task execution ensures that it reads the
+        // current config.properties rather than values captured when Gradle configured the build.
         doFirst {
+            // Load Java's standard .properties format and close the input stream automatically.
             val properties = Properties().apply {
                 file("src/main/resources/Config/config.properties").inputStream().use { load(it) }
             }
-            // Override backendJarName with the version resolved from backend/build.gradle
-            properties["backendJarName"] = "libs/backend-${backendVersion}.jar"
+
+            // Gradle's `expand` method expects a map from placeholder names to replacement values.
+            // java.util.Properties stores generic Any values, so convert every key to a String.
             val propertiesMap = properties.map { it.key.toString() to it.value }.toMap()
+
+            // Apply Groovy template expansion only to plugin.xml. For example, `${pluginId}` is
+            // replaced with the `pluginId` value loaded from config.properties. The expansion is
+            // applied to the generated copy, not to the source descriptor.
             filesMatching("**/plugin.xml") {
                 expand(propertiesMap)
             }
