@@ -1,0 +1,3 @@
+java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at ConditionBeforeException2.foo(ConditionBeforeException2.java:15)
+	at ConditionBeforeException2.main(ConditionBeforeException2.java:4)

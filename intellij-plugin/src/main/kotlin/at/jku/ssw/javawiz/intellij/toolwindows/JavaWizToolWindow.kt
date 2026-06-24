@@ -102,22 +102,16 @@ class JavaWizToolWindowFactory : ToolWindowFactory {
 
   private fun setUpToolWindowListener(project: Project, toolWindow: ToolWindow) {
     project.messageBus.connect().subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
-      // This is "experimental and internal", but let's hope for the best
-      override fun stateChanged(
-        toolWindowManager: ToolWindowManager,
-        toolWindow: ToolWindow,
-        changeType: ToolWindowManagerListener.ToolWindowManagerEventType
-      ) {
-        when (changeType) {
-          ToolWindowManagerListener.ToolWindowManagerEventType.HideToolWindow -> {
-            project.service<LoggerProjectService>()
-              .log(LogSource.FRONTEND, "Tool window [${toolWindow.title}] hidden -> Stop debugging")
-            project.service<JavaWizProjectService>().endDebug()
-          }
+      private var wasVisible = toolWindow.isVisible
 
-          else -> project.service<LoggerProjectService>()
-            .log(LogSource.FRONTEND, "Tool window [${toolWindow.title}] event: $changeType")
+      override fun stateChanged(toolWindowManager: ToolWindowManager) {
+        val isVisible = toolWindow.isVisible
+        if (wasVisible && !isVisible) {
+          project.service<LoggerProjectService>()
+            .log(LogSource.FRONTEND, "Tool window [${toolWindow.title}] hidden -> Stop debugging")
+          project.service<JavaWizProjectService>().endDebug()
         }
+        wasVisible = isVisible
       }
     })
   }

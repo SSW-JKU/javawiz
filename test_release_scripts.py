@@ -4,6 +4,7 @@ from print_newly_resolved_issues_from_changelog import (
     extract_newest_issues,
     link_youtrack_issues,
 )
+from publish_intellij import require_publish_token, should_publish
 from send_changelog_to_discord import build_payload, parse_latest_release
 
 
@@ -59,6 +60,18 @@ class DiscordReleaseNotificationTests(unittest.TestCase):
             embed["fields"][0]["name"],
             "Issues resolved in this version: 2",
         )
+
+
+class IntelliJPublishingTests(unittest.TestCase):
+    def test_publishing_defaults_to_enabled(self):
+        self.assertTrue(should_publish([]))
+        self.assertTrue(should_publish(["TRUE"]))
+        self.assertFalse(should_publish(["false"]))
+
+    def test_marketplace_token_is_required_only_from_environment(self):
+        self.assertFalse(require_publish_token({}))
+        self.assertFalse(require_publish_token({"PUBLISH_TOKEN": "  "}))
+        self.assertTrue(require_publish_token({"PUBLISH_TOKEN": "secret"}))
 
 
 if __name__ == "__main__":

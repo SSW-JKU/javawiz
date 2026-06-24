@@ -1,10 +1,8 @@
 package at.jku.ssw.javawiz.intellij.service.app
 
 import at.jku.ssw.javawiz.intellij.general.Globals.Props
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.util.PathUtil
 import java.io.File
 import java.nio.file.Files
@@ -24,7 +22,7 @@ class JavaWizApplicationService : Disposable {
     // Both are non-persistent, i.e. they are lost when the IDE is closed
     // For persistent storage, we would have to define IntelliJ settings
     val TEMP_DIR_PATH: String by lazy {
-        val version = PluginManagerCore.getPlugin(PluginId.getId(Props.PLUGIN_ID))?.version ?: "unknown"
+        val version = Props.PLUGIN_VERSION
 
         // Version-stamped subdirectory: <home>/javawiz/<version>/
         // This ensures files from previous plugin versions (e.g. renamed Vite

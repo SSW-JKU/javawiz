@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.0.3] (released on 2026-06-24)
+* JW-461: Automate IntelliJ plugin publishing during releases
+* JW-462: Update Stream visualization descriptions across website and extensions
+* JW-463: IntelliJ-Plugin: Get rid of Verifier API compatibility violations
+
 [2.0.2] (released on 2026-06-24)
 * JW-452: IntelliJ Plugin: Show complete changelog and project links in change notes
 * JW-453: IntelliJ Plugin: Align marketplace description with VS Code extension

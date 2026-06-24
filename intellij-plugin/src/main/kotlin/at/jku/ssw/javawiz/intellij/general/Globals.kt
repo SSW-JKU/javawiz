@@ -43,6 +43,7 @@ object Globals {
     // Plugin Information
     val PLUGIN_NAME: String = properties.getProperty("pluginName")
     val PLUGIN_ID: String = properties.getProperty("pluginId")
+    val PLUGIN_VERSION: String = properties.getProperty("pluginVersion")
     val PLUGIN_EXTRACTION_PATH: String = properties.getProperty("pluginExtractionPath")
 
     // Directory Structure

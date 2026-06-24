@@ -15,7 +15,7 @@ At the moment it provides eight visualizations:
   - binary trees
   
   The goal is a simple and easy-to-follow representation to support understanding algorithms on these data structures.
-- A Java Stream API visualization, which shows how data is processed in a stream pipeline using Marble Diagrams.
+- A Java Stream API visualization using dynamic Marble Diagrams to show execution order, transformations, intermediate results, and element lineage through the pipeline.
 - Sequence diagrams, which shows how objects relate to each other by depicting the method calls between them.
 - Input buffer visualization
   - _Hint: To use this feature, you have to use JavaWiz's `In.java` class to read input. This class can easily be added to your project by right-clicking on the project folder in the explorer and selecting "Create In.java"._

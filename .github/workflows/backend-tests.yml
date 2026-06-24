@@ -44,9 +44,9 @@ jobs:
         with:
           cache-provider: basic
 
-      # GitHub's Windows runners include Git Bash, allowing the same wrapper command on both
-      # operating systems. testAll runs the regular backend tests and every configured JDK-specific
-      # backend Test task.
+      # Invoke the wrapper through Bash instead of relying on its Unix executable bit. The public
+      # repository is mirrored and committed from Windows, where Git cannot preserve that bit.
+      # testAll runs the regular backend tests and every configured JDK-specific backend Test task.
       - name: Run all backend tests
         shell: bash
-        run: ./gradlew :backend:testAll --no-daemon --stacktrace
+        run: bash ./gradlew :backend:testAll --no-daemon --stacktrace

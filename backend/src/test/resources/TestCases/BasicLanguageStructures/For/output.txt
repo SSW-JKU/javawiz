@@ -1,0 +1,4 @@
+befor loop
+0
+1
+after loop

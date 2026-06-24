@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"

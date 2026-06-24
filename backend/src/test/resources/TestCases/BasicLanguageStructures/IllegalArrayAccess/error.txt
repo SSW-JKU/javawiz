@@ -1,0 +1,2 @@
+java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at IllegalArrayAccess.main(IllegalArrayAccess.java:3)

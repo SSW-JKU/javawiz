@@ -1,6 +1,7 @@
 import java.util.Properties
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 
 plugins {
     id("java")
@@ -10,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.0.2"
+version = "2.0.3"
 
 fun htmlEscape(value: String): String =
     value
@@ -85,6 +86,9 @@ fun renderIntellijChangeNotes(): String {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
+    }
 }
 
 repositories {
@@ -137,13 +141,13 @@ intellijPlatform {
     }
 
     signing {
-        certificateChain = System.getenv("CERTIFICATE_CHAIN")
-        privateKey = System.getenv("PRIVATE_KEY")
-        password = System.getenv("PRIVATE_KEY_PASSWORD")
+        certificateChain.set(providers.environmentVariable("CERTIFICATE_CHAIN"))
+        privateKey.set(providers.environmentVariable("PRIVATE_KEY"))
+        password.set(providers.environmentVariable("PRIVATE_KEY_PASSWORD"))
     }
 
     publishing {
-        token = System.getenv("PUBLISH_TOKEN")
+        token.set(providers.environmentVariable("PUBLISH_TOKEN"))
     }
 
     pluginVerification {
@@ -156,14 +160,6 @@ intellijPlatform {
 // ---------------------------------------------------------------------------
 // Build-time resource injection (mirrors vsc-extension/build.gradle)
 // ---------------------------------------------------------------------------
-
-// Resolve the backend project version so we can name the JAR correctly
-// in config.properties without hard-coding it here.
-val backendVersion: String by lazy {
-    val backendProps = file("${rootDir}/backend/build.gradle").readText()
-    Regex("""(?m)^version\s*=\s*['"](.+?)['"]""").find(backendProps)?.groupValues?.get(1)
-        ?: error("Could not determine backend version from backend/build.gradle")
-}
 
 val copyBackendToIntellijPlugin by tasks.registering(Copy::class) {
     // Use :backend:assemble instead of :backend:build to avoid running backend tests during runIde.
@@ -245,13 +241,17 @@ tasks {
         // `filesMatching` applies the enclosed transformation only to copied files whose relative
         // path matches this glob. As above, `filter` examines the file line by line.
         //
-        // Replace the configured backendJarName with the filename derived from the version in
-        // backend/build.gradle. This keeps the generated configuration synchronized with the JAR
-        // produced by the backend build without modifying the source config.properties.
+        // Replace version-dependent configuration values with the common JavaWiz suite version.
+        // This keeps the generated configuration synchronized without modifying the source file.
         filesMatching("**/Config/config.properties") {
             filter { line ->
-                if (line.startsWith("backendJarName=")) "backendJarName=libs/backend-${backendVersion}.jar"
-                else line
+                when {
+                    line.startsWith("backendJarName=") ->
+                        "backendJarName=libs/backend-${project.version}.jar"
+                    line.startsWith("pluginVersion=") ->
+                        "pluginVersion=${project.version}"
+                    else -> line
+                }
             }
         }
 

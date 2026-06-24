@@ -76,6 +76,10 @@
   <section id="how-to-get-section" class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
       <h2 class="text-3xl font-bold text-center mb-8">How to Get</h2>
+      <p class="text-center text-gray-700 mb-6">
+        Latest Version: <span id="current-version-number" class="font-bold text-blue-800">2.0.3</span>,
+        released on <span id="release-date" class="font-bold text-blue-800">24.06.2026</span> (<a href="changelog.html" class="text-blue-600">Changelog</a>).
+      </p>
       <div class="flex flex-col md:flex-row justify-center items-center gap-6 text-center">
         <a href="https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz"
           class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 transition flex flex-col items-center w-72 mx-auto md:mx-0">
@@ -84,33 +88,24 @@
           <span class="font-bold">Install JavaWiz</span>
           <span class="">Visual Studio Code Extension</span>
         </a>
-        <a href="#how-to-get-section"
+        <a href="https://plugins.jetbrains.com/plugin/32457-javawiz"
           class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 transition flex flex-col items-center w-72 mx-auto md:mx-0">
           <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_icon.png" alt="IntelliJ Logo" class="h-8 mb-2" />
-          <span class="font-bold italic">Install JavaWiz</span>
-          <span class="italic">Coming Soon: IntelliJ Plugin</span>
+          <span class="font-bold">Install JavaWiz</span>
+          <span class="">IntelliJ Plugin (<i>new since v2.0.0!)</i></span>
         </a>
         <a href="https://github.com/SSW-JKU/javawiz"
           class="bg-gray-800 text-white px-8 py-4 rounded-lg hover:bg-gray-700 transition flex flex-col items-center w-72 mx-auto md:mx-0">
           <img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Logo" class="h-8 mb-2" />
           <span class="font-bold">View Source Code</span>
-          GitHub Repository
+          GitHub
         </a>
-      </div>
-      <div id="current-version-section" class="max-w-4xl mx-auto mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8 text-center">
-        <p class="text-lg text-gray-700 mb-6">
-          The current JavaWiz version is <span id="current-version-number" class="font-bold text-blue-800">2.0.2</span>.
-        </p>
-        <div class="flex flex-col sm:flex-row justify-center gap-4">
-          <a href="https://github.com/SSW-JKU/javawiz/releases"
-            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 transition font-semibold">
-            Release History
-          </a>
-          <a href="changelog.html"
-            class="bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
-            View Changelog
-          </a>
-        </div>
+        <a href="https://github.com/SSW-JKU/javawiz/releases"
+           class="bg-gray-800 text-white px-8 py-4 rounded-lg hover:bg-gray-700 transition flex flex-col items-center w-72 mx-auto md:mx-0">
+          <img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Logo" class="h-8 mb-2" />
+          <span class="font-bold">View Builds</span>
+          GitHub
+        </a>
       </div>
     </div>
   </section>
@@ -192,6 +187,18 @@
             <h3 class="text-xl font-bold mb-2">Array View</h3>
             <p class="text-gray-600">Visualizes arrays as interactive tables with animated index expressions and assignments. Perfect for understanding array
               operations and data flow between array elements and variables.</p>
+          </div>
+        </div>
+
+        <!-- Stream View Card -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="p-4">
+            <img src="img/stream-viz.png" alt="Java Stream View" class="w-full h-48 object-cover" />
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-2">Java Stream View</h3>
+            <p class="text-gray-600">Visualizes Stream pipelines as dynamic Marble Diagrams, showing execution order, intermediate results, and transformations.
+              Links between elements reveal their lineage across filtering, mapping, and terminal operations.</p>
           </div>
         </div>
 

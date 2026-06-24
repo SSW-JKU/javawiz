@@ -27,7 +27,7 @@ Unlike a traditional debugger, JavaWiz records the execution trace. You can move
 - 🧠 **Concrete memory models** — see stack frames, static variables, heap objects, references, and object relationships.
 - 📊 **Execution history** — track variable values and conditions from one statement to the next in a tabular view.
 - 🧩 **Data-structure visualizations** — explore arrays, linked lists, and binary trees with purpose-built animated views.
-- 🌊 **Java Stream visualization** — understand how values move through Stream API pipelines using marble diagrams.
+- 🌊 **Java Stream visualization** — trace execution order, transformations, intermediate results, and element lineage in dynamic marble diagrams.
 - 🔗 **Sequence diagrams** — see how objects interact through method calls.
 - ⌨️ **Input visualization** — inspect consumed and remaining input when using JavaWiz's `In.java` class.
 - 🎓 **Built for teaching and learning** — useful for individual exploration, exercises, and live classroom demonstrations.
@@ -48,6 +48,11 @@ Unlike a traditional debugger, JavaWiz records the execution trace. You can move
 |:---:|:---:|
 | [![Array view](docs/img/array-view.png)](https://javawiz.net/#features-section) | [![Input view](docs/img/input-view.png)](https://javawiz.net/#features-section) |
 | See index expressions, assignments, and data movement. | See consumed input, remaining input, and operation results. |
+
+| Java Stream View |
+|:---:|
+| [![Java Stream view](docs/img/stream-viz.png)](https://javawiz.net/#features-section) |
+| Follow execution order and element lineage through filtering, mapping, and terminal operations. |
 
 ## 🚀 Get JavaWiz
 

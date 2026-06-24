@@ -1,0 +1,1 @@
+this is not a valid java file, but should not cause an error as it is not used

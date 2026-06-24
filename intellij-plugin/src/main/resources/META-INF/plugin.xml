@@ -29,7 +29,7 @@
             <li>A "tabular view" displaying the variable changes from line to line, which is useful for understanding simple algorithms.</li>
             <li>Three dedicated visualizations for arrays, singly linked lists, and binary trees.
             The goal is a simple and easy-to-follow representation to support understanding algorithms on these data structures.</li>
-            <li>A Java Stream API visualization, which shows how data is processed in a stream pipeline using Marble Diagrams.</li>
+            <li>A Java Stream API visualization using dynamic Marble Diagrams to show execution order, transformations, intermediate results, and element lineage through the pipeline.</li>
             <li>Sequence diagrams, which show how objects relate to each other by depicting the method calls between them.</li>
             <li>Input buffer visualization.
             To use this feature, use JavaWiz's <code>In.java</code> class to read input.</li>

@@ -4,9 +4,9 @@ import at.jku.ssw.javawiz.intellij.general.Globals
 import at.jku.ssw.javawiz.intellij.service.project.JavaWizProjectService
 import at.jku.ssw.javawiz.intellij.service.project.LogSource
 import at.jku.ssw.javawiz.intellij.service.project.LoggerProjectService
-import com.intellij.execution.actions.ExecutorAction
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Presentation
@@ -17,7 +17,7 @@ import com.intellij.openapi.project.Project
 // https://plugins.jetbrains.com/docs/intellij/action-system.html
 // Every IntelliJ Platform action should override AnAction.update() and must override
 // AnAction.actionPerformed().
-class DebugWithJavaWiz() : ExecutorAction(JWExecutor()) {
+class DebugWithJavaWiz : AnAction() {
   override fun actionPerformed(e: AnActionEvent) {
     // Check if the project is null
     if (e.project == null) {
@@ -31,8 +31,8 @@ class DebugWithJavaWiz() : ExecutorAction(JWExecutor()) {
 
     // Start JavaWiz with the current project
     if (project.service<JavaWizProjectService>().isJavaWizRunning)
-            project.service<JavaWizProjectService>().endDebug { update(e) }
-    else project.service<JavaWizProjectService>().startDebug { update(e) }
+            project.service<JavaWizProjectService>().endDebug { updatePresentation(e) }
+    else project.service<JavaWizProjectService>().startDebug { updatePresentation(e) }
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -41,6 +41,10 @@ class DebugWithJavaWiz() : ExecutorAction(JWExecutor()) {
   // Called on different occasions due to UI changes (e.g., mouse movements / clicks)
   // and manually called after starting/stopping JavaWiz to update the button state
   override fun update(e: AnActionEvent) {
+    updatePresentation(e)
+  }
+
+  private fun updatePresentation(e: AnActionEvent) {
     val presentation: Presentation = e.presentation
 
     if (e.project == null) {
