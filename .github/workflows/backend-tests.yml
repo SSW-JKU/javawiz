@@ -1,21 +1,28 @@
 name: Backend Tests
 
-# A push event covers commits pushed to any branch and tags pushed to the repository.
-# Publishing a GitHub release is a separate event, so it is listed explicitly as well.
 on:
+  # Test every pushed commit and tag, every published release, and allow manual runs.
   push:
   release:
     types: [published]
   workflow_dispatch:
 
-# The workflow only needs permission to check out the repository.
+# When new commits arrive quickly, only the newest run matters. Release runs are always completed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+# Reading the repository is enough for the build. Writing checks lets the workflow show
+# test results and failures directly on GitHub.
 permissions:
   contents: read
+  checks: write
 
 jobs:
   backend-tests:
     name: Backend tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
@@ -27,10 +34,11 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          # The build does not need Git credentials after checkout.
+          persist-credentials: false
 
-      # Install every JDK referenced by backend:testAll. The last version listed becomes JAVA_HOME,
-      # so Gradle itself runs on the project's minimum supported JDK while both toolchains remain
-      # available to the version-specific test tasks.
+      # JavaWiz supports JDK 25 and 26, so both must be available to the Gradle test tasks.
       - name: Set up JDKs
         uses: actions/setup-java@v5
         with:
@@ -44,18 +52,34 @@ jobs:
         with:
           cache-provider: basic
 
-      # Invoke the wrapper through Bash instead of relying on its Unix executable bit. The public
-      # repository is mirrored and committed from Windows, where Git cannot preserve that bit.
-      # testAll runs the regular backend tests and every configured JDK-specific backend Test task.
+      # testAll runs the standard test suite once for every supported JDK.
       - name: Run all backend tests
         shell: bash
         run: bash ./gradlew :backend:testAll --no-daemon --stacktrace
 
-      - name: Upload JUnit test results
+      # Store both formats: XML for tools and the full Gradle HTML report for people.
+      - name: Upload complete test reports
+        id: test-report-artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: junit-test-results-${{ matrix.os }}
-          path: backend/build/test-results/**/*.xml
+          name: backend-test-reports-${{ matrix.os }}
+          path: |
+            backend/build/test-results/
+            backend/build/reports/tests/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 90
+          compression-level: 9
+
+      # Turn the JUnit XML into a readable GitHub summary with annotations for failed tests.
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: backend/build/test-results/**/TEST-*.xml
+          check_name: Backend tests (${{ matrix.os }})
+          detailed_summary: true
+          fail_on_parse_error: true
+          require_tests: true
+          job_summary_text: >-
+            [Download the complete Gradle HTML and JUnit XML reports](${{ steps.test-report-artifact.outputs.artifact-url }}).
