@@ -50,3 +50,12 @@ jobs:
       - name: Run all backend tests
         shell: bash
         run: bash ./gradlew :backend:testAll --no-daemon --stacktrace
+
+      - name: Upload JUnit test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-results-${{ matrix.os }}
+          path: backend/build/test-results/**/*.xml
+          if-no-files-found: warn
+          retention-days: 14

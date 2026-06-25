@@ -13,7 +13,8 @@
     <div class="divider" />
     JavaWiz is a visual / graphical debugger for Java programs targeted at programming novices.<br>
     Users can step through their programs line by line and follow the execution in different visualization panels.<br><br>
-    JavaWiz is developed and maintained by the <a href="https://ssw.jku.at/" target="_blank" rel="noopener noreferrer">Institute for System Software at the Johannes Kepler University Linz, Austria</a>.
+    JavaWiz is developed and maintained by the <a href="https://ssw.jku.at/" target="_blank" rel="noopener noreferrer">Institute for System Software at the
+      Johannes Kepler University Linz, Austria</a>.
     <div class="divider" />
 
     <p class="heading">
@@ -40,18 +41,27 @@
       <li>Valentin Jochinger</li>
       <li>Katrin Kern</li>
       <li>Michael Kramer</li>
+      <li>Liliane Loibl</li>
+      <li>Michael Pittlik</li>
       <li>Felix Schenk</li>
       <li>Melissa Sen</li>
+      <li>David Weinstabl</li>
     </ul>
     <div class="divider" />
 
     <p class="heading">
       Student Contributions
     </p>
-    Following students are working on or have been working on JavaWiz as part of Bachelor's or Master's theses:
+    Following students are working on or have been working on JavaWiz as part of Bachelor's or Master's theses and/or student projects:
     <ul>
       <li>Sonja Cao</li>
+      <li>Florian Gatzweiler</li>
+      <li>Filip Okic</li>
+      <li>Daniel Pfeffer</li>
+      <li>Robert Pröll</li>
+      <li>Thomas Schindlinger</li>
       <li>Andreas Schlömicher</li>
+      <li>Sebastian Stiegler</li>
     </ul>
     <div class="divider" />
 
@@ -71,7 +81,7 @@ import { useOverlayStore } from '@/store/OverlayStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-06-24-14-47'
+const releaseDate = '2026-06-25-08-40'
 const overlayStore = useOverlayStore()
 
 function hide () {
@@ -80,7 +90,6 @@ function hide () {
 </script>
 
 <style scoped>
-
 .heading {
   font-weight: bold;
   font-size: 1rem;

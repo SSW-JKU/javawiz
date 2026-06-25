@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.0.3"
+version = "2.0.4"
 
 fun htmlEscape(value: String): String =
     value

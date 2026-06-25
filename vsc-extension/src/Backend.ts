@@ -6,7 +6,7 @@ import Shared from '../../shared/src/Shared'
 import kill from 'tree-kill'
 
 const ASSETS_PATH_SEGMENTS = ['out', 'assets', 'backend', 'libs']
-const BACKEND_JAR = 'backend-2.0.3.jar'
+const BACKEND_JAR = 'backend-2.0.4.jar'
 
 export class Backend {
   private static running = false
