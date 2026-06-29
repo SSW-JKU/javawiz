@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.1.1] (released on 2026-06-29)
+* JW-497: Fix stream visualization pane rendering and controls placement
+
 [2.1.0] (released on 2026-06-29)
 * JW-469: Read YouTrack release credentials from environment variables
 * JW-470: Prevent duplicate backend test execution across Java versions

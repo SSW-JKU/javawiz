@@ -1,9 +1,9 @@
 <template>
-  <div v-if="streamVizInfo" id="io-viz">
+  <div v-if="streamVizInfo" id="stream-viz-wrapper">
     <NavigationBarWithSettings
       :zoom-reset="zoomAndCenter"
       :viz-id="STREAMVIZ_ID" />
-    <div v-if="streamVizInfo.marbles.length > 0" id="stream-viz" style="height: 100%;">
+    <div v-if="streamVizInfo.marbles.length > 0" id="stream-viz">
       <div class="controls">
         <div class="stepControls">
           <button id="prevBtn" class="myButton" title="Step back" @click="stepBack">
@@ -1034,7 +1034,7 @@ function zoomAndCenter () {
 
 watch(streamVizInfo, (newVal, oldVal) => {
   pausePlaying();
-  if ((streamVizInfo.value?.marbles.length ?? 0) > 0 && oldVal && JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+  if ((newVal?.marbles.length ?? 0) > 0 && JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
     currentStep.value = 0;
     nextTick(() => {
       svg = d3.select('#stream-viz-svg');
@@ -1167,7 +1167,7 @@ watch(streamVizInfo, (newVal, oldVal) => {
       zoomAndCenter();
     });
   }
-});
+}, { immediate: true });
 
 watch(currentStep, () => {
   render();
@@ -1189,6 +1189,17 @@ onUnmounted(() => {
 </script>
 
 <style>
+#stream-viz-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#stream-viz {
+  width: 100%;
+  height: 100%;
+}
+
 .link {
   fill: none;
   stroke: #999;

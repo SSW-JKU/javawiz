@@ -81,7 +81,7 @@ import { useOverlayStore } from '@/store/OverlayStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-06-29-16-53'
+const releaseDate = '2026-06-29-23-19'
 const overlayStore = useOverlayStore()
 
 function hide () {
