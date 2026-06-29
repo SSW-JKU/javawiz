@@ -20,7 +20,7 @@ def jdkExports = [
         "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
 ]
 
-version = '2.0.4'
+version = '2.1.0'
 group = 'at.jku.ssw'
 
 application {
@@ -71,27 +71,27 @@ dependencies {
  since we use non-public features of java.compiler, we must test against all jdk versions the user might have.
  */
 def jdks = [
-        // "JDK17": JavaLanguageVersion.of(17),
-        // "JDK18": JavaLanguageVersion.of(18),
-        // "JDK19": JavaLanguageVersion.of(19),
-        // "JDK20": JavaLanguageVersion.of(20),
-        // "JDK21": JavaLanguageVersion.of(21),
-        // "JDK22": JavaLanguageVersion.of(22),
-        // "JDK23": JavaLanguageVersion.of(23),
-        // "JDK24": JavaLanguageVersion.of(24), // Since we build with JDK 25, JavaWiz can only be run with JDK 25 or higher
-        "JDK25": JavaLanguageVersion.of(25),
-        "JDK26": JavaLanguageVersion.of(26),
+        JavaLanguageVersion.of(25),
+        JavaLanguageVersion.of(26),
 ]
 def ltsJdks = [
-        "JDK25"
+        JavaLanguageVersion.of(25),
 ]
-def latestJdk = "JDK25"
+def defaultTestJdk = java.toolchain.languageVersion.get()
+def latestJdk = jdks.max { it.asInt() }
+def additionalTestJdks = jdks.findAll { it != defaultTestJdk }
+def releaseTestJdks = (ltsJdks + latestJdk).unique().findAll { it != defaultTestJdk }
+def verboseTests = providers.gradleProperty("verboseTests").isPresent()
 
 tasks.withType(Test) {
     jvmArgs = jdkExports
     testLogging {
-        events "passed", "skipped", "failed"
-        showStandardStreams = true
+        if (verboseTests) {
+            events "passed", "skipped", "failed"
+        } else {
+            events "failed"
+        }
+        showStandardStreams = verboseTests
     }
     useJUnitPlatform()
     doFirst {
@@ -106,8 +106,8 @@ tasks.withType(Test) {
     }
 }
 
-jdks.each { key, version ->
-    tasks.register("testOn$key", Test) {
+additionalTestJdks.each { version ->
+    tasks.register("testOnJDK${version.asInt()}", Test) {
         javaLauncher = javaToolchains.launcherFor {
             languageVersion.set(version)
         }
@@ -127,7 +127,9 @@ tasks.run {
 }
 
 check { // test all LTS jdks
-    dependsOn tasks.withType(Test).matching(task -> ltsJdks.any(lts -> task.name.contains(lts)) || task.name.contains(latestJdk))
+    dependsOn releaseTestJdks.collect { version ->
+        tasks.named("testOnJDK${version.asInt()}")
+    }
 }
 
 tasks.register("testAll") {

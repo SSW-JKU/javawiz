@@ -8,10 +8,3 @@ plugins {
 node {
     version = '22.13.1'
 }
-
-
-build {
-    doLast {
-      println "Nothing to build, but existing build task ensures that npm install will be executed"
-    }
-}

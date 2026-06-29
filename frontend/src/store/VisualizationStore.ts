@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { markRaw } from 'vue'
+import { defineAsyncComponent, markRaw } from 'vue'
 import flowchartIcon from '../assets/icons/hiding/flowchart.svg'
 import stackIcon from '../assets/icons/hiding/stack.svg'
 import desktestIcon from '../assets/icons/hiding/desktest.svg'
@@ -11,17 +11,18 @@ import sequenceDiagramIcon from '../assets/icons/hiding/sequencediagram.svg'
 import historyIcon from '../assets/icons/hiding/history.svg'
 import marbleDiagramIcon from '../assets/icons/hiding/marblediagram.svg'
 import TheCodeEditor from '@/components/TheCodeEditor.vue'
-import TheInViz from '@/components/TheInViz.vue'
-import TheSequenceDiagram from '@/components/TheSequenceDiagram/TheSequenceDiagram.vue'
-import TheTreeVisualization from '@/components/DataStructureVisualizations/TheTreeVisualization/TheTreeVisualization.vue'
-import TheListVisualization from '@/components/DataStructureVisualizations/TheListVisualization/TheListVisualization.vue'
-import TheArrayVisualization from '@/components/DataStructureVisualizations/TheArrayVisualization/TheArrayVisualization.vue'
-import TheDeskTest from '@/components/TheDeskTest/TheDeskTest.vue'
-import TheHeapVisualization from '@/components/TheHeapVisualization/TheHeapVisualization.vue'
-import TheFlowChart from '@/components/TheFlowChart/TheFlowChart.vue'
 import TheConsole from '@/components/TheConsole.vue'
-import TheHistoryView from '@/components/TheHistoryView/TheHistoryView.vue'
-import TheStreamViz from '@/components/TheStreamViz.vue'
+
+const TheFlowChart = defineAsyncComponent(() => import('@/components/TheFlowChart/TheFlowChart.vue'))
+const TheHeapVisualization = defineAsyncComponent(() => import('@/components/TheHeapVisualization/TheHeapVisualization.vue'))
+const TheDeskTest = defineAsyncComponent(() => import('@/components/TheDeskTest/TheDeskTest.vue'))
+const TheArrayVisualization = defineAsyncComponent(() => import('@/components/DataStructureVisualizations/TheArrayVisualization/TheArrayVisualization.vue'))
+const TheListVisualization = defineAsyncComponent(() => import('@/components/DataStructureVisualizations/TheListVisualization/TheListVisualization.vue'))
+const TheTreeVisualization = defineAsyncComponent(() => import('@/components/DataStructureVisualizations/TheTreeVisualization/TheTreeVisualization.vue'))
+const TheSequenceDiagram = defineAsyncComponent(() => import('@/components/TheSequenceDiagram/TheSequenceDiagram.vue'))
+const TheInViz = defineAsyncComponent(() => import('@/components/TheInViz.vue'))
+const TheStreamViz = defineAsyncComponent(() => import('@/components/TheStreamViz.vue'))
+const TheHistoryView = defineAsyncComponent(() => import('@/components/TheHistoryView/TheHistoryView.vue'))
 
 // top-left | top-right | bottom-left | bottom-right = selected by user at given location
 // hidden = not selected by user

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div data-pet-target="ui CodeEditor">
     <div id="tabs">
       <div v-for="file in generalStore.fileManager.fileUris" :key="file">
         <div class="file-button-container">
@@ -15,7 +15,7 @@
           </button>
         </div>
       </div>
-      <button id="add-file-btn" @click="addFile()">
+      <button id="add-file-btn" data-pet-target="button AddFile" @click="addFile()">
         +
       </button>
     </div>
@@ -26,7 +26,9 @@
 // tabs impl from https://www.w3schools.com/howto/howto_js_tabs.asp
 
 <script setup lang="ts">
-import * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
+import 'monaco-editor/esm/vs/editor/editor.all.js'
+import 'monaco-editor/esm/vs/basic-languages/java/java.contribution.js'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import * as d3 from 'd3'
 import { computed, onMounted, onUnmounted, watch } from 'vue'

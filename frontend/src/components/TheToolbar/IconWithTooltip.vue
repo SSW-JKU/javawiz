@@ -1,6 +1,6 @@
 <template>
   <!-- relative position needed to be able to place the tooltip absolutely relative to the icon */ -->
-  <div class="icon-container">
+  <div class="icon-container" :data-pet-target="petTarget">
     <a @click="() => {if (enabled) { emit('action') }}">
       <img
         class="toolbar-icon"
@@ -63,6 +63,7 @@ type Props= {
      */
   shortcut?: { firstKey: string, secondKey: string } | { iconPath: string } | { kbdTag: string } | undefined
   width?: string
+  petTarget?: string
 }
 
 const {
@@ -71,7 +72,8 @@ const {
   semitransparent = false,
   tooltip = null,
   shortcut = undefined,
-  width = '120px'
+  width = '120px',
+  petTarget = undefined
 } = defineProps<Props>()
 
 const emit = defineEmits<{ action: [] }>()

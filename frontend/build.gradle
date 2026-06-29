@@ -8,13 +8,68 @@ node {
     version = '22.13.1'
 }
 
+tasks.named("npm_run_build") {
+    // The frontend imports code from the sibling shared project. Ensure its npm
+    // dependencies are installed before Vite resolves those imports.
+    dependsOn(":shared:npmInstall")
+
+    // Tell Gradle exactly which source and configuration files affect the Vite
+    // production build. If none of these inputs changed and dist still exists,
+    // Gradle can mark npm_run_build UP-TO-DATE instead of rebuilding the frontend.
+    inputs.files(fileTree(projectDir) {
+        include "src/**"
+        include "public/**"
+        include "index.html"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+        include "vite.config.*"
+        include ".env*"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // Changes in shared TypeScript code and package metadata also invalidate the
+    // frontend output because that code is bundled directly into the application.
+    inputs.files(fileTree(rootProject.file("shared")) {
+        include "src/**"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // dist is the generated production bundle consumed by the website and both
+    // IDE integrations. Declaring it as the output enables the up-to-date check.
+    outputs.dir(layout.projectDirectory.dir("dist"))
+}
+
+tasks.named("npm_run_lint") {
+    // Gradle's generated npm task does not know which files ESLint reads or
+    // writes. Declaring them enables Gradle's own UP-TO-DATE check, while
+    // ESLint's content cache accelerates runs where only some files changed.
+    inputs.files(fileTree(projectDir) {
+        include "src/**/*.ts"
+        include "src/**/*.vue"
+        include "eslint.config.*"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.file(layout.buildDirectory.file("eslint/.eslintcache"))
+}
+
 build {
     dependsOn(":shared:build")
     dependsOn("npm_run_build")
 }
 
+check {
+    // Make the standard Gradle verification lifecycle run the frontend linter,
+    // so root `gradlew check` reports TypeScript/Vue style errors as well.
+    dependsOn("npm_run_lint")
+}
+
 tasks.register('run') {
     group 'Run'
-    description 'Installs npm if needed and then runs "npm run serve"'
-    dependsOn("npm_run_serve")
+    description 'Installs npm if needed and then runs "npm run dev"'
+    // npm_run_dev is created from the package.json script by the Node plugin.
+    dependsOn("npm_run_dev")
 }

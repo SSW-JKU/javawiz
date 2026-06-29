@@ -1,9 +1,20 @@
 import { HeapArrayElementVar, HeapItem, LoadedClass, ProcessedTraceState, StackFrame, Val, Var } from '@/dto/TraceState'
 import { HeapVizTraceState, HeapVizStackFrame, HeapVizHeapItem, HeapVizLoadedClass, HeapVizHeapArray, HeapVizHeapObject, HeapVizHeapString, HeapVizVar, HeapVizVal } from './types'
+import {
+  heapArrayElementIdentifier,
+  heapItemIdentifier,
+  heapObjectFieldIdentifier,
+  sanitizeIdentifier,
+  stackLocalIdentifier,
+  staticFieldIdentifier
+} from './identifiers'
+
+export { desanitizeIdentifier, sanitizeIdentifier } from './identifiers'
 
 export function fromProcessedTraceState (processedTraceState: ProcessedTraceState): HeapVizTraceState {
   return {
     kind: 'HeapVizTraceState',
+    localUri: processedTraceState.localUri,
     line: processedTraceState.line,
     // We reverse the stack so main() is always index 0, while called methods have higher stackFrameNumbers.
     // This is done to ensure consistent local variable "port" and "identifier" names.
@@ -44,13 +55,13 @@ function mapHeapItem (hi: HeapItem): HeapVizHeapItem {
             value: valToHeapVizVal(hav.value),
             changed: hav.changed,
             port: `i_${hav.index}`,
-            identifier: `o_${hi.id}:i_${hav.index}`,
+            identifier: heapArrayElementIdentifier(hav),
             index: hav.index,
             arrayId: hav.arrayId
           }
         }),
         isVisible: false,
-        identifier: `o_${hi.id}`
+        identifier: heapItemIdentifier(hi)
       }
       return vizArr
     }
@@ -69,10 +80,10 @@ function mapHeapItem (hi: HeapItem): HeapVizHeapItem {
             changed: f.changed,
             heapObjectId: f.heapObjectId,
             port: sanitizeIdentifier(f.name),
-            identifier: `o_${hi.id}:${sanitizeIdentifier(f.name)}`
+            identifier: heapObjectFieldIdentifier(hi, f)
           }
         }),
-        identifier: `o_${hi.id}`,
+        identifier: heapItemIdentifier(hi),
         isVisible: false,
         detailedFieldsOnly: hi.detailedFieldsOnly ?? false
       }
@@ -93,9 +104,9 @@ function mapHeapItem (hi: HeapItem): HeapVizHeapItem {
           value: valToHeapVizVal(hi.charArr.value),
           changed: hi.charArr.changed,
           port: sanitizeIdentifier(hi.charArr.name),
-          identifier: `o_${hi.id}:${sanitizeIdentifier(hi.charArr.name)}`
+          identifier: heapObjectFieldIdentifier(hi, hi.charArr)
         },
-        identifier: `o_${hi.id}`,
+        identifier: heapItemIdentifier(hi),
         isVisible: true
       }
       return vizStr
@@ -118,7 +129,7 @@ function mapStackFrame (sf: StackFrame, stackFrameNr: number): HeapVizStackFrame
         value: valToHeapVizVal(lv.value),
         changed: lv.changed,
         port: `l_${stackFrameNr}_${sanitizeIdentifier(lv.name)}`,
-        identifier: `roots:l_${stackFrameNr}_${sanitizeIdentifier(lv.name)}`
+        identifier: stackLocalIdentifier(stackFrameNr, lv)
       }
     }),
     this: sf.this
@@ -145,7 +156,7 @@ function mapLoadedClass (lc: LoadedClass): HeapVizLoadedClass {
         value: valToHeapVizVal(sf.value),
         changed: sf.changed,
         port: `s_${sanitizeIdentifier(lc.class)}_${sanitizeIdentifier(sf.name)}`,
-        identifier: `roots:s_${sanitizeIdentifier(lc.class)}_${sanitizeIdentifier(sf.name)}`
+        identifier: staticFieldIdentifier(lc, sf)
       }
     })
   }
@@ -169,16 +180,4 @@ function valToHeapVizVal (val: Val): HeapVizVal {
         kind: 'HeapVizNullVal'
       }
   }
-}
-
-/*
-Dollar characters (e.g. in class names, for inner classes etc.) and dots (package names) seem to cause trouble in the heap viz
-therefore we replace them by a dummy value
-*/
-function sanitizeIdentifier (name: string) {
-  return name.replaceAll('$', '_DOLLAR_SIGN_REPLACEMENT_').replaceAll('.', '_DOT_CHARACTER_REPLACEMENT_')
-}
-
-export function desanitizeIdentifier (identifier: string) {
-  return identifier.replaceAll('_DOLLAR_SIGN_REPLACEMENT_', '$').replaceAll('_DOT_CHARACTER_REPLACEMENT_', '.')
 }

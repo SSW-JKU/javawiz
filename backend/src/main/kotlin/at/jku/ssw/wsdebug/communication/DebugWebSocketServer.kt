@@ -6,11 +6,16 @@ import at.jku.ssw.wsdebug.shorten
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
+import java.net.BindException
 import java.net.InetSocketAddress
 import kotlin.concurrent.thread
 
 
-class DebugWebSocketServer(address: InetSocketAddress) : WebSocketServer(address) {
+class DebugWebSocketServer(
+    address: InetSocketAddress,
+    private val onStarted: () -> Unit = {},
+    private val onStartupFailure: (Exception) -> Unit = {}
+) : WebSocketServer(address) {
     private var activeConnection: WebSocket? = null
 
     override fun onOpen(conn: WebSocket?, handshake: ClientHandshake?) {
@@ -47,12 +52,16 @@ class DebugWebSocketServer(address: InetSocketAddress) : WebSocketServer(address
         println("  DebugWebSocket is now running, ready to accept connection from client.")
         println()
         println("confirming_start") // needed in extension mode in order to make sure that frontend is launched after server has started
+        onStarted()
     }
 
     override fun onError(conn: WebSocket?, ex: Exception) {
         println("[WebSocket] Event: onError")
         println("  Exception: ${ex.asStringWithStackTrace()}")
         println()
+        if (conn == null && ex is BindException) {
+            onStartupFailure(ex)
+        }
     }
 
     fun generateResponse(request: String): Response = generateResponseFromString(request)

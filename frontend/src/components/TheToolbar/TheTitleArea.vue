@@ -12,11 +12,13 @@
     </div>
     <IconWithTooltip
       v-if="generalStore.debugger.connected"
+      pet-target="button ReportIssue"
       :tooltip="{ text: 'Bug? Feedback? Question? Contact us!', arrow: 'right', placement: 'below' }"
       :icon="bugreport"
       @action="() => overlayStore.toggleReportState()" />
     <IconWithTooltip
       v-if="generalStore.debugger.connected"
+      pet-target="button Help"
       :tooltip="{ text: 'Help', arrow: 'right', placement: 'below' }"
       :icon="help"
       @action="() => overlayStore.toggleHelpState()" />

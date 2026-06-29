@@ -2,6 +2,7 @@
   <!-- If trace states are available/the program was compiled for the first time, display reset, back and next button -->
   <div class="float-container-center-aligned">
     <IconWithTooltip
+      pet-target="button Restart"
       :tooltip="{ text: 'Restart', arrow: 'middle', placement: 'below' }"
       :shortcut="{ firstKey: 'Alt', secondKey: 'C' }"
       :icon="arrow_left_bar"

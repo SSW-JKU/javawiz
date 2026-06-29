@@ -7,7 +7,7 @@
       "request": "launch",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",
-      "preLaunchTask": "Frontend: npm run serve",
+      "preLaunchTask": "Frontend: npm run dev",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
         "vite:///*": "${webRoot}/*",

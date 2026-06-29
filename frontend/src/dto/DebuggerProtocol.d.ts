@@ -1,5 +1,14 @@
 import { AbstractSyntaxTree } from '@/dto/AbstractSyntaxTree'
 
+type PetAnnotation = {
+  action: string
+  view?: string
+  target?: string
+  payload: string
+  uri: string
+  lineNr: number
+}
+
 export namespace DebuggerProtocol {
 
   export type ClassContent = {
@@ -61,7 +70,8 @@ export namespace DebuggerProtocol {
     readonly asts: AbstractSyntaxTree[],
     readonly firstStepResult: StepResult,
     readonly compiledClasses: string[],
-    readonly featureWarnings: string[]
+    readonly featureWarnings: string[],
+    readonly pets: PetAnnotation[]
   }
 
   export type ErrorResponse = {

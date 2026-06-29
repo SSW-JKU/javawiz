@@ -1,5 +1,5 @@
 import { FileData } from '@/file-manager/FileData'
-import { editor, Uri } from 'monaco-editor/esm/vs/editor/editor.api';
+import { editor, Uri } from 'monaco-editor/esm/vs/editor/editor.api.js';
 import { FileManagerEvent } from '@/file-manager/FileManagerEvent'
 import { DebuggerProtocol } from '@/dto/DebuggerProtocol'
 import Ajv from 'ajv'

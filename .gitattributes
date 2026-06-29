@@ -1,0 +1,20 @@
+* text=auto eol=lf
+
+# Windows command scripts use native CRLF line endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets must never be line-ending normalized.
+*.gif binary
+*.ico binary
+*.jar binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.pyc binary
+*.ttf binary
+*.vsix binary
+*.woff binary
+*.woff2 binary
+*.zip binary

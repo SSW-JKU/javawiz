@@ -1,5 +1,5 @@
 <template>
-  <div id="console-div">
+  <div id="console-div" data-pet-target="ui Console">
     <div id="console-header">
       <img
         v-if="isLive"
@@ -21,11 +21,13 @@
       <pre v-if="compileError" style="color: red"> {{ compileError }} </pre>
       <pre>{{ consoleText }}</pre>
     </div>
+
     <div id="console-input">
-      <input id="console-input-field" v-model="generalStore.inputValue" type="text">
+      <input id="console-input-field" v-model="generalStore.inputValue" data-pet-target="input Console" type="text">
       <button
         id="console-input-button"
         class="btn btn-sm btn-primary"
+        data-pet-target="button SendInput"
         :disabled="!isInputExpected"
         @click="() => {
           blur()

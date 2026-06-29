@@ -493,7 +493,7 @@ class JDIVirtualMachine(
         fun installStreamHandling() {
             val proc = nativeVM.process()
 
-            val charset = Charsets.ISO_8859_1
+            val charset = Charsets.UTF_8
 
             debuggeeOutput = proc.inputStream.reader(charset)
             debuggeeError = proc.errorStream.reader(charset)
@@ -504,7 +504,7 @@ class JDIVirtualMachine(
         val arguments = launchingConnector.defaultArguments()
         arguments["main"]!!.setValue(fullyQualifiedMainClassName)
         arguments["options"]!!.setValue(
-            "-cp \"$cp\""
+            "-Dfile.encoding=UTF-8 -Dsun.stdin.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp \"$cp\""
         )
 
         nativeVM = launchingConnector.launch(arguments)

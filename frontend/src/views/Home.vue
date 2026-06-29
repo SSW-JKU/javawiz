@@ -5,6 +5,7 @@
     <TheHelpOverlay />
     <TheAboutOverlay />
     <TheReportOverlay />
+    <PetUiAnnotations />
     <TheToolbar
       @connect="connect"
       @start-compilation="startCompilation"
@@ -41,6 +42,7 @@ import TheAboutOverlay from '@/components/Overlays/TheAboutOverlay.vue'
 import TheReportOverlay from '@/components/Overlays/TheReportOverlay.vue'
 import TheNotifications from '@/components/TheNotifications/TheNotifications.vue'
 import TheFileHandler from '@/components/TheFileHandler.vue'
+import PetUiAnnotations from '@/components/PetUiAnnotations.vue'
 import { Pane, Splitpanes } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import * as d3 from 'd3'

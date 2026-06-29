@@ -13,6 +13,8 @@
     "outDir": "out",
     "rootDir": "..",
     "sourceMap": true,
+    "incremental": true,
+    "tsBuildInfoFile": "build/typescript/tsconfig.tsbuildinfo",
     /* Interop */
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

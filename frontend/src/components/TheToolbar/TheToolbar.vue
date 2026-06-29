@@ -1,5 +1,5 @@
 <template>
-  <div class="toolbar float-container-center-aligned">
+  <div class="toolbar float-container-center-aligned" data-pet-target="ui Toolbar">
     <TheToolbarButtons
       @connect="() => emit('connect')"
       @start-compilation="() => emit('startCompilation')"

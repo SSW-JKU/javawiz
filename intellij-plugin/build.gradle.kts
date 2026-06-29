@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.0.4"
+version = "2.1.0"
 
 fun htmlEscape(value: String): String =
     value
@@ -202,14 +202,14 @@ tasks {
     // These transformations affect only generated files below `build/`; the source files in
     // `src/main/resources` remain unchanged.
     processResources {
+        // Read the shared release version once while Gradle configures the task. The copy filters
+        // below receive this plain String instead of retaining a reference to the Gradle project,
+        // which allows the configured task graph to be stored and reused.
+        val resourceVersion = project.version.toString()
+
         // The frontend and backend must be built and copied into src/main/resources before
         // Gradle processes that directory. `dependsOn` establishes this task ordering.
         dependsOn(copyBackendToIntellijPlugin, copyFrontendToIntellijPlugin)
-
-        // The configuration cache can reuse a previously configured task graph. This task reads
-        // config.properties during execution, so explicitly disable that optimization to prevent
-        // Gradle from reusing stale property values.
-        notCompatibleWithConfigurationCache("Uses properties loaded at runtime")
 
         // `from` adds an extra file to the resources copied by this task. JetBrains discovers
         // plugin logos only when they are stored in META-INF with these exact filenames.
@@ -247,33 +247,29 @@ tasks {
             filter { line ->
                 when {
                     line.startsWith("backendJarName=") ->
-                        "backendJarName=libs/backend-${project.version}.jar"
+                        "backendJarName=libs/backend-$resourceVersion.jar"
                     line.startsWith("pluginVersion=") ->
-                        "pluginVersion=${project.version}"
+                        "pluginVersion=$resourceVersion"
                     else -> line
                 }
             }
         }
 
-        // `doFirst` registers work that runs immediately before processResources performs its
-        // normal copy actions. Deferring this code until task execution ensures that it reads the
-        // current config.properties rather than values captured when Gradle configured the build.
-        doFirst {
-            // Load Java's standard .properties format and close the input stream automatically.
-            val properties = Properties().apply {
-                file("src/main/resources/Config/config.properties").inputStream().use { load(it) }
-            }
+        // plugin.xml contains `${placeholder}` entries whose values live in config.properties.
+        // `fileContents` tells Gradle that the properties file is an input to task configuration,
+        // so changing it invalidates the configuration cache. Java Properties uses generic key
+        // and value types; the final conversion produces the String-keyed map expected by expand.
+        val propertiesMap = providers.fileContents(
+            layout.projectDirectory.file("src/main/resources/Config/config.properties")
+        ).asText.map { contents ->
+            Properties().apply {
+                contents.reader().use { load(it) }
+            }.map { it.key.toString() to it.value }.toMap()
+        }.get()
 
-            // Gradle's `expand` method expects a map from placeholder names to replacement values.
-            // java.util.Properties stores generic Any values, so convert every key to a String.
-            val propertiesMap = properties.map { it.key.toString() to it.value }.toMap()
-
-            // Apply Groovy template expansion only to plugin.xml. For example, `${pluginId}` is
-            // replaced with the `pluginId` value loaded from config.properties. The expansion is
-            // applied to the generated copy, not to the source descriptor.
-            filesMatching("**/plugin.xml") {
-                expand(propertiesMap)
-            }
+        // Apply that map only to the generated plugin.xml copy. Source resources are unchanged.
+        filesMatching("**/plugin.xml") {
+            expand(propertiesMap)
         }
     }
 

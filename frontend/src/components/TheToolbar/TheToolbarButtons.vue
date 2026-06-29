@@ -1,7 +1,7 @@
 <template>
   <div class="float-container-center-aligned">
     <div v-if="!generalStore.debugger.connected && !generalStore.debugger.talking" class="float-container-center-aligned">
-      <button class="btn btn-sm btn-primary connect-button" @click="() => emit('connect')">
+      <button class="btn btn-sm btn-primary connect-button" data-pet-target="button Connect" @click="() => emit('connect')">
         <img class="connect-icon" src="../../assets/icons/controls/connect.svg" alt="Connect button">
         Connect
       </button>
@@ -9,12 +9,14 @@
     <div v-if="generalStore.debugger.connected" class="float-container-center-aligned">
       <IconWithTooltip
         v-if="!generalStore.vscExtensionMode"
+        pet-target="button OpenFiles"
         :tooltip="{ text: 'Open Files', arrow: 'left', placement: 'below' }"
         :shortcut="{ firstKey: 'Alt', secondKey: 'O' }"
         :icon="open"
         @action="() => emit('openFile')" />
       <IconWithTooltip
         v-if="!generalStore.vscExtensionMode"
+        pet-target="button SaveFiles"
         :tooltip="{ text: 'Save Files', arrow: 'middle', placement: 'below' }"
         :shortcut="{ firstKey: 'Alt', secondKey: 'S' }"
         :icon="save"
@@ -23,6 +25,7 @@
       <!-- display the "play" button if debugger has not yet compiled -->
       <div v-if="!generalStore.debugger.compiled">
         <IconWithTooltip
+          pet-target="button Start"
           :tooltip="{ text: 'Start', arrow: 'middle', placement: 'below' }"
           :shortcut="{ firstKey: 'Alt', secondKey: 'C' }"
           :icon="start_"

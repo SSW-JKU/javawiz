@@ -1,42 +1,52 @@
 {
   "name": "frontend",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
-    "serve": "vite",
-    "build": "vue-tsc -b && vite build",
+    "dev": "vite",
+    "serve": "npm run dev",
+    "typecheck": "vue-tsc -b",
+    "check": "npm run lint && npm run typecheck",
+    "build": "npm run typecheck && vite build",
+    "build:analyze": "npm run typecheck && vite build --mode analyze",
     "preview": "vite preview",
-    "lint": "eslint"
+    "lint": "eslint --cache --cache-strategy content --cache-location build/eslint/.eslintcache"
   },
   "type": "module",
   "dependencies": {
     "ajv": "^8.17.1",
     "d3": "7.9.0",
     "d3-graphviz": "5.6.0",
-    "globals": "^16.4.0",
+    "globals": "^17.7.0",
     "jszip": "^3.10.1",
     "lodash": "^4.17.20",
-    "marked": "^16.4.1",
-    "monaco-editor": "^0.54.0",
+    "marked": "^18.0.5",
+    "monaco-editor": "^0.55.1",
     "pinia": "^3.0.3",
     "splitpanes": "^4.0.4",
     "vue": "^3.5.22",
-    "vue-router": "^4.6.3"
+    "vue-router": "^5.1.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.38.0",
+    "@eslint/js": "^10.0.1",
     "@types/d3": "^7.4.3",
     "@types/d3-graphviz": "2.6.10",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^24.9.1",
+    "@types/node": "^22.20.0",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
-    "@vitejs/plugin-vue": "^6.0.1",
-    "eslint": "^9.38.0",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "eslint": "^10.5.0",
     "eslint-plugin-vue": "^10.5.1",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^7.1.10",
+    "vite": "^8.1.0",
     "vue-tsc": "^3.2.6"
+  },
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "3.4.11"
+    }
   }
 }

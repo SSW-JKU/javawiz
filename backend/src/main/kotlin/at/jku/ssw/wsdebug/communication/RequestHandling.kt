@@ -14,13 +14,29 @@ import at.jku.ssw.wsdebug.identEachLine
 import at.jku.ssw.wsdebug.outerClassMatchesOuterClassPattern
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.sun.source.tree.Tree
 import com.sun.source.util.JavacTask
+import com.sun.source.util.TreeScanner
 import com.sun.tools.javac.tree.JCTree
 import java.io.StringWriter
 import java.nio.file.Paths
 import javax.tools.ToolProvider
 
+
+data class PetAnnotation(
+    val action: String,
+    val view: String?,
+    val target: String?,
+    val payload: String,
+    val uri: String,
+    val lineNr: Long
+)
+
 private var latestDebugger: Debugger? = null
+
+private const val DEFAULT_VIEW = "MemoryView"
+private const val JAVAWIZ_VIEW = "JavaWizView"
+private val JAVAWIZ_TARGET_KINDS = setOf("button", "input", "ui")
 
 internal fun exitLatestDebugger() {
     latestDebugger?.exit()
@@ -131,6 +147,15 @@ private fun handleCompileRequest(request: Compile): Response {
         val tPartition = timing.now()
         val (internalCompilationUnits, compilationUnits) = allUnits.partition { cu -> isInternal(cu, excludeFromSteppingPatterns) }
         timing.add("partition internal files: ${timing.elapsed(tPartition)}ms (${compilationUnits.size} user, ${internalCompilationUnits.size} internal)")
+
+        val tPetScan = timing.now()
+        val treesInstance = com.sun.source.util.Trees.instance(task)
+        val pets = mutableListOf<PetAnnotation>()
+        compilationUnits.forEach { unit ->
+            val source = unit.sourceFile.getCharContent(true).toString()
+            PetScanner(unit, treesInstance, source, pets).scan(unit, null)
+        }
+        timing.add("scan PET annotations: ${timing.elapsed(tPetScan)}ms (${pets.size} annotations)")
 
         val tUnchangedFiles = timing.now()
         val unmodifiedInternalSources = internalCompilationUnits.map { unit ->
@@ -248,7 +273,8 @@ private fun handleCompileRequest(request: Compile): Response {
                 firstStepResult,
                 parseInfos.flatMap { it.typeNames },
                 parseInfos.map { it.ast },
-                warnings
+                warnings,
+                pets
             )
         ).also {
             timing.add("build compile response: ${timing.elapsed(tResponse)}ms")
@@ -257,6 +283,186 @@ private fun handleCompileRequest(request: Compile): Response {
         timing.printWithTotal()
     }
 }
+
+fun parsePetComment(comment: String): PetAnnotation? {
+    val cleaned = comment
+        .replace("/*", "")
+        .replace("*/", "")
+        .lines().joinToString(" ") { it.trim().removePrefix("*").trim() }
+
+    // extract action and payload
+    val petPart = cleaned.substringAfter("@PET").trim()
+
+    val colonIndex = petPart.indexOf(':')
+//    if (colonIndex < 0) return null
+
+//    val header = petPart.substring(0, colonIndex).trim()
+//    val payload = petPart.substring(colonIndex + 1).trim()
+
+    val header: String
+    val payload: String
+
+    if (colonIndex >= 0) {
+        header = petPart.substring(0, colonIndex).trim()
+        payload = petPart.substring(colonIndex + 1).trim()
+    } else {
+        header = petPart.trim()
+        payload = ""
+    }
+
+    // extract action and modifiers
+    val firstSpace = header.indexOf(' ')
+    if (firstSpace < 0) return null
+
+    val action = header.substring(0, firstSpace)
+    val modifiers = header.substring(firstSpace + 1).trim()
+
+    if (
+        action != "Highlight" &&
+        payload.isBlank()
+    ) {
+        return null
+    }
+
+    // extract target and view from modifiers
+    var view: String? = null
+    var target: String? = null
+
+    val atIndex = modifiers.indexOf("at ")
+    val inIndex = modifiers.indexOf("in ")
+
+    if (atIndex in 0..<inIndex) {
+        target = modifiers.substring(atIndex + 3, inIndex).trim()
+        view = modifiers.substring(inIndex + 3).trim()
+    } else if (inIndex in 0..<atIndex) {
+        view = modifiers.substring(inIndex + 3, atIndex).trim()
+        target = modifiers.substring(atIndex + 3).trim()
+    } else if (atIndex >= 0 && inIndex < 0) {
+        target = modifiers.substring(atIndex + 3).trim()
+    }
+
+    // a target is mandatory
+    target ?: return null
+
+    // use a target-specific default view if none was specified
+    view = view ?: defaultPetView(target)
+
+    return PetAnnotation(
+        action = action,
+        view = view,
+        target = target,
+        payload = payload,
+        uri = "",
+        lineNr = -1,
+    )
+}
+
+private fun defaultPetView(target: String): String {
+    val targetKind = target.substringBefore(' ').lowercase()
+    return if (targetKind in JAVAWIZ_TARGET_KINDS) JAVAWIZ_VIEW else DEFAULT_VIEW
+}
+
+private class PetScanner(
+    private val compilationUnit: JCTree.JCCompilationUnit,
+    private val trees: com.sun.source.util.Trees,
+    private val source: String,
+    private val pets: MutableList<PetAnnotation>
+) : TreeScanner<Void?, Void?>() {
+    override fun scan(
+        tree: Tree?,
+        p: Void?
+    ): Void? {
+
+        val node = tree as? JCTree ?: return super.scan(tree, p)
+
+        // Check relevant nodes
+        if (node is JCTree.JCStatement || node is JCTree.JCMethodDecl) {
+
+            val startPos =
+                trees.sourcePositions.getStartPosition(
+                    compilationUnit,
+                    node
+                )
+
+            if (startPos >= 0) {
+
+                val lineNr = compilationUnit.lineMap.getLineNumber(startPos)
+
+                val petComments = findPetCommentsAbove(lineNr)
+
+                petComments.forEach { comment ->
+
+                    val pet = parsePetComment(comment) ?: return@forEach
+
+                    pets.add(
+                        pet.copy(
+                            uri =
+                                compilationUnit
+                                    .sourceFile
+                                    .name,
+                            lineNr = lineNr
+                        )
+                    )
+                }
+            }
+        }
+
+        return super.scan(tree, p)
+    }
+
+    private fun findPetCommentsAbove(
+        statementLine: Long
+    ): List<String> {
+
+        val lines = source.lines()
+
+        val result = mutableListOf<String>()
+
+        // Row directly above statement
+        var currentLine = statementLine.toInt() - 2
+
+        while (currentLine >= 0) {
+
+            val line = lines[currentLine].trim()
+
+            // skip empty lines
+            if (line.isBlank()) {
+                currentLine--
+                continue
+            }
+
+            // Stop if there is no block comment directly above
+            if (!line.endsWith("*/")) {
+                break
+            }
+
+            // Save full comment
+            val commentLines = mutableListOf<String>()
+
+            while (currentLine >= 0) {
+
+                val current = lines[currentLine]
+
+                commentLines.add(0, current)
+
+                if (current.contains("/*")) {
+                    break
+                }
+                currentLine--
+            }
+
+            val fullComment = commentLines.joinToString("\n")
+
+            if (fullComment.contains("@PET")){
+                result.add(fullComment)
+            }
+
+            currentLine--
+        }
+        return result.reversed()
+    }
+}
+
 
 private fun generateWarnings(parseInfos: List<ParseInfo>) = buildSet {
     parseInfos.filter { it.featureWarnings.isNotEmpty() }

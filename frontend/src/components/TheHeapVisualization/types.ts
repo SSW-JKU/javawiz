@@ -86,7 +86,8 @@ export interface HeapVizLoadedClass {
 }
 
 export interface HeapVizTraceState {
-  readonly kind: 'HeapVizTraceState'
+  readonly kind: 'HeapVizTraceState',
+  localUri: string,
   line: number // currently active line
   stack: HeapVizStackFrame[] // function stack; it depends on the StepRequest depth and class filters (defined in Main.kt) which methods appear here
   heap: HeapVizHeapItem[] // active references to Arrays, Strings and Objects

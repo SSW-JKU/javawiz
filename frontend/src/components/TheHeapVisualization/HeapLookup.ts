@@ -14,6 +14,8 @@
  */
 
 import type { HeapVizHeapArrayElementVar, HeapVizHeapItem, HeapVizVar } from './types'
+import type { HeapArrayElementVar, HeapItem, TraceState, Var } from '@/dto/TraceState'
+import { heapArrayElementIdentifier, heapItemIdentifier, rawVarIdentifier } from './identifiers'
 
 export interface Point {
   readonly x: number
@@ -28,7 +30,7 @@ export interface BoundingBoxCorners {
   readonly center: Point
 }
 
-export type HeapLookupRecord = HeapVizVar | HeapVizHeapArrayElementVar | HeapVizHeapItem
+export type HeapLookupRecord = HeapVizVar | HeapVizHeapArrayElementVar | HeapVizHeapItem | Var | HeapArrayElementVar | HeapItem
 export type HeapLookupTarget = string | HeapLookupRecord
 
 /** Matches one  key="value"  token inside a title string. */
@@ -57,8 +59,30 @@ function isInjectedTitle (content: string): boolean {
 
 const XLINK_NS = 'http://www.w3.org/1999/xlink'
 
-export function heapLookupIdentifier (target: HeapLookupTarget): string {
-  return typeof target === 'string' ? target : target.identifier
+function hasHeapVizIdentifier (target: HeapLookupRecord): target is HeapVizVar | HeapVizHeapArrayElementVar | HeapVizHeapItem {
+  return 'identifier' in target
+}
+
+export function heapLookupIdentifier (target: HeapLookupTarget, traceState?: TraceState): string {
+  if (typeof target === 'string') return target
+  if (hasHeapVizIdentifier(target)) return target.identifier
+
+  switch (target.kind) {
+    case 'Var': {
+      if (!traceState) throw new Error('Cannot build a heap lookup identifier for a raw Var without a TraceState.')
+      return rawVarIdentifier(target, traceState)
+    }
+    case 'HeapArrayElementVar':
+      return heapArrayElementIdentifier(target)
+    case 'HeapArray':
+    case 'HeapObject':
+    case 'HeapString':
+      return heapItemIdentifier(target)
+    default: {
+      const exhaustiveCheck: never = target
+      return exhaustiveCheck
+    }
+  }
 }
 
 function decodeHtmlEntities (value: string): string {
@@ -222,22 +246,22 @@ export function findHeapElementById (id: string, root: Element | Document = docu
  * plus child cells such as fields/elements whose IDs continue with the same
  * identifier prefix.
  */
-export function findHeapElements (target: HeapLookupTarget, root: Element | Document = document): Element[] {
+export function findHeapElements (target: HeapLookupTarget, root: Element | Document = document, traceState?: TraceState): Element[] {
   if (typeof target === 'string') {
     const element = findHeapElementById(target, root)
     return element ? [element] : []
   }
 
-  const escaped = escapeIdForAttributeSelector(heapLookupIdentifier(target))
+  const escaped = escapeIdForAttributeSelector(heapLookupIdentifier(target, traceState))
   return Array.from(root.querySelectorAll(`[id="${escaped}"], [id^="${escaped}:"]`))
 }
 
-export function findHeapElement (target: HeapLookupTarget, root: Element | Document = document): Element | null {
-  return findHeapElements(target, root)[0] ?? null
+export function findHeapElement (target: HeapLookupTarget, root: Element | Document = document, traceState?: TraceState): Element | null {
+  return findHeapElements(target, root, traceState)[0] ?? null
 }
 
-export function getBoundingBoxesCorners (target: HeapLookupTarget, root: Element | Document = document): BoundingBoxCorners[] {
-  return findHeapElements(target, root)
+export function getBoundingBoxesCorners (target: HeapLookupTarget, root: Element | Document = document, traceState?: TraceState): BoundingBoxCorners[] {
+  return findHeapElements(target, root, traceState)
     .map(el => el.getBoundingClientRect())
     .filter(rect => rect.width !== 0 || rect.height !== 0)
     .map(boundingBoxCornersForRect)
@@ -253,7 +277,7 @@ export function getBoundingBoxesCorners (target: HeapLookupTarget, root: Element
  * Returns `null` when no element with that ID exists or when the element has
  * zero size (e.g. it is hidden or not yet painted).
  */
-export function getBoundingBoxCorners (target: HeapLookupTarget, root: Element | Document = document): BoundingBoxCorners | null {
+export function getBoundingBoxCorners (target: HeapLookupTarget, root: Element | Document = document, traceState?: TraceState): BoundingBoxCorners | null {
   if (typeof target === 'string') {
     const el = findHeapElementById(target, root)
     if (!el) return null
@@ -264,6 +288,6 @@ export function getBoundingBoxCorners (target: HeapLookupTarget, root: Element |
     return boundingBoxCornersForRect(rect)
   }
 
-  const rect = unionBoundingRect(findHeapElements(target, root))
+  const rect = unionBoundingRect(findHeapElements(target, root, traceState))
   return rect ? boundingBoxCornersForRect(rect) : null
 }

@@ -1,12 +1,17 @@
 <template>
   <div id="step-buttons-container" class="float-container-start-aligned">
     <IconWithTooltip
+      pet-target="button StepBack"
       :enabled="generalStore.debugger.stepBackEnabled"
       :tooltip="{ text: 'Step back', arrow: 'middle' }"
       :shortcut="{ iconPath: shortcut_arrow_left }"
       :icon="arrow_left"
       @action="() => generalStore.debugger.stepBack()" />
-    <div id="step-buttons-relative-stackcontainer-parent" class="show-on-narrow" style="position: relative; display: flex;">
+    <div
+      id="step-buttons-relative-stackcontainer-parent"
+      class="show-on-narrow"
+      data-pet-target-fallbacks="button StepInto|button StepOut|button RunToLine|input RunToLine"
+      style="position: relative; display: flex;">
       <!-- Hidden paragraph to reserve space -->
       <IconWithTooltip
         id="step-buttons-stackcontainer"
@@ -18,6 +23,7 @@
         @mouseleave="showAllStepButtons=false">
         <transition name="heightfade">
           <IconWithTooltip
+            pet-target="button StepOver"
             :enabled="generalStore.debugger.stepForwardEnabled"
             :tooltip="{ text: 'Step over', arrow: 'middle', placement: 'left' }"
             :icon="arc_right"
@@ -27,6 +33,7 @@
         <transition name="heightfade">
           <IconWithTooltip
             v-if="showAllStepButtons"
+            pet-target="button StepInto"
             :tooltip="{ text: 'Step into', arrow: 'middle', placement: 'left' }"
             :enabled="generalStore.debugger.stepForwardEnabled"
             :shortcut="{ iconPath: arrow_down }"
@@ -36,6 +43,7 @@
         <transition name="heightfade">
           <IconWithTooltip
             v-if="showAllStepButtons"
+            pet-target="button StepOut"
             :tooltip="{ text: 'Step out', arrow: 'middle', placement: 'left' }"
             :enabled="generalStore.debugger.stepForwardEnabled"
             :shortcut="{ iconPath: arrow_up }"
@@ -46,6 +54,7 @@
           <transition name="heightfade">
             <IconWithTooltip
               v-if="showAllStepButtons"
+              pet-target="button RunToLine"
               :tooltip="{ text: 'Run to line', arrow: 'middle', placement: 'left' }"
               :enabled="generalStore.debugger.stepForwardEnabled"
               :icon="arrow_right_bar"
@@ -56,6 +65,7 @@
             v-if="showAllStepButtons"
             id="line-number-input-1"
             v-model="runToLineNumber"
+            data-pet-target="input RunToLine"
             class="line-number-input"
             type="number"
             min="1"
@@ -69,18 +79,21 @@
     </div>
     <div id="step-buttons-flowcontainer" class="hide-on-narrow float-container-center-aligned">
       <IconWithTooltip
+        pet-target="button StepOver"
         :enabled="generalStore.debugger.stepForwardEnabled"
         :tooltip="{ text: 'Step over', arrow: 'middle', placement: 'below' }"
         :icon="arc_right"
         :shortcut="{ iconPath: arrow_right }"
         @action="() => generalStore.debugger.stepOver()" />
       <IconWithTooltip
+        pet-target="button StepInto"
         :tooltip="{ text: 'Step into', arrow: 'middle', placement: 'below' }"
         :enabled="generalStore.debugger.stepForwardEnabled"
         :shortcut="{ iconPath: arrow_down }"
         :icon="arrow_right_down"
         @action="() => generalStore.debugger.stepInto()" />
       <IconWithTooltip
+        pet-target="button StepOut"
         :tooltip="{ text: 'Step out', arrow: 'middle', placement: 'below' }"
         :enabled="generalStore.debugger.stepForwardEnabled"
         :shortcut="{ iconPath: arrow_up }"
@@ -88,6 +101,7 @@
         @action="() => generalStore.debugger.stepOut()" />
       <div class="float-container-start-aligned no-gap">
         <IconWithTooltip
+          pet-target="button RunToLine"
           :tooltip="{ text: 'Run to line', arrow: 'middle', placement: 'below' }"
           :enabled="generalStore.debugger.stepForwardEnabled"
           :icon="arrow_right_bar"
@@ -96,6 +110,7 @@
         <input
           id="line-number-input-2"
           v-model="runToLineNumber"
+          data-pet-target="input RunToLine"
           class="line-number-input"
           type="number"
           min="1"

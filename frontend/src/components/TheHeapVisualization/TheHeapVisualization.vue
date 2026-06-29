@@ -11,6 +11,7 @@ import * as d3 from 'd3'
 import { graphviz } from 'd3-graphviz'
 import 'd3-transition'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { ProcessedTraceState } from '@/dto/TraceState'
 import {
   HeapVizHeapArray,
@@ -66,9 +67,11 @@ import {
 } from './constants'
 import HeapVisualizationSettings from './HeapVisualizationSettings.vue'
 import {
-  processInjectedTitles,
+  processInjectedTitles
 } from './HeapLookup'
 import { HeapAnnotationManager, type HeapQuestionOption, type HeapQuestionAnswer } from './HeapAnnotations'
+import { parsePetQuestionPayload } from '@/components/PetAnnotations'
+import { usePetStore } from '@/store/PetStore'
 
 const showInternalClassFields = ref(false)
 watch(showInternalClassFields, () => {
@@ -338,6 +341,7 @@ defineExpose({
   addHighlight: annotationManager.addHighlight.bind(annotationManager),
   addQuestion: annotationManager.addQuestion.bind(annotationManager) as (
     target: Parameters<HeapAnnotationManager['addQuestion']>[0],
+    traceState: Parameters<HeapAnnotationManager['addQuestion']>[1],
     text: string,
     options: HeapQuestionOption[],
     onAnswer?: (answer: HeapQuestionAnswer) => void
@@ -345,6 +349,9 @@ defineExpose({
   removeAnnotationById: annotationManager.removeAnnotationById.bind(annotationManager),
   removeAnnotations: annotationManager.removeAnnotations.bind(annotationManager),
   clearAnnotations: annotationManager.clearAnnotations.bind(annotationManager),
+  setAnnotationCollapsed: annotationManager.setCollapsed.bind(annotationManager),
+  getAnnotationCalloutState: annotationManager.getCalloutState.bind(annotationManager),
+  getQuestionAnswer: annotationManager.getQuestionAnswer.bind(annotationManager),
   redrawAnnotations: annotationManager.redraw.bind(annotationManager)
 })
 
@@ -356,29 +363,50 @@ function removeAnnotations (): void {
 function installAnnotations (): void {
   removeAnnotations()
 
-  /*
-  const state = currentHeapVizTraceState.value
-  if (!state) return
+  for (const pet of memoryPets.value) {
+    switch (pet.pet.action) {
+      case 'Say':
+        annotationIds.push(
+          annotationManager.addSpeechBubble(
+            pet.translated,
+            pet.traceState,
+            pet.pet.payload
+          )
+        )
+        break
 
-  const mainStackFrameNr = state.stackAfterExecution.findIndex(stackFrame => stackFrame.displayText.includes('main('))
-  if (mainStackFrameNr < 0) return
+      case 'Highlight':
+        annotationIds.push(
+          annotationManager.addHighlight(
+            pet.translated,
+            pet.traceState
+          )
+        )
+        break
 
-  const mainStackFrame = state.stackAfterExecution[mainStackFrameNr]
-  const args = mainStackFrame.localVariables.find(variable => variable.name === 'args')
-  if (!args || args.value.kind !== 'HeapVizReferenceVal') return
+      case 'AskSingle':
+      case 'AskMultiple': {
+        const question = parsePetQuestionPayload(
+          pet.pet.payload
+        )
 
-  const argsHeapObject = getHeapItemById(args.value.reference)
+        if (!question) {
+          break
+        }
 
-  annotationIds = [
-    annotationManager.addHighlight(methodHeaderId(mainStackFrameNr)),
-    annotationManager.addSpeechBubble(args, 'Local variable args'),
-    annotationManager.addQuestion(
-      argsHeapObject,
-      'Is this array empty?',
-      [{ label: 'Yes' }, { label: 'No' }]
-    )
-  ]
-  */
+        annotationIds.push(
+          annotationManager.addQuestion(
+            pet.translated,
+            pet.traceState,
+            question.text,
+            question.options
+          )
+        )
+
+        break
+      }
+    }
+  }
 }
 
 function thisVar (stackFrame: HeapVizStackFrame, stackFrameNr: number, newlyEnteredStackframe: boolean): HeapVizVar {
@@ -502,13 +530,16 @@ let pendingUpdate: { needed: boolean, hoverChanged: boolean } = { needed: false,
 let lastRenderedDotString: string | null = null
 const highlightedItems = ref<HoverInfo[]>([])
 const generalStore = useGeneralStore()
+const { memoryPets } = storeToRefs(usePetStore())
 const heapVizMetaStore = useHeapVizMetaStore()
 const visualizationStore = useVisualizationStore()
-const cachedTraceState = ref<HeapVizTraceState>()
+const currentHeapVizTraceState = ref<HeapVizTraceState>()
+
+watch(memoryPets, installAnnotations, { immediate: true, flush: 'post' })
 
 watch(() => generalStore.currentTraceData, (newData) => {
   if (newData?.processedTraceState) {
-    cachedTraceState.value = fromProcessedTraceState(newData.processedTraceState)
+    currentHeapVizTraceState.value = fromProcessedTraceState(newData.processedTraceState)
   } else {
     const first = newData?.firstTraceState
     const processedState: ProcessedTraceState = {
@@ -531,11 +562,9 @@ watch(() => generalStore.currentTraceData, (newData) => {
       sf.changed = true
     })
 
-    cachedTraceState.value = fromProcessedTraceState(processedState)
+    currentHeapVizTraceState.value = fromProcessedTraceState(processedState)
   }
 }, { immediate: true })
-
-const currentHeapVizTraceState = cachedTraceState
 
 function stackTableFrameHeaderRow (stackFrame: HeapVizStackFrame, stackFrameNr: number): string {
   const title = sanitizer.escapeHtml(stackFrame.displayText)
@@ -1185,7 +1214,7 @@ function installMouseMoveListenersForHover () {
         HoverSynchronizer.hover([])
         return
       }
-      let hoverInfos = []
+      let hoverInfos: HoverInfo[]
       const vizIdentifier = identifierFromSvgCellId(identifier)
       // check if a heap object is hovered
       if (vizIdentifier.charAt(0) === 'o') {
@@ -1254,7 +1283,6 @@ function redraw (hoverChanged: boolean = false) {
       processInjectedTitles(d3.select('#heap-wrapper').node() as Element)
       installClickListeners()
       installMouseMoveListenersForHover()
-      installAnnotations()
       annotationManager.redraw()
 
       rendering = false
@@ -1334,6 +1362,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
   HoverSynchronizer.removeOnHover(onHover)
+  annotationManager.destroy()
   graphvizInstance = null
   isInitialized = false
   rendering = false
@@ -1374,58 +1403,4 @@ onUnmounted(() => {
   cursor: default;
 }
 
-#heap-wrapper .heap-highlight {
-  pointer-events: none;
-}
-
-#heap-wrapper .heap-speech-bubble,
-#heap-wrapper .heap-question {
-  cursor: grab;
-}
-
-#heap-wrapper .heap-speech-bubble-box,
-#heap-wrapper .heap-speech-bubble-pointer,
-#heap-wrapper .heap-question-box,
-#heap-wrapper .heap-question-pointer {
-  fill: #fff9e6;
-  stroke: #ffc552;
-  stroke-width: 1.5px;
-  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.2));
-}
-
-#heap-wrapper .heap-question-box,
-#heap-wrapper .heap-question-pointer {
-  fill: #eef6ff;
-  stroke: #6aa7ff;
-}
-
-#heap-wrapper .heap-speech-bubble-text,
-#heap-wrapper .heap-question-text {
-  fill: #333;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 13px;
-  pointer-events: none;
-}
-
-#heap-wrapper .heap-question-option {
-  cursor: pointer;
-}
-
-#heap-wrapper .heap-question-option rect {
-  fill: #ffffff;
-  stroke: #6aa7ff;
-  stroke-width: 1px;
-}
-
-#heap-wrapper .heap-question-option:hover rect {
-  fill: #dbeafe;
-}
-
-#heap-wrapper .heap-question-option text,
-#heap-wrapper .heap-question-option-text {
-  fill: #163150;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 12px;
-  pointer-events: none;
-}
 </style>

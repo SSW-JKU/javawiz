@@ -90,7 +90,6 @@ export function getLocalOrStaticsToHeapItemHoverInfos (sanitizedIdentifier: stri
     .slice(2) // remove the first two elements (s_class_ or l_stackFrameNr_)
     .join('_') // join everything else together which results in the var or field name
   let className = ''
-  let method = ''
   let reference = -1
 
   if (isThisVar) {
@@ -117,7 +116,7 @@ export function getLocalOrStaticsToHeapItemHoverInfos (sanitizedIdentifier: stri
   }
   const currMethod = methods[methodId]
   className = currMethod.class
-  method = currMethod.method
+  const method = currMethod.method
   for (const local of currMethod.localVariables) {
     if (local.name === varOrFieldName && local.value.kind === 'HeapVizReferenceVal') {
       reference = local.value.reference

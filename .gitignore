@@ -98,6 +98,7 @@ debug-visualizer/node_modules/
 node_modules
 /dist
 
+.env
 .env.local
 .env.*.local
 

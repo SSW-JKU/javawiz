@@ -774,8 +774,8 @@ export class SequenceDiagramHistory {
   private getRefObject (newState: TraceState, reference: number) {
     const stack: StackFrame[] = newState.stack
     const heap: HeapItem[] = newState.heap
-    let objectName = null
-    let objectId: number | undefined = 0;
+    let objectName: string | null
+    let objectId: number | undefined
     [objectName, objectId] = this.searchLocalVariables(stack, heap, reference)
     if (objectName === null) {
       [objectName, objectId] = this.searchHeap(heap, newState.loadedClasses, reference)

@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -167,21 +167,21 @@
     "watch": "cd .. && gradlew.bat clean && gradlew.bat build -PexcludeTests && cd vsc-extension && tsc -watch -p ./"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/http-server": "^0.12.1",
     "@types/lodash": "^4.17.0",
     "@types/node": "^18.19.130",
-    "@types/vscode": "^1.87.0",
+    "@types/vscode": "1.87.0",
     "@types/websocket": "^1.0.5",
-    "@eslint/js": "^9.38.0",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
-    "eslint": "^9.38.0",
+    "eslint": "^10.5.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2"
   },
   "dependencies": {
     "child-process": "^1.0.2",
-    "globals": "^16.4.0",
+    "globals": "^17.7.0",
     "http-server": "^14.1.1",
     "lodash": "^4.17.21",
     "tree-kill": "^1.2.2",

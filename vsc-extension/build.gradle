@@ -8,6 +8,33 @@ node {
     version = '22.13.1'
 }
 
+tasks.named("npm_run_compile") {
+    dependsOn(":shared:npmInstall")
+
+    // TypeScript reads both the extension and shared sources because tsconfig
+    // maps @Shared imports to the sibling project. These declarations let
+    // Gradle skip the npm task when neither source tree nor compiler setup changed.
+    inputs.files(fileTree(projectDir) {
+        include "src/**/*.ts"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree(rootProject.file("shared")) {
+        include "src/**/*.ts"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // Keep compiler outputs separate from out/assets, which is populated by the
+    // frontend/backend copy tasks. Otherwise copying assets would make Gradle
+    // think that the TypeScript compiler's output changed.
+    outputs.dir(layout.projectDirectory.dir("out/vsc-extension"))
+    outputs.dir(layout.projectDirectory.dir("out/shared"))
+    outputs.file(layout.buildDirectory.file("typescript/tsconfig.tsbuildinfo"))
+}
+
 task copyBackendToVscExtension(type: Copy) {
     dependsOn(':backend:build')
     from(rootDir.toPath().resolve('backend/build/')) {

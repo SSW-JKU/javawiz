@@ -9,6 +9,7 @@ import { useGeneralStore } from '@/store/GeneralStore'
 import { useHeapVizMetaStore } from '@/store/HeapVizMetaStore'
 import { NotificationType } from '@/components/TheNotifications/types'
 import { NotificationGroups } from '@/components/TheNotifications/Notifications'
+import { usePetStore } from '@/store/PetStore'
 
 export class Debugger {
   private websocket: WebSocket | null
@@ -24,7 +25,7 @@ export class Debugger {
 
   constructor () {
     this.websocket = null
-    this.port = 50000
+    this.port = 51234
     this.state = INITIAL
     this.trace = new Trace()
     this.undoStack = []
@@ -138,6 +139,10 @@ export class Debugger {
       case 'CompileSuccessResponse': {
         this.resetTrace()
         const data = response.data
+
+        usePetStore().setPets(data.pets)
+        this.trace.setPetDiagnostics(data.pets)
+
         const result = data.firstStepResult
         const states = result.traceStates
         if (result.vmrunning) {

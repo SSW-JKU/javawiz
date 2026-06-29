@@ -2,9 +2,8 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class InTest {
-    private static final String LINE_SEPERATOR = System.getProperty("line.separator");
     private static final String HERE = System.getProperty("user.dir") + "/src/test/resources/TestCases/InViz/InTest/Files/";
-    private static final String intValueString = "123" + LINE_SEPERATOR + "45 89 0 ";
+    private static final String intValueString = "123\n45 89 0 ";
     private static final String  stringWithoutSpaces = "12345890";
     private static final double[] doubleValues = new double[] {123.45, 7e8, .02, -568.};
     private static final boolean[] booleanValues = new boolean[] {true, false, true, false, true};

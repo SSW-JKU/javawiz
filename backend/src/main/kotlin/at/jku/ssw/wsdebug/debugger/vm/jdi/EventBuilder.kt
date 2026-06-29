@@ -73,10 +73,10 @@ fun buildTraceState(
         stackFrames,
         heap.values.toMutableList(),
         loadedClasses,
-        output,
-        error,
-        input,
-        inputBufferInfo,
+        output.normalizeLineEndings(),
+        error.normalizeLineEndings(),
+        input.normalizeLineEndings(),
+        inputBufferInfo.normalizeLineEndings(),
         stepProcessingTime,
         timeSinceLastStep,
         streamOperationValues.snapshot()
@@ -84,6 +84,17 @@ fun buildTraceState(
 
     return traceState
 }
+
+private fun String.normalizeLineEndings(): String =
+    replace("\r\n", "\n").replace("\r", "\n")
+
+private fun InputBufferInfo.normalizeLineEndings(): InputBufferInfo =
+    copy(
+        past = past.normalizeLineEndings(),
+        future = future.normalizeLineEndings(),
+        latestValue = latestValue.normalizeLineEndings(),
+        latestMethod = latestMethod.normalizeLineEndings()
+    )
 
 private fun buildStackItem(
     frame: com.sun.jdi.StackFrame,

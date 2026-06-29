@@ -108,6 +108,12 @@ Use the repository's Gradle wrapper from the project root:
 
 On Windows, use `gradlew.bat` instead of `./gradlew`.
 
+The Gradle configuration cache is enabled centrally for all wrapper commands,
+including IDE, CI, development, and publishing tasks. Repeated commands can
+therefore reuse their configured task graph automatically. For troubleshooting
+an incompatible task or plugin, disable it for one invocation with
+`--no-configuration-cache`.
+
 Build outputs:
 
 - Frontend: `frontend/dist/index.html`
@@ -138,6 +144,8 @@ These tasks are also available as IntelliJ run configurations when the repositor
 # Run the backend suite on every configured JDK
 ./gradlew :backend:testAll
 ```
+
+By default, Gradle prints only failed backend tests and suppresses test-process standard streams. Add `-PverboseTests` to a backend test command to print passed/skipped events and standard output/error, for example `./gradlew :backend:test -PverboseTests`.
 
 Backend tests also run automatically on Windows and Linux for pushed commits, tags, and published GitHub releases.
 

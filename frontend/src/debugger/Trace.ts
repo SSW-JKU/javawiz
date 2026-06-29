@@ -14,11 +14,13 @@ import { SequenceDiagramHistory } from '@/components/TheSequenceDiagram/Sequence
 import { Arrow, LifeLine, Box } from '@/components/TheSequenceDiagram/types'
 import { calculateDeskTestLine } from '@/components/TheDeskTest/line'
 import { TraceData } from './TraceData'
+import { PetAnnotation } from '@/dto/DebuggerProtocol'
 
 export class Trace {
   private readonly trace: TraceState[]
   private readonly processedTrace: ProcessedTraceState[]
   private readonly deskTestLines: DeskTestLine[]
+  private readonly initialConsoleLines: ConsoleLine[]
 
   private readonly sequenceDiagramHistory: SequenceDiagramHistory
 
@@ -26,6 +28,7 @@ export class Trace {
     this.trace = []
     this.processedTrace = []
     this.deskTestLines = []
+    this.initialConsoleLines = []
     this.sequenceDiagramHistory = new SequenceDiagramHistory()
   }
 
@@ -54,11 +57,27 @@ export class Trace {
   }
 
   private getConsoleLines (stateIndex: number): ConsoleLine[] {
-    return this.trace
+    const traceConsoleLines = this.trace
       .slice(0, stateIndex + 1)
       .map((state: TraceState) => {
         return { input: state.input, output: state.output, error: state.error }
       })
+    return [
+      ...this.initialConsoleLines,
+      ...traceConsoleLines
+    ]
+  }
+
+  public setPetDiagnostics (pets: PetAnnotation[]): void {
+    this.initialConsoleLines.length = 0
+    if (pets.length === 0) {
+      return
+    }
+    this.initialConsoleLines.push({
+      input: '',
+      output: formatPetDiagnostics(pets),
+      error: ''
+    })
   }
 
   public addTraceStates (
@@ -413,6 +432,20 @@ export class Trace {
         })
     }
   }
+}
+
+function formatPetDiagnostics (pets: PetAnnotation[]): string {
+  const plural = pets.length === 1 ? '' : 's'
+  const lines = [`[PET] ${pets.length} PET comment${plural} found.`]
+
+  pets.forEach((pet, index) => {
+    const payload = pet.payload ? `, payload="${pet.payload}"` : ''
+    lines.push(
+      `[PET] ${index + 1}. ${pet.uri}:${pet.lineNr} -> action="${pet.action}", view="${pet.view ?? ''}", target="${pet.target ?? ''}"${payload}`
+    )
+  })
+
+  return `${lines.join('\n')}\n`
 }
 
 function hasChanged (current: Val, currentHeap: HeapItem[], next: Val, nextHeap: HeapItem[]): boolean {

@@ -55,7 +55,7 @@ jobs:
       # testAll runs the standard test suite once for every supported JDK.
       - name: Run all backend tests
         shell: bash
-        run: bash ./gradlew :backend:testAll --no-daemon --stacktrace
+        run: bash ./gradlew :backend:testAll --continue --no-daemon --stacktrace
 
       # Store both formats: XML for tools and the full Gradle HTML report for people.
       - name: Upload complete test reports
