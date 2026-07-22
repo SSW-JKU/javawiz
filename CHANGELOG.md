@@ -37,7 +37,6 @@ All notable changes to this project will be documented in this file.
 * JW-465: Store JUnit test results in GitHub Actions
 * JW-466: Update contributors in the About overlay
 * JW-467: Exclude release-script tests from the public repository mirror
-* JW-468: Refresh repository descriptions and Serena knowledge after recent project changes
 
 [2.0.3] (released on 2026-06-24)
 * JW-461: Automate IntelliJ plugin publishing during releases
@@ -107,7 +106,6 @@ All notable changes to this project will be documented in this file.
 * JW-390: Audit and reduce unnecessary TypeScript/tooling drift across TS subprojects
 * JW-393: Memory View: Add title attribute to all DOT template cells
 * JW-394: Improve run-javawiz Copilot skill: reliable editor setValue and process shutdown
-* JW-395: Secure .serena folder and document publishing process
 * JW-396: Add agent instructions for Claude Code and OpenCode
 * JW-398: Fix npm install failure in frontend due to alpha typescript-eslint versions
 * JW-399: Fix frontend TypeScript build errors (duplicate identifiers and type incompatibility)
