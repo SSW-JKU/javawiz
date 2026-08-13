@@ -99,7 +99,7 @@ export function drawLifeLines (
           .classed(HTML.classes.highlighted.lifeLine, d => isHighlightedLifeLine(hoveredInfos, elems.arrows, d))
           .on('mouseenter', (_event, data: any) => {
             const lifeLine = data as LifeLine
-            const hoverInfos = getLifeLineHoverInfo(lifeLine.className, lifeLine.heapId, currHeapVizTraceState)
+            const hoverInfos = getLifeLineHoverInfo(lifeLine.className, lifeLine.heapObjectId, currHeapVizTraceState)
             if (isVisible(lifeLine)) {
               onHover(hoverInfos)
             }
@@ -126,8 +126,8 @@ export function drawLifeLines (
           .attr('font-weight', LAYOUT.text.fontWeight)
           .style('opacity', d => getLifeLineOpacity(d))
           .append('xhtml:div')
-          .text(d => d.heapId ? `${d.label} : ${getLifeLineClassWithoutPackageAndOuterClass(d.className)}` : `${getLifeLineClassWithoutPackageAndOuterClass(d.className)}`)
-          .attr('title', d => d.heapId ? `${d.label} : ${getLifeLineClassWithoutPackageAndOuterClass(d.className)}` : `${getLifeLineClassWithoutPackageAndOuterClass(d.className)}`)
+          .text(d => d.heapObjectId ? `${d.label} : ${getLifeLineClassWithoutPackageAndOuterClass(d.className)}` : `${getLifeLineClassWithoutPackageAndOuterClass(d.className)}`)
+          .attr('title', d => d.heapObjectId ? `${d.label} : ${getLifeLineClassWithoutPackageAndOuterClass(d.className)}` : `${getLifeLineClassWithoutPackageAndOuterClass(d.className)}`)
         group.append('line')
           .attr('id', HTML.ids.horizontalLine)
           .attr('x1', d => getXForHorizontal(d, elems.lifeLines)[0])
@@ -460,7 +460,7 @@ export function drawBoxes (
           })
           .on('mouseenter', (_event, data: any) => {
             const box = data as Box
-            const hoverInfos = getBoxHoverInfo(box.index, box.start, box.lifeLine.className, box.callArrow, box.lifeLine.heapId, currHeapVizTraceState)
+            const hoverInfos = getBoxHoverInfo(box.index, box.start, box.lifeLine.className, box.callArrow, box.lifeLine.heapObjectId, currHeapVizTraceState)
             if (isVisible(box)) onHover(hoverInfos)
           })
           .on('mouseleave', () => HoverSynchronizer.clear())

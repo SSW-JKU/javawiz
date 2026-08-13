@@ -16,7 +16,7 @@ type VisibilityState = 'collapsed' | 'expanded' | 'hidden'
  * start: starting time index when the lifeline is first created
  * end: ending time index when the lifeline does not exist anymore
  * label: name of the lifeline
- * heapId: if the lifeline is created for an object, then it has a heap id for identification
+ * heapObjectId: if the lifeline is created for an object, then it has a heap object id for identification
  * index: lifeline index for unique identification
  * className: name of the class of the lifeline
  * programEnd: flag is set to true when the program ended
@@ -30,7 +30,7 @@ export type LifeLine = {
   readonly start: number
   end?: number
   readonly label: string
-  readonly heapId?: number | undefined
+  readonly heapObjectId?: number | undefined
   readonly index: number
   readonly className: string
   programEnd: boolean

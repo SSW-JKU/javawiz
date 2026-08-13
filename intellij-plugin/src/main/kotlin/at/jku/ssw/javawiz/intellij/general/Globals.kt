@@ -87,7 +87,7 @@ object Globals {
     val USE_DEV_TOOLS: Boolean = properties.getProperty("useDevTools").toBoolean()
 
     // Actions & Run Configurations
-    val ACTION_ID_RUN: String = properties.getProperty("actionID")
+    val ACTION_ID_RUN: String = properties.getProperty("actionId")
   }
 
   object Strings {

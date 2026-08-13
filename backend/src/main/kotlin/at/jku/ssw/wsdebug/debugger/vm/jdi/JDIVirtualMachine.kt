@@ -310,18 +310,18 @@ class JDIVirtualMachine(
             }
 
             "recordArrayAccess" -> {
-                val arrayAccessID = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("arrayAccessId")!!) as IntegerValue).value()
+                val arrayAccessId = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("arrayAccessId")!!) as IntegerValue).value()
                 val index = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("index")!!) as IntegerValue).value()
-                val arrayObjectID = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("array")!!) as ObjectReference).uniqueID()
+                val arrayObjectId = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("array")!!) as ObjectReference).uniqueID()
                 val dimension = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("dimension")!!) as IntegerValue).value()
 
                 arrayAccessTracer.addPartialArrayAccess(
                     0, // do not use `callingUserMethodFrameIndex` here because later on in the trace state the user code method will be at index 0 (since JavaWiz-methods are
                     // excluded from the stack trace)
                     parseInfo.localUri,
-                    arrayAccessID,
+                    arrayAccessId,
                     indexValue = index,
-                    objectID = arrayObjectID,
+                    objectId = arrayObjectId,
                     dimension = dimension
                 )
             }

@@ -38,9 +38,10 @@ with source maps enabled for Vue and TypeScript breakpoints.
 
 ### IntelliJ
 
-When the whole `eInformatics` project is open in IntelliJ, run the shared
-`:frontend:run` Gradle configuration to start Vite, then start
-`Debug Frontend (Chrome)` to open `http://localhost:5173` with JavaScript
+When the whole `eInformatics` project is open in IntelliJ,
+**run** the shared `:frontend:run` Gradle configuration to start Vite, wait until the server is running.
+Then **debug** `Debug Frontend (Chrome)`.
+This opens `http://localhost:5173` with JavaScript
 source-map debugging enabled for Vue and TypeScript breakpoints.
 
 The debug configuration includes Vite URL mappings for `frontend` and the

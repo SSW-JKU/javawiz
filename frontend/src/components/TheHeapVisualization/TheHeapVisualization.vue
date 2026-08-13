@@ -1,6 +1,10 @@
 <template>
   <div id="heap-wrapper">
-    <NavigationBarWithSettings :zoom-in="zoomIn" :zoom-out="zoomOut" :zoom-reset="zoomReset" :viz-id="visualizationStore.MEMORY.id">
+    <NavigationBarWithSettings
+      :zoom-in="zoomIn"
+      :zoom-out="zoomOut"
+      :zoom-reset="zoomReset"
+      :viz-id="visualizationStore.MEMORY.id">
       <HeapVisualizationSettings v-model:show-internal-class-fields="showInternalClassFields" />
     </NavigationBarWithSettings>
   </div>

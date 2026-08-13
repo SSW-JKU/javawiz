@@ -10,6 +10,7 @@
     <VerticalSpacer />
     <TheLayoutSelector />
     <VerticalSpacer />
+    <VerticalSpacer />
     <TheTitleArea />
   </div>
 </template>
@@ -32,12 +33,8 @@ const generalStore = useGeneralStore()
   box-sizing: border-box;
   padding: 4px 0px;
   background: #163150;
-  /* box-shadow: 0.5px 0.5px 2px 0px rgba(0, 0, 0, 0.75); */ /* Removed due to general app border */
 }
 
-/* Set via code from Debugger.js using .classed('jiggle', true)
-   -> MW 26.06.24: This comment seems to be outdated, cannot find 'jiggle' in the code, but I'm keeping the comment and the
-    CSS class here for now */
 .jiggle {
   animation: jiggle 0.2s 5 linear, zoomie 1s 1 linear;
 }

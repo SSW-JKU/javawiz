@@ -37,6 +37,7 @@
     Following students are working on or have been working on JavaWiz
     as part of the <a href="https://ssw.jku.at/General/Staff/" target="_blank" rel="noopener noreferrer">Institute for System Software team</a>:
     <ul>
+      <li>Alexander Do</li>
       <li>Simon Grünbacher</li>
       <li>Valentin Jochinger</li>
       <li>Katrin Kern</li>
@@ -81,7 +82,7 @@ import { useOverlayStore } from '@/store/OverlayStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-06-29-23-19'
+const releaseDate = '2026-08-13-14-16'
 const overlayStore = useOverlayStore()
 
 function hide () {

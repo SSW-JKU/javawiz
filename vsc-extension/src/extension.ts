@@ -10,7 +10,7 @@ import * as portfinder from 'portfinder'
 import * as http from 'http'
 import * as path from 'path'
 import shared from '../../shared/src/Shared'
-import * as child_process from 'child_process'
+import { JavaRuntimeCompatibilityError } from './JavaRuntime'
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -21,7 +21,6 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('javawiz.createIn', (...args: any[]) => createAdditionalClass('In', context, args)),
     vscode.commands.registerCommand('javawiz.createOut',  (...args: any[]) => createAdditionalClass('Out', context, args))
   )
-  checkJavaVersion()
   console.log('### JavaWiz extension activated ###')
 }
 
@@ -69,7 +68,10 @@ export class Extension {
       Webview.activate(name, frontendPort, communicationPort, debuggerPort)
       Extension.state = 'running'
     } catch (e: any) { // some of these initialization operations might fail; in that case, we want to clean up everything else we did
-      vscode.window.showErrorMessage(`Could not start javawiz due to an internal error: ${e}`)
+      const message = e instanceof JavaRuntimeCompatibilityError
+        ? e.message
+        : `Could not start JavaWiz due to an internal error: ${e}`
+      vscode.window.showErrorMessage(message)
       shared.logDebug(String(e))
       Extension.state = 'running' // ensure endDebug() is executed
       await this.endDebug()
@@ -223,44 +225,6 @@ async function toggleJavaFeatures(enable: boolean) {
     }
   }
 }
-
-const LOWEST_SUPPORTED = 17
-
-function checkJavaVersion() {
-  child_process.exec('javac -version', (err, out) => {
-    if(err) {
-      vscode.window.showWarningMessage(`Error executing "javac -version": ${err}`)
-    }
-    const version = parseInt(out.substring(6), 10)
-    if(Number.isNaN(version) || !version) {
-      if(process.env.PATH?.toLowerCase().includes('jdk')) {
-        vscode.window.showWarningMessage('Could not verify correct version of javac.')
-      } else {
-        vscode.window.showWarningMessage('Could not find jdk on path.')
-      }
-      return
-    }
-    if(version < LOWEST_SUPPORTED) {
-      vscode.window.showWarningMessage(`JavaWiz requires java ${LOWEST_SUPPORTED} or higher. "javac -version" returns major version ${version}. You may find that it works fine, or you may not.`)
-    }
-  })
-
-  child_process.exec('java -version', (error, _stdout, stderr) => {
-    if(error) {
-      vscode.window.showWarningMessage(`error executing "java -version": ${error}`)
-    }
-    const match = stderr.match(/version "(.*?)"/)
-    const version = parseInt(match ? match[1] : '0', 10)
-    if(!version) {
-      vscode.window.showWarningMessage('Could not determine java version.')
-      return
-    }
-    if(version < LOWEST_SUPPORTED) {
-      vscode.window.showWarningMessage(`"javac -version" returns major version ${version}. You may find that it works fine, or you may not.`)
-    }
-  })
-}
-
 
 function createAdditionalClass(name: 'In' | 'Out', context: vscode.ExtensionContext, ...args: any[]) {
   let uri = vscode.workspace.workspaceFolders?.[0].uri

@@ -10,7 +10,7 @@
 
 [🌐 Visit javawiz.net](https://javawiz.net/) · [📋 View the changelog](https://javawiz.net/changelog.html)
 
-JavaWiz helps programming beginners understand what their Java programs are doing. Step through code line by line and watch control flow, variables, memory, arrays, data structures, method calls, streams, and input evolve in synchronized visualization panels.
+JavaWiz helps programming beginners understand what their Java programs are doing. Step through code line by line and watch control flow, memory, variable histories, arrays, linked lists, binary trees, method calls, streams, input, and the complete execution history evolve in synchronized visualization panels.
 
 Unlike a traditional debugger, JavaWiz records the execution trace. You can move backward and forward through a program without restarting it, making abstract runtime behavior concrete and easier to explain, explore, and revisit.
 
@@ -25,11 +25,14 @@ Unlike a traditional debugger, JavaWiz records the execution trace. You can move
 - ⏪ **Time-travel debugging** — step backward, replay earlier states, and inspect an execution at your own pace.
 - 🧭 **Visual control flow** — follow the currently executing statement in automatically generated flowcharts.
 - 🧠 **Concrete memory models** — see stack frames, static variables, heap objects, references, and object relationships.
-- 📊 **Execution history** — track variable values and conditions from one statement to the next in a tabular view.
-- 🧩 **Data-structure visualizations** — explore arrays, linked lists, and binary trees with purpose-built animated views.
+- 📊 **Tabular view** — track variable values and conditions from one statement to the next.
+- 🧩 **Array visualization** — follow index expressions, assignments, and values moving between variables and array cells.
+- 🔗 **Linked List visualization** — see nodes, references, traversals, insertions, and deletions as they happen.
+- 🌳 **Binary Tree visualization** — explore tree structure and watch traversal and update algorithms operate on it.
 - 🌊 **Java Stream visualization** — trace execution order, transformations, intermediate results, and element lineage in dynamic marble diagrams.
-- 🔗 **Sequence diagrams** — see how objects interact through method calls.
+- 🔁 **Sequence diagrams** — see how objects interact through method calls.
 - ⌨️ **Input visualization** — inspect consumed and remaining input when using JavaWiz's `In.java` class.
+- 🔎 **History View** — browse calls and assignments across the complete trace, filter or search them, and jump directly to a matching execution state.
 - 🎓 **Built for teaching and learning** — useful for individual exploration, exercises, and live classroom demonstrations.
 
 ## 🔍 Visualization Highlights
@@ -68,13 +71,25 @@ Download the latest IntelliJ plugin ZIP from [GitHub Releases](https://github.co
 
 ## 📚 Research
 
-JavaWiz was developed at the [Institute for System Software](https://ssw.jku.at/) at Johannes Kepler University Linz, Austria. Its design and educational applications are described in:
+JavaWiz was developed at the [Institute for System Software](https://ssw.jku.at/) at Johannes Kepler University Linz, Austria. Its design, extensions, and educational applications are described in:
 
 > Markus Weninger, Simon Grünbacher, and Herbert Prähofer.<br>
 > **JavaWiz: A Trace-Based Graphical Debugger for Software Development Education.**<br>
 > 33rd IEEE/ACM International Conference on Program Comprehension (ICPC 2025).
 
 [Read the paper](https://javawiz.net/paper/ICPC_25_Preprint.pdf)
+
+> Melissa Sen and Markus Weninger.<br>
+> **JavaWiz ThreadViz - A Visual Debugger for Multi-threaded Programs Based on the Espresso Java VM.**<br>
+> 40th European Conference on Object-Oriented Programming (ECOOP 2026).
+
+[Read the paper](https://ssw.jku.at/General/Staff/Weninger/Papers/Sen_ECOOP_26_Preprint.pdf)
+
+> Markus Weninger.<br>
+> **Towards Guided Omniscient Debugging in Education Using Pedagogical Execution Traces (PETs).**<br>
+> Fourth Workshop on Future Debugging Techniques (DEBT 2026).
+
+[Read the paper](https://ssw.jku.at/General/Staff/Weninger/Papers/Weninger_DEBT_26_Preprint.pdf)
 
 ## 🛠️ For Developers
 

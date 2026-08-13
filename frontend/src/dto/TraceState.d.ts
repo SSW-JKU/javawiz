@@ -72,7 +72,7 @@ export interface ArrayAccess {
 export type ArrayAccessValue = {
   readonly indexValues: number[]
   readonly evaluated: boolean
-  readonly arrayObjectID: number
+  readonly arrayObjectId: number
   readonly arrayAccess: ArrayAccess
 }
 
@@ -217,7 +217,7 @@ interface StreamMarble {
   readonly y: number,
   readonly valuetype: string,
   readonly label: string,
-  readonly operationID: number,
+  readonly operationId: number,
   readonly type: string,
   readonly color: string,
   readonly direction: string

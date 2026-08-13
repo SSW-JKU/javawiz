@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.1.1"
+version = "2.1.2"
 
 fun htmlEscape(value: String): String =
     value
@@ -111,6 +111,12 @@ dependencies {
 
     // SLF4J binding (suppresses "No SLF4J providers found" at runtime)
     implementation("org.slf4j:slf4j-simple:2.0.9")
+    testImplementation(kotlin("test-junit5"))
+    // IntelliJ 2026.1's test javaagent uses the coroutine-debug API shipped with 1.8.x.
+    // Keep this alignment test-only; the plugin's production Ktor dependency remains unchanged.
+    testRuntimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.0")
+    // IntelliJ's JUnit 5 session listener still references the JUnit 4 TestCase compatibility type.
+    testRuntimeOnly("junit:junit:4.13.2")
 
     // IntelliJ Platform
     intellijPlatform {
@@ -186,6 +192,10 @@ val copyFrontendToIntellijPlugin by tasks.registering(Copy::class) {
 }
 
 tasks {
+    test {
+        useJUnitPlatform()
+    }
+
     // Disable buildSearchableOptions — the plugin adds no settings entries, and the task
     // is incompatible with the coroutines-javaagent on IntelliJ 2026+ classloaders.
     named("buildSearchableOptions") { enabled = false }

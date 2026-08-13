@@ -4,9 +4,10 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import Shared from '../../shared/src/Shared'
 import kill from 'tree-kill'
+import { checkJavaRuntime, JavaRuntimeCompatibilityError } from './JavaRuntime'
 
 const ASSETS_PATH_SEGMENTS = ['out', 'assets', 'backend', 'libs']
-const BACKEND_JAR = 'backend-2.1.1.jar'
+const BACKEND_JAR = 'backend-2.1.2.jar'
 
 export class Backend {
   private static running = false
@@ -18,7 +19,6 @@ export class Backend {
     if (Backend.running) {
       return
     }
-    Backend.running = true
 
     const backendPath = vscode.Uri.joinPath(extensionPath, ...ASSETS_PATH_SEGMENTS, BACKEND_JAR).fsPath
 
@@ -27,11 +27,18 @@ export class Backend {
       throw new Error(`Backend not found under the file name ${backendPath}`)
     }
 
+    // Check the same PATH-resolved commands used by the backend before creating a partial session.
+    const javaRuntime = await checkJavaRuntime()
+    if (!javaRuntime.ok) {
+      throw new JavaRuntimeCompatibilityError(javaRuntime.message)
+    }
+
     let workspacePath;
     if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
       workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath
     }
 
+    Backend.running = true
     Backend.process = child_process.spawn(
       'java',
       [

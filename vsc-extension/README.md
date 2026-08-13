@@ -5,20 +5,18 @@ JavaWiz is a visualization plugin for Java programs targeted at programming begi
 JavaWiz is developed and maintained by the [Institute for System Software](https://ssw.jku.at/), Johannes Kepler University Linz, Austria.
 
 ## Features
-At the moment it provides eight visualizations:
+JavaWiz provides ten visualization views:
 - Flow charts, visually representing the control flow of the program.
 - A memory visualization. It displays statics, the stack, and the heap, to help understand how program memory works.
 - A "tabular view" displaying the variable changes from line to line, which is useful for understanding simple algorithms.
-- Three dedicated visualizations for 
-  - arrays,
-  - singly linked lists, and 
-  - binary trees
-  
-  The goal is a simple and easy-to-follow representation to support understanding algorithms on these data structures.
+- An array visualization showing index expressions, assignments, and the values in each array cell.
+- A Linked List visualization showing nodes, references, and changes during list algorithms.
+- A Binary Tree visualization showing tree structure and changes during tree algorithms.
 - A Java Stream API visualization using dynamic Marble Diagrams to show execution order, transformations, intermediate results, and element lineage through the pipeline.
-- Sequence diagrams, which shows how objects relate to each other by depicting the method calls between them.
+- Sequence diagrams, which show how objects relate to each other by depicting the method calls between them.
 - Input buffer visualization
   - _Hint: To use this feature, you have to use JavaWiz's `In.java` class to read input. This class can easily be added to your project by right-clicking on the project folder in the explorer and selecting "Create In.java"._
+- A History View for browsing calls and assignments across the complete execution trace, filtering or searching them, and jumping to matching program states.
 
 ## How to use
 The extension requires at least **JDK 25** to run.

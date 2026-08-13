@@ -47,4 +47,3 @@ class JWExecutor : Executor() {
     return null
   }
 }
-

@@ -17,8 +17,8 @@ import { TraceData } from './TraceData'
 import { PetAnnotation } from '@/dto/DebuggerProtocol'
 
 export class Trace {
-  private readonly trace: TraceState[]
-  private readonly processedTrace: ProcessedTraceState[]
+  public readonly trace: TraceState[]
+  public readonly processedTrace: ProcessedTraceState[]
   private readonly deskTestLines: DeskTestLine[]
   private readonly initialConsoleLines: ConsoleLine[]
 
@@ -89,9 +89,11 @@ export class Trace {
       this.trace.push(state)
     })
     let currentDeskTestLine = this.deskTestLines.pop()
-    let currentIdx = this.processedTrace.at(-1)?.stateIndex ?? 0
+    const lastAlreadyProcessedIdx = this.processedTrace.at(-1)?.stateIndex ?? -1
+    let currentIdx = lastAlreadyProcessedIdx + 1
     let current: TraceState | undefined = this.trace[currentIdx]
     while (current && currentIdx + 1 < this.trace.length) {
+      console.log('Process trace between states', currentIdx, 'and', currentIdx + 1)
       const nextIdx = currentIdx + 1
       const next = this.trace[nextIdx]
 
@@ -178,7 +180,7 @@ export class Trace {
   }
 
   private delta (fromIndex: number, toIndex: number): ProcessedTraceState | undefined {
-    return Trace.calculateProcessedTraceState(this.trace[fromIndex], this.trace[toIndex], fromIndex)
+    return Trace.calculateProcessedTraceState(this.trace[fromIndex], _.cloneDeep(this.trace[toIndex]), fromIndex)
   }
 
   get traceLength (): number {

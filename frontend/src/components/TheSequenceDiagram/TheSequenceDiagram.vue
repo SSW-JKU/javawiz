@@ -54,7 +54,7 @@ import { fromProcessedTraceState } from '@/components/TheHeapVisualization/mappi
 
 const svg = ref(select('#sequence-diagram-svg'))
 const resizeObserver = ref<ResizeObserver>()
-let transform: any = null // holds the current zoom-state
+let transform: any = zoomIdentity // holds the current zoom-state
 const zoomCall = ref(zoom().on('zoom', (event) => {
   transform = event.transform
   select('#sequence-diagram').attr('transform', event.transform)

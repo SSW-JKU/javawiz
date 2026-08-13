@@ -33,12 +33,12 @@
             <a href="#features-section" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"> Explore Features </a>
             <a href="#video-section" class="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
               Watch Demo </a>
-            <a href="#research-section" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"> Read the Paper </a>
+            <a href="#research-section" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"> Read the Papers </a>
           </div>
           <!-- Quick Stats -->
           <div class="grid grid-cols-3 gap-4 mt-12">
             <div class="text-center">
-              <div class="text-3xl font-bold">6+</div>
+              <div class="text-3xl font-bold">10</div>
               <div class="text-sm opacity-80">Visualization Views</div>
             </div>
             <div class="text-center">
@@ -77,8 +77,8 @@
     <div class="container mx-auto px-4">
       <h2 class="text-3xl font-bold text-center mb-8">How to Get</h2>
       <p class="text-center text-gray-700 mb-6">
-        Latest Version: <span id="current-version-number" class="font-bold text-blue-800">2.1.1</span>,
-        released on <span id="release-date" class="font-bold text-blue-800">29.06.2026</span> (<a href="changelog.html" class="text-blue-600">Changelog</a>).
+        Latest Version: <span id="current-version-number" class="font-bold text-blue-800">2.1.2</span>,
+        released on <span id="release-date" class="font-bold text-blue-800">13.08.2026</span> (<a href="changelog.html" class="text-blue-600">Changelog</a>).
       </p>
       <div class="flex flex-col md:flex-row justify-center items-center gap-6 text-center">
         <a href="https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz"
@@ -129,6 +129,10 @@
   <section id="features-section" class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
       <h2 class="text-3xl font-bold text-center mb-12">Features</h2>
+      <p class="max-w-5xl mx-auto text-center text-gray-700 mb-12">
+        JavaWiz provides ten synchronized visualization views: Flowchart, Memory, Tabular, Array, Linked List, Binary Tree,
+        Sequence Diagram, Input, Java Stream, and History.
+      </p>
       <div class="grid md:grid-cols-2 gap-8">
         <!-- Flowchart View Card -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -213,14 +217,39 @@
               Displays the latest operation's return value and success status, helping beginners understand input operations.</p>
           </div>
         </div>
+
+        <!-- Sequence Diagram Card -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="p-4">
+            <img src="img/sequence-diagram.png" alt="Sequence Diagram showing two heroes trading items" class="w-full h-48 object-cover" />
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-2">Sequence Diagram</h3>
+            <p class="text-gray-600">Shows objects, method calls, returns, and lifetimes over the course of the execution.
+              This makes object interactions and nested call sequences easier to follow.</p>
+          </div>
+        </div>
+
+        <!-- History View Card -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="p-4">
+            <img src="img/history-view.png" alt="History View showing calls and field changes during two item trades" class="w-full h-48 object-cover" />
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-2">History View</h3>
+            <p class="text-gray-600">Presents calls, constructors, initializers, and assignments to variables, fields, and array elements
+              across the complete execution trace. Filter or search the history and jump directly to any matching program state.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Research Paper Section (NEW) -->
+  <!-- Research Papers Section -->
   <section id="research-section" class="py-16 bg-white">
     <div class="container mx-auto px-4">
-      <h2 class="text-3xl font-bold text-center mb-8">Research Paper</h2>
+      <h2 class="text-3xl font-bold text-center mb-8">Research Papers</h2>
+      <div class="space-y-8">
       <div class="max-w-6xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8">
         <div class="flex flex-col md:flex-row gap-6">
           <!-- Paper Icon/Image -->
@@ -305,6 +334,233 @@ Weninger, M., Grünbacher, S., & Prähofer, H. (2025). JavaWiz: A Trace-Based Gr
           </div>
         </div>
       </div>
+
+      <div class="max-w-6xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8">
+        <div class="flex flex-col md:flex-row gap-6">
+          <div class="flex-shrink-0">
+            <div class="bg-blue-100 p-4 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="flex-grow">
+            <a href="paper/ECOOP_26_Preprint.pdf">
+              <h3 class="text-2xl font-bold text-blue-800 mb-4">JavaWiz ThreadViz - A Visual Debugger for Multi-threaded Programs Based on the Espresso Java VM</h3>
+            </a>
+
+            <p class="italic text-gray-700 mb-4">Sen, Melissa; Weninger, Markus</p>
+
+            <p class="text-gray-700 mb-6">Proceedings of the 40th European Conference on Object-Oriented Programming (ECOOP 2026), June 29-July 3, 2026,
+              Brussels, Belgium.</p>
+
+            <div class="mb-6">
+              <h4 class="font-semibold text-gray-800 mb-2">Abstract</h4>
+              <p class="text-gray-600">
+                Programming novices often face difficulties understanding how multi-threading works. Visual debuggers such as JavaWiz can support beginners by
+                providing dynamic visualizations of a program's behavior, however, they usually only work for single-threaded programs. This paper presents
+                ThreadViz, an extension of JavaWiz to support visualizing multi-threaded Java programs.
+                <br /><br />
+                In ThreadViz, thread information is collected for visualization by using the Truffle Debug API. Instead of real concurrency, threads are executed
+                stepwise, allowing the user to determine the order of execution and preventing any unpredictable behavior. In the user interface, a unique color
+                is associated with each thread to illustrate the effects of different synchronization mechanisms such as locking and indicate thread state
+                changes. To conclude, application examples are presented to highlight the tool's capabilities.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-4">
+              <a href="paper/ECOOP_26_Preprint.pdf"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Preprint
+              </a>
+              <a href="https://2026.ecoop.org/"
+                class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center"> Conference Website </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-800 mb-3">Cite</h4>
+          <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+            <pre>
+Sen, M., & Weninger, M. (2026). JavaWiz ThreadViz - A Visual Debugger for Multi-threaded Programs Based on the Espresso Java VM.
+<i>In Proceedings of the 40th European Conference on Object-Oriented Programming (ECOOP 2026)</i>. Brussels, Belgium.</pre>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-800 mb-3">BibTex</h4>
+          <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+            <pre>
+@inproceedings{Sen-ThreadViz-2026,
+  author       = {Melissa Sen and Markus Weninger},
+  title        = {{JavaWiz ThreadViz - A Visual Debugger for Multi-threaded Programs Based on the Espresso Java VM}},
+  booktitle    = {{Proceedings of the 40th European Conference on Object-Oriented Programming (ECOOP 2026)}},
+  pages        = {1--6},
+  year         = {2026},
+  address      = {Brussels, Belgium},
+  url          = {https://javawiz.net/paper/ECOOP_26_Preprint.pdf}
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-6xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8">
+        <div class="flex flex-col md:flex-row gap-6">
+          <div class="flex-shrink-0">
+            <div class="bg-blue-100 p-4 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="flex-grow">
+            <a href="paper/DEBT_26_Preprint.pdf">
+              <h3 class="text-2xl font-bold text-blue-800 mb-4">Towards Guided Omniscient Debugging in Education Using Pedagogical Execution Traces (PETs)</h3>
+            </a>
+
+            <p class="italic text-gray-700 mb-4">Weninger, Markus</p>
+
+            <p class="text-gray-700 mb-6">Proceedings of the Fourth Workshop on Future Debugging Techniques (DEBT 2026), June 29, 2026,
+              Brussels, Belgium.</p>
+
+            <div class="mb-6">
+              <h4 class="font-semibold text-gray-800 mb-2">Abstract</h4>
+              <p class="text-gray-600">
+                Educators frequently use trace-based debuggers for live classroom demonstrations. Yet, if a student's attention drops during class, they have to
+                fall back to watching recordings (providing a passive, non-interactive experience) or replaying the debugging session at home (lacking the
+                instructor's pedagogical context and verbal explanations). We introduce Pedagogical Execution Traces (PETs), a concept that enriches execution
+                traces with explanations, highlights and interactive questions.
+                <br /><br />
+                In this work-in-progress idea paper, we present the conceptual foundation of PETs as interactive learning artifacts, showing their applicability
+                within JavaWiz, an educational trace-based graphical debugger. We explore PET authoring design goals and outline ongoing work regarding
+                collaborative debugging scenarios and leveraging Large Language Models (LLMs) for trace annotation.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-4">
+              <a href="paper/DEBT_26_Preprint.pdf"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Preprint
+              </a>
+              <a href="https://2026.ecoop.org/home/debt-2026"
+                class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center"> Conference Website </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-800 mb-3">Cite</h4>
+          <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+            <pre>
+Weninger, M. (2026). Towards Guided Omniscient Debugging in Education Using Pedagogical Execution Traces (PETs).
+<i>In Proceedings of the Fourth Workshop on Future Debugging Techniques (DEBT 2026)</i>. Brussels, Belgium.</pre>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-800 mb-3">BibTex</h4>
+          <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+            <pre>
+@inproceedings{Weninger-PETs-2026,
+  author       = {Markus Weninger},
+  title        = {{Towards Guided Omniscient Debugging in Education Using Pedagogical Execution Traces (PETs)}},
+  booktitle    = {{Proceedings of the Fourth Workshop on Future Debugging Techniques (DEBT 2026)}},
+  pages        = {1--4},
+  year         = {2026},
+  address      = {Brussels, Belgium},
+  url          = {https://javawiz.net/paper/DEBT_26_Preprint.pdf}
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-6xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8">
+        <div class="flex flex-col md:flex-row gap-6">
+          <div class="flex-shrink-0">
+            <div class="bg-blue-100 p-4 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="flex-grow">
+            <a href="paper/VISSOFT_26_Preprint.pdf">
+              <h3 class="text-2xl font-bold text-blue-800 mb-4">Dynamic Visualization of Java Stream Operations for Education Using Marble Diagrams</h3>
+            </a>
+
+            <p class="italic text-gray-700 mb-4">Stiegler, Sebastian; Weninger, Markus</p>
+
+            <p class="text-gray-700 mb-6">Proceedings of the 14th IEEE Working Conference on Software Visualization (VISSOFT 2026), September 14-15, 2026,
+              Benevento, Italy.</p>
+
+            <div class="mb-6">
+              <h4 class="font-semibold text-gray-800 mb-2">Abstract</h4>
+              <p class="text-gray-600">
+                Java Streams provide a declarative abstraction for data processing, but their lazy evaluation semantics make runtime behavior difficult to
+                observe. Traditional debuggers are poorly suited for reasoning about element-level data flow, execution order, and transformation effects in
+                Stream pipelines, particularly for novice programmers.
+                <br /><br />
+                We present a trace-driven, execution-centric visualization approach that makes Java Stream execution explicit using dynamic Marble Diagrams.
+                We describe Marble Diagrams as a visual notation, introduce a reading strategy, and show how they can be reconstructed automatically from runtime
+                traces. We realize this approach as an extension of the educational debugger JavaWiz and demonstrate its applicability through representative
+                usage scenarios.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-4">
+              <a href="paper/VISSOFT_26_Preprint.pdf"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Preprint
+              </a>
+              <a href="https://vissoft.io/2026/"
+                class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center"> Conference Website </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-800 mb-3">Cite</h4>
+          <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+            <pre>
+Stiegler, S., & Weninger, M. (2026). Dynamic Visualization of Java Stream Operations for Education Using Marble Diagrams.
+<i>In Proceedings of the 14th IEEE Working Conference on Software Visualization (VISSOFT 2026)</i>. Benevento, Italy.</pre>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-800 mb-3">BibTex</h4>
+          <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+            <pre>
+@inproceedings{Stiegler-JavaStreams-2026,
+  author       = {Sebastian Stiegler and Markus Weninger},
+  title        = {{Dynamic Visualization of Java Stream Operations for Education Using Marble Diagrams}},
+  booktitle    = {{Proceedings of the 14th IEEE Working Conference on Software Visualization (VISSOFT 2026)}},
+  pages        = {1--12},
+  publisher    = {IEEE},
+  year         = {2026},
+  address      = {Benevento, Italy},
+  url          = {https://javawiz.net/paper/VISSOFT_26_Preprint.pdf}
+}</pre>
+          </div>
+        </div>
+      </div>
+      </div>
     </div>
   </section>
 
@@ -345,8 +601,12 @@ Weninger, M., Grünbacher, S., & Prähofer, H. (2025). JavaWiz: A Trace-Based Gr
             <li>Simon Grünbacher</li>
             <li>Valentin Jochinger</li>
             <li>Katrin Kern</li>
+            <li>Michael Kramer</li>
+            <li>Liliane Loibl</li>
+            <li>Michael Pittlik</li>
             <li>Felix Schenk</li>
             <li>Melissa Sen</li>
+            <li>David Weinstabl</li>
           </ul>
         </div>
 
@@ -356,7 +616,12 @@ Weninger, M., Grünbacher, S., & Prähofer, H. (2025). JavaWiz: A Trace-Based Gr
           <ul>
             <li>Sonja Cao</li>
             <li>Florian Gatzweiler</li>
+            <li>Filip Okic</li>
+            <li>Daniel Pfeffer</li>
+            <li>Robert Pröll</li>
+            <li>Thomas Schindlinger</li>
             <li>Andreas Schlömicher</li>
+            <li>Sebastian Stiegler</li>
           </ul>
           <p class="text-sm mt-2 text-gray-400">* ordered by last name</p>
         </div>

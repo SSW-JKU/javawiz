@@ -10,8 +10,8 @@ into something like
 */
 data class PartialArrayAccessValue (
     val localUri: String,
-    val accessID: Int, // uniquely identifies the [multidimensional] array access within a java file
+    val accessId: Int, // uniquely identifies the [multidimensional] array access within a java file
     val index: Int,
     val dimension: Int,
-    val arrayObjectID: Long
+    val arrayObjectId: Long
 )

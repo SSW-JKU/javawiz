@@ -6,6 +6,7 @@ export const useOverlayStore = defineStore('overlay', {
       showHelp: false, // for toggling the help overlay
       showAbout: false, // for toggling the about / developer overlay
       showReport: false, // for toggling the report overlay
+      showHistoryDSLInfo: false,
     }
   },
   actions: {
@@ -35,6 +36,12 @@ export const useOverlayStore = defineStore('overlay', {
     },
     closeReport () {
       this.showReport = false;
+    },
+    openHistoryDSLInfo () {
+      this.showHistoryDSLInfo = true
+    },
+    closeHistoryDSLInfo () {
+      this.showHistoryDSLInfo = false
     }
   }
 })

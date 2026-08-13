@@ -42,7 +42,7 @@ data class ArrayAccessTracer(val arrayAccesses: Map<Pair<String, Int>, ArrayAcce
     private fun mergePartial() {
         val merged = mutableListOf<PartialArrayAccessValue>()
         partialArrayAccessValues.forEach { (stackDepth, accesses) ->
-            accesses.groupBy { Pair(it.localUri, it.accessID) }
+            accesses.groupBy { Pair(it.localUri, it.accessId) }
                 .forEach { (k, v) ->
                     val access = arrayAccesses[k]!!
                     val requiredDimension = access.indexExpressions.size
@@ -50,15 +50,15 @@ data class ArrayAccessTracer(val arrayAccesses: Map<Pair<String, Int>, ArrayAcce
                         merged.addAll(v)
                         val anyElement = v.first()
                         v.forEach{ partialArrayAccessValue ->
-                            if(partialArrayAccessValue.arrayObjectID != anyElement.arrayObjectID) {
+                            if(partialArrayAccessValue.arrayObjectId != anyElement.arrayObjectId) {
                                 error("Partial Array access values in the same location (uri, token, stack-depth) have distinct array object id's")
                             }
                         }
                         arrayAccessValues.computeIfAbsent(stackDepth){ mutableMapOf() }
-                        arrayAccessValues[stackDepth]!![anyElement.accessID] = ArrayAccessValue(
+                        arrayAccessValues[stackDepth]!![anyElement.accessId] = ArrayAccessValue(
                             v.sortedBy { it.dimension }.map { it.index },
                             evaluated = true,
-                            arrayObjectID = anyElement.arrayObjectID,
+                            arrayObjectId = anyElement.arrayObjectId,
                             arrayAccess = access.copy(
                                 assignmentSourceVariableNames = access.assignmentSourceVariableNames.filter {
                                     // only trace those variable sources that were written to previously
@@ -78,14 +78,14 @@ data class ArrayAccessTracer(val arrayAccesses: Map<Pair<String, Int>, ArrayAcce
         partialArrayAccessValues.values.forEach { it.removeAll(merged) }
     }
 
-    fun addPartialArrayAccess(stackDepth: Int, sourceFileUri: String, accessID: Int, indexValue: Int, objectID: Long, dimension: Int) {
+    fun addPartialArrayAccess(stackDepth: Int, sourceFileUri: String, accessId: Int, indexValue: Int, objectId: Long, dimension: Int) {
         partialArrayAccessValues.computeIfAbsent(stackDepth) { mutableListOf() }
         partialArrayAccessValues[stackDepth]?.add(
             PartialArrayAccessValue(
                 sourceFileUri,
-                accessID = accessID,
+                accessId = accessId,
                 index = indexValue,
-                arrayObjectID = objectID,
+                arrayObjectId = objectId,
                 dimension = dimension
             )
         )

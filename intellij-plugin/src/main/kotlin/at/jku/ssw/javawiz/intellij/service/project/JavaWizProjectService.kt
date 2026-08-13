@@ -5,6 +5,8 @@ import at.jku.ssw.javawiz.intellij.components.Communication
 import at.jku.ssw.javawiz.intellij.components.Component
 import at.jku.ssw.javawiz.intellij.components.Debugger
 import at.jku.ssw.javawiz.intellij.components.Frontend
+import at.jku.ssw.javawiz.intellij.components.JavaRuntime
+import at.jku.ssw.javawiz.intellij.components.JavaRuntimeValidation
 import at.jku.ssw.javawiz.intellij.general.*
 import at.jku.ssw.javawiz.intellij.service.app.JavaWizApplicationService
 import at.jku.ssw.javawiz.intellij.toolwindows.InputListener
@@ -127,6 +129,21 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   // Public Methods
   //-------------------------------------------------
   fun startDebug(callback: () -> Unit) {
+    // Validate before opening tool windows or starting servers so an unsuitable PATH cannot
+    // leave a partial JavaWiz session behind.
+    when (val validation = JavaRuntime.check()) {
+      is JavaRuntimeValidation.Failure -> {
+        project.service<LoggerProjectService>().log(LogSource.PLUGIN, "[ERROR] ${validation.message}")
+        showInformationMessage("error", validation.message, focusFrontend = false)
+        callback()
+        return
+      }
+      is JavaRuntimeValidation.Success -> project.service<LoggerProjectService>().log(
+        LogSource.PLUGIN,
+        "Using Java ${validation.javaMajorVersion} and javac ${validation.javacMajorVersion}."
+      )
+    }
+
     attachDocumentListeners()
 
     findAvailablePorts()
@@ -445,7 +462,7 @@ class JavaWizProjectService(private val project: Project) : Disposable {
      */
   }
 
-  fun showInformationMessage(type: String, message: String) {
+  fun showInformationMessage(type: String, message: String, focusFrontend: Boolean = true) {
     val notificationType = when (type) {
       "information" -> NotificationType.INFORMATION
       "warning" -> NotificationType.WARNING
@@ -462,7 +479,9 @@ class JavaWizProjectService(private val project: Project) : Disposable {
       )
     )
 
-    setFocusToToolWindow(frontendToolWindow)
+    if (focusFrontend) {
+      setFocusToToolWindow(frontendToolWindow)
+    }
   }
 
   fun getFileContents(message: FrontendMessage): String {

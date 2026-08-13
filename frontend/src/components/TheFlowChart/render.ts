@@ -34,7 +34,7 @@ type BeforJoinSelection<T extends AstElement = AstElement> = d3.Selection<d3.Bas
 export type ToggleFn = (uuid: string) => void
 export type CollapseFn = ToggleFn
 export type FullWidthToggleFn = ToggleFn
-export type InlineFn = (uuid: string, candidateUUIDs: string[]) => Promise<void>
+export type InlineFn = (uuid: string, candidateUuids: string[]) => Promise<void>
 
 const MAIN_LINE_STROKE_WIDTH = 0.5
 const ACTIVE_COLOR = 'rgb(212,228,231)' // same as vscode plugin '#d4e4e7FF'

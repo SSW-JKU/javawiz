@@ -14,7 +14,7 @@ fun modificationPoints(conditions: List<Condition>, arrayAccessIndexWrappers: Li
     } + arrayAccessIndexWrappers.flatMap {
         return@flatMap listOf(
             Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.recordArrayAccess(" + it.outerIndexedVariableName + ","),
-            Insert(it.endLine, it.endColumn, "," + it.accessID + "," + it.dimension + ")")
+            Insert(it.endLine, it.endColumn, "," + it.accessId + "," + it.dimension + ")")
         )
     } + streamOperation.flatMap {
         val inserts = mutableListOf<Insert>()
@@ -22,7 +22,7 @@ fun modificationPoints(conditions: List<Condition>, arrayAccessIndexWrappers: Li
             inserts.add(
                 Insert(
                     it.endLine, it.endColumn, ".peek(x -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"START\", x, \"" + it.name + "\", " + it.id + ", " + it
-                        .streamID + ", \"" + it.param
+                        .streamId + ", \"" + it.param
                             + "\"))"
                 )
             )
@@ -32,19 +32,19 @@ fun modificationPoints(conditions: List<Condition>, arrayAccessIndexWrappers: Li
                 if (it.hasParam) {
                     if (it.name == "anyMatch" || it.name == "allMatch" || it.name == "noneMatch" || it.name == "max" || it.name == "min" || it.name == "collect") {
                         if (it.streamType == "java.util.stream.IntStream") {
-                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceIntParam(\"" + it.name + "\", " + it.id + ", " + it.streamID + ", " +
+                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceIntParam(\"" + it.name + "\", " + it.id + ", " + it.streamId + ", " +
                                     "\"" + it
                                 .param + "\", "))
                         } else if (it.streamType == "java.util.stream.LongStream") {
-                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceLongParam(\"" + it.name + "\", " + it.id + ", " + it.streamID + ", " +
+                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceLongParam(\"" + it.name + "\", " + it.id + ", " + it.streamId + ", " +
                                     "\"" + it
                                 .param + "\", "))
                         } else if (it.streamType == "java.util.stream.DoubleStream") {
-                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceDoubleParam(\"" + it.name + "\", " + it.id + ", " + it.streamID + ", " +
+                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceDoubleParam(\"" + it.name + "\", " + it.id + ", " + it.streamId + ", " +
                                     "\"" + it
                                 .param + "\", "))
                         } else {
-                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceParam(\"" + it.name + "\", " + it.id + ", " + it.streamID + ", " +
+                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceParam(\"" + it.name + "\", " + it.id + ", " + it.streamId + ", " +
                                     "\"" + it
                                 .param + "\", "))
                         }
@@ -53,14 +53,14 @@ fun modificationPoints(conditions: List<Condition>, arrayAccessIndexWrappers: Li
                     }
                     else if (it.name == "reduce") {
                         if (it.endMiddleArgLine != null && it.endMiddleArgColumn != null) {
-                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceBiParam(\"" + it.name + "\", " + it.id + ", " + it.streamID +
+                            inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceBiParam(\"" + it.name + "\", " + it.id + ", " + it.streamId +
                                     ", " +
                                     "\"" + it.param + "\", (" + it.castType + ") "))
                             inserts.add(Insert(it.endMiddleArgLine, it.endMiddleArgColumn, ")"))
                             inserts.add(Insert(it.realEndLine, it.realEndColumn, "; $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.collectAndTransformStreamOperationValues();"))
                         } else {
                             inserts.add(Insert(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceBinaryParam(\"" + it.name + "\", " + it.id + ", " + it
-                                .streamID +
+                                .streamId +
                                     ", " +
                                     "\"" + it.param + "\", (" + it.castType + ") ("))
                             inserts.add(Insert(it.realEndLine, it.realEndColumn, "; $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.collectAndTransformStreamOperationValues();"))
@@ -72,7 +72,7 @@ fun modificationPoints(conditions: List<Condition>, arrayAccessIndexWrappers: Li
                     }
                 } else {
                     inserts.add(Insert(it.beginLine, it.beginColumn, ".peek(x -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"END\", x, \"" + it.name + "\", 0, "
-                    + it.streamID + ", \"" + it.param + "\")" +
+                    + it.streamId + ", \"" + it.param + "\")" +
                             ")"))
                     inserts.add(Insert(it.realEndLine, it.realEndColumn, "; $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.collectAndTransformStreamOperationValues();"))
                 }
@@ -81,14 +81,14 @@ fun modificationPoints(conditions: List<Condition>, arrayAccessIndexWrappers: Li
                     Insert(
                         it.beginLine,
                         it.beginColumn,
-                        ".peek(x -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"IN\", x, \"" + it.name + "\", " + it.id + ", " + it.streamID + ", \"" + it.param + "\"))"
+                        ".peek(x -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"IN\", x, \"" + it.name + "\", " + it.id + ", " + it.streamId + ", \"" + it.param + "\"))"
                     )
                 )
                 inserts.add(
                     Insert(
                         it.endLine,
                         it.endColumn,
-                        ".peek(x -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"OUT\", x, \"" + it.name + "\", " + it.id + ", " + it.streamID + ", \"" + it.param + "\"))"
+                        ".peek(x -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"OUT\", x, \"" + it.name + "\", " + it.id + ", " + it.streamId + ", \"" + it.param + "\"))"
                     )
                 )
             }

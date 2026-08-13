@@ -721,7 +721,7 @@ internal class DebugWebSocketServerTest {
             evaluatedDim1IndexExpressions,
             evaluatedTopStackArrayAccesses.filter { it.arrayAccess.indexExpressions.size > 1 }.map { it.arrayAccess.indexExpressions[1].expression })
 
-        val evaluatedAssignmentTargetIDs = listOf(
+        val evaluatedAssignmentTargetIds = listOf(
             null,
             0,
             null,
@@ -738,7 +738,7 @@ internal class DebugWebSocketServerTest {
         )
 
         assertIterableEquals(
-            evaluatedAssignmentTargetIDs,
+            evaluatedAssignmentTargetIds,
             evaluatedTopStackArrayAccesses
                 .map { it.arrayAccess.assignmentTarget }
                 .map { if (it is ArrayAccessTarget) it.id else null }

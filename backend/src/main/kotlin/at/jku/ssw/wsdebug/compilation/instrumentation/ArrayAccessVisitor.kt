@@ -75,7 +75,7 @@ class ArrayAccessVisitor(val pos: Positioning) : TreeScanner() {
             return
         }
 
-        val accessID = max_id++ // using arrayAccessValues.size is inappropriate as we make a recursive call that adds elements before adding current element
+        val accessId = max_id++ // using arrayAccessValues.size is inappropriate as we make a recursive call that adds elements before adding current element
         val indexExpressions = indices.map {
             IndexExpression(it.toString(), it is JCTree.JCIdent)
         }
@@ -88,7 +88,7 @@ class ArrayAccessVisitor(val pos: Positioning) : TreeScanner() {
                 pos.getBeginColumn(remaining.index) - 1,
                 pos.getEndLine(remaining.index) - 1,
                 pos.getEndColumn(remaining.index) - 1,
-                accessID,
+                accessId,
                 dimension,
                 current.toString(),
             )
@@ -97,9 +97,9 @@ class ArrayAccessVisitor(val pos: Positioning) : TreeScanner() {
         }
 
         //assert(sourceVariableNames.isEmpty() || target == null) // TODO: doesn't hold
-        arrayAccessValues += ArrayAccess(accessID, indexExpressions, targets.lastOrNull(), sourceVariableNames, isTarget)
+        arrayAccessValues += ArrayAccess(accessId, indexExpressions, targets.lastOrNull(), sourceVariableNames, isTarget)
         if(isTarget) {
-            targets += ArrayAccessTarget(accessID)
+            targets += ArrayAccessTarget(accessId)
         }
     }
 }

@@ -5,7 +5,7 @@ data class IndexWrapper(
     val beginColumn: Int,
     val endLine: Int,
     val endColumn: Int,
-    val accessID: Int,
+    val accessId: Int,
     val dimension: Int,
     val outerIndexedVariableName: String
     ) {

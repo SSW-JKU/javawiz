@@ -123,7 +123,14 @@ pnpm-debug.log*
 .intellijPlatform/
 
 ### AI assistant workspace files ###
-.kiro/
+.kiro/*
+!.kiro/steering/
+!.kiro/steering/**
+!.kiro/settings/
+.kiro/settings/*
+!.kiro/settings/mcp.json
+!.kiro/skills/
+!.kiro/skills/**
 
 ### Generated release assets ###
 release-assets/

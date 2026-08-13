@@ -279,7 +279,7 @@ function addArrayTargetAnimation (
 ) {
   // find target access
   const targetAccessValue = structures.stackFrame.arrayAccessValues.find((access: ArrayAccessValue) => access.arrayAccess.id === targetArrayAccess.id)
-  const arrayTo = structures.arrays.find(array => (array.element as HeapArray).id === targetAccessValue?.arrayObjectID)
+  const arrayTo = structures.arrays.find(array => (array.element as HeapArray).id === targetAccessValue?.arrayObjectId)
   if (targetAccessValue && arrayTo) {
     visualizeValueCopy(
       structures.copyAnimations,
@@ -348,7 +348,7 @@ export function createGhostIdxAndTempVarsStruct (
       stackFrame.arrayAccessValues
         .filter(arrayAccessValue => arrayAccessValue.evaluated)
         .forEach(arrayAccessValue => {
-          const array = arrays.find(array => (array.element as HeapArray).id === arrayAccessValue.arrayObjectID)
+          const array = arrays.find(array => (array.element as HeapArray).id === arrayAccessValue.arrayObjectId)
           if (!array) {
             return
           }
@@ -417,7 +417,7 @@ export function detectArrayAccesses (
     component.traceState.stackAfterExecution.forEach(stackFrame => {
       stackFrame.arrayAccessValues
         .forEach((arrayAccessValue: ArrayAccessValue) => {
-          const accessArray = arrays.find(array => (array.element as HeapArray).id === arrayAccessValue.arrayObjectID)
+          const accessArray = arrays.find(array => (array.element as HeapArray).id === arrayAccessValue.arrayObjectId)
           if (!accessArray) {
             return
           }

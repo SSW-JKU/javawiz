@@ -14,11 +14,11 @@ export function createInlineMethodToggle (
   methodMap: InlinedFnMap,
   createFn: (uuids: string[]) => Method[],
   createFunctionSelect: (options: string[]) => Promise<number>): InlineFn {
-  return async (uuid: string, candidateUUIDs: string[]) => {
+  return async (uuid: string, candidateUuids: string[]) => {
     if (methodMap.delete(uuid)) return
-    let methods = candidateUUIDs.map(candidate => methodMap.get(candidate)).filter((m): m is Method => !!m)
+    let methods = candidateUuids.map(candidate => methodMap.get(candidate)).filter((m): m is Method => !!m)
     if (methods.length === 0) {
-      methods = createFn(candidateUUIDs)
+      methods = createFn(candidateUuids)
     }
     if (methods.length === 0) return
 

@@ -314,6 +314,12 @@ export class Debugger {
     )
   }
 
+  public jumpToState (index: number) {
+    if (index >= 0 && index < this.trace.traceLength) {
+      this.pushStateIndex(index)
+    }
+  }
+
   public runToLine (line: number) {
     if (!this.stepForwardEnabled) {
       return

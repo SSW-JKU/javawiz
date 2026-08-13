@@ -25,7 +25,11 @@
     <p class="help-title">
       Tools
     </p>
-    The visualization tools (heap view, desk test, etc.) can be revealed using the selection buttons in the panels.<br>
+    The selection buttons in the panels reveal JavaWiz's ten visualization views:
+    Flow Chart, Memory, Tabular View, Arrays, Linked Lists, Binary Trees, Sequence Diagrams, Input,
+    Streams, and History View.<br>
+    The History View lists calls and assignments across the complete execution trace. It can filter or search
+    those entries and jump directly to matching program states.<br>
     <!-- TODO Add screenshot here -->
     To close a tool, press ❌.<br>
     Some tools are customizable. Change their settings by pressing ⚙.

@@ -97,31 +97,31 @@ class StreamOperationVisitor(val pos: Positioning) : TreeScanner() {
                 val realEndColumn = pos.getEndColumn(realEnd) - 1
 
                 if (name in startOperations) {
-                    streamOperations[actualStreamID]?.add(
+                    streamOperations[actualStreamId]?.add(
                         StreamOperation(
                             0,
                             0,
                             pos.getEndLine(methodInvocation) - 1,
                             pos.getEndColumn(methodInvocation) - 1,
                             "stream",
-                            streamOperations[actualStreamID]!!.size,
+                            streamOperations[actualStreamId]!!.size,
                             false,
                             "",
-                            actualStreamID,
+                            actualStreamId,
                             receiverType,
                             null,
                             realEndLine = realEndLine,
                             realEndColumn = realEndColumn
                         )
                     )
-                    openStreams.remove(actualStreamID)
-                    actualStreamID = openStreams.lastOrNull() ?: -1
+                    openStreams.remove(actualStreamId)
+                    actualStreamId = openStreams.lastOrNull() ?: -1
                 } else if (isStreamType(receiverType) && name != "concat") {
                     var firstArgAsString: String = ""
                     if (name in terminalOperations) {
-                        actualStreamID = ++numberOfStreams
+                        actualStreamId = ++numberOfStreams
                         openStreams.add(numberOfStreams)
-                        streamOperations[actualStreamID] = mutableListOf()
+                        streamOperations[actualStreamId] = mutableListOf()
 
                         if (methodInvocation.args.isNotEmpty() && name != "forEach") {
                             hasParam = true
@@ -153,17 +153,17 @@ class StreamOperationVisitor(val pos: Positioning) : TreeScanner() {
                         }
                     }
 
-                    streamOperations[actualStreamID]?.add(
+                    streamOperations[actualStreamId]?.add(
                         StreamOperation(
                             beginLine,
                             beginColumn,
                             pos.getEndLine(methodInvocation) - 1,
                             pos.getEndColumn(methodInvocation) - 1,
                             name,
-                            streamOperations[actualStreamID]!!.size,
+                            streamOperations[actualStreamId]!!.size,
                             hasParam,
                             firstArgAsString,
-                            actualStreamID,
+                            actualStreamId,
                             receiverType,
                             castType,
                             endMiddleArgLine,
@@ -177,17 +177,17 @@ class StreamOperationVisitor(val pos: Positioning) : TreeScanner() {
                         val selectedindent = meth.selected
                         if (selectedindent is JCTree.JCIdent) {
                             if (selectedindent.sym.kind.name == "VAR") {
-                                streamOperations[actualStreamID]?.add(
+                                streamOperations[actualStreamId]?.add(
                                     StreamOperation(
                                         beginLine,
                                         beginColumn,
                                         beginLine,//pos.getEndLine(methodInvocation) - 1,
                                         beginColumn,//pos.getEndColumn(methodInvocation) - 1,
                                         "stream",
-                                        streamOperations[actualStreamID]!!.size,
+                                        streamOperations[actualStreamId]!!.size,
                                         hasParam,
                                         firstArgAsString,
-                                        actualStreamID,
+                                        actualStreamId,
                                         receiverType,
                                         castType,
                                         realEndLine = beginLine,
@@ -209,7 +209,7 @@ class StreamOperationVisitor(val pos: Positioning) : TreeScanner() {
     private val streamOperations = mutableMapOf<Int, MutableList<StreamOperation>>()
     private val openStreams = mutableListOf<Int>()
     private var numberOfStreams = -1
-    private var actualStreamID = -1
+    private var actualStreamId = -1
     private val terminalOperations = setOf(
         "count", "max", "min", "reduce", "collect", "forEach", "toArray", "toList", "toSet", "findFirst", "findAny", "anyMatch", "allMatch",
         "noneMatch", "sum", "average"

@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -164,6 +164,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "lint": "eslint",
+    "test": "npm run compile && node --test out/vsc-extension/src/JavaRuntime.test.js",
     "watch": "cd .. && gradlew.bat clean && gradlew.bat build -PexcludeTests && cd vsc-extension && tsc -watch -p ./"
   },
   "devDependencies": {

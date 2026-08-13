@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.1.2] (released on 2026-08-13)
+* JW-304: Add frontend debug configurations for VS Code and IntelliJ
+* JW-407: Standardize MCP server configuration across all AI coding tools
+* JW-496: Add an "export image" button to the vizualization settings bar
+* JW-499: Add a check on whether the minimum supported Java version is installed
+* JW-500: Update website to reference the DEBT'26 PETs vision paper and ECCOP'26 ThreadViz Demo Paper
+* JW-502: Trace History View
+* JW-505: Publish the 2026 research papers on the website
+* JW-506: Synchronize website and About overlay contributor lists
+* JW-507: Adopt Serena's official Codex MCP and lifecycle-hook setup
+* JW-508: Initialize Sequence Diagram zoom state before automatic navigation
+* JW-509: Document all ten JavaWiz visualization views consistently
+* JW-510: Share repository skills across AI coding tools
+
 [2.1.1] (released on 2026-06-29)
 * JW-497: Fix stream visualization pane rendering and controls placement
 
@@ -37,6 +51,7 @@ All notable changes to this project will be documented in this file.
 * JW-465: Store JUnit test results in GitHub Actions
 * JW-466: Update contributors in the About overlay
 * JW-467: Exclude release-script tests from the public repository mirror
+* JW-468: Refresh repository descriptions and Serena knowledge after recent project changes
 
 [2.0.3] (released on 2026-06-24)
 * JW-461: Automate IntelliJ plugin publishing during releases
@@ -63,7 +78,6 @@ All notable changes to this project will be documented in this file.
 * JW-451: Backend: Preserve input across hidden record constructor trace states
 
 [2.0.0] (released on 2026-06-23)
-* JW-304: Add frontend debug configurations for VS Code and IntelliJ
 * JW-338: IntelliJ Plugin
 * JW-339: IntelliJ Plugin: Correctly fill in plugin.xml according to JetBrains documentation
 * JW-343: Update Java (25), Kotlin (2.3) and Gradle (9.x) version
@@ -106,6 +120,7 @@ All notable changes to this project will be documented in this file.
 * JW-390: Audit and reduce unnecessary TypeScript/tooling drift across TS subprojects
 * JW-393: Memory View: Add title attribute to all DOT template cells
 * JW-394: Improve run-javawiz Copilot skill: reliable editor setValue and process shutdown
+* JW-395: Secure .serena folder and document publishing process
 * JW-396: Add agent instructions for Claude Code and OpenCode
 * JW-398: Fix npm install failure in frontend due to alpha typescript-eslint versions
 * JW-399: Fix frontend TypeScript build errors (duplicate identifiers and type incompatibility)
@@ -116,7 +131,6 @@ All notable changes to this project will be documented in this file.
 * JW-404: Set up ESLint and fix all warnings across frontend, shared, and vsc-extension
 * JW-405: Align TypeScript compilation targets to ES2022 across all subprojects
 * JW-406: Add Kiro steering files for AI-assisted development
-* JW-407: Standardize MCP server configuration across all AI coding tools
 * JW-408: IntelliJ Plugin: Fix action labeling, duplicate actions block, and missing Kotlin code lens
 * JW-411: IntelliJ Plugin: Improve port discovery robustness
 * JW-412: IntelliJ Plugin: Fix WebSocket connection list management (stale sessions, multi-connection inconsistency)
@@ -465,19 +479,12 @@ All notable changes to this project will be documented in this file.
 * JW-41: Additional node is shown when fields of Node class are arranged in certain order
 
 [1.1.0] (released on 2022-12-01)
-* JW-2: Condition followed by Blockkommentar seems to break JavaWiz
-* JW-3: Mail Report: Broken Heap Vizualization
-* JW-5: Dynamic data structure visualization
 * JW-6: Do not show desk test by default
 * JW-7: Changes are not correctly detected in recursive calls
 * JW-8: Reduce amount of pop-up boxes in JavaWiz VSC extenstion
-* JW-14: Stop heap vis. from jiggling after spamming step button
 * JW-21: Make sure the $JavaWiz class is accessible everywhere
 * JW-23: Desk test should auto-scroll
-* JW-25: Display returned objects after return
-* JW-27: Do not enter default constructor
 * JW-29: Synchronize fonts between heapviz and data structure visualization
-* JW-30: Collapse objects if they have more than X fields
 * JW-32: Write " ... show X more fields ..." instead of "! show more" below collapsed large objects in HeapViz
 * JW-33: Instead of / Additionally to collapsing large heap objects in HeapViz, by default do not expand fields of large objects
 

@@ -5,6 +5,7 @@
     <TheHelpOverlay />
     <TheAboutOverlay />
     <TheReportOverlay />
+    <HistoryDSLInfoOverlay />
     <PetUiAnnotations />
     <TheToolbar
       @connect="connect"
@@ -40,6 +41,7 @@ import TheConsole from '@/components/TheConsole.vue'
 import TheHelpOverlay from '@/components/Overlays/TheHelpOverlay.vue'
 import TheAboutOverlay from '@/components/Overlays/TheAboutOverlay.vue'
 import TheReportOverlay from '@/components/Overlays/TheReportOverlay.vue'
+import HistoryDSLInfoOverlay from '@/components/Overlays/HistoryDSLInfoOverlay.vue'
 import TheNotifications from '@/components/TheNotifications/TheNotifications.vue'
 import TheFileHandler from '@/components/TheFileHandler.vue'
 import PetUiAnnotations from '@/components/PetUiAnnotations.vue'

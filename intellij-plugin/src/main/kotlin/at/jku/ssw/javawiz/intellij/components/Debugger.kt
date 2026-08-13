@@ -21,42 +21,6 @@ class Debugger(project: Project) : Component(project) {
   var port = -1
 
   fun initProcessBuilder(debuggerPort: Int) {
-    project.service<LoggerProjectService>().log(LogSource.BACKEND, "Checking java version")
-    try {
-      val javaVersionProc = ProcessBuilder(listOf("java", "-version"))
-      javaVersionProc.redirectOutput(ProcessBuilder.Redirect.PIPE)
-      javaVersionProc.redirectError(ProcessBuilder.Redirect.PIPE)
-      val p = javaVersionProc.start()
-      captureProcessOutput(p)
-      p.waitFor()
-    } catch (e: Exception) {
-      project.service<LoggerProjectService>().log(LogSource.BACKEND, "Could not run 'java -version': $e")
-    }
-
-    project.service<LoggerProjectService>().log(LogSource.BACKEND, "Checking location of java using 'which'")
-    try {
-      val whichJavaProc = ProcessBuilder(listOf("which", "java"))
-      whichJavaProc.redirectOutput(ProcessBuilder.Redirect.PIPE)
-      whichJavaProc.redirectError(ProcessBuilder.Redirect.PIPE)
-      val p = whichJavaProc.start()
-      captureProcessOutput(p)
-      p.waitFor()
-    } catch (e: Exception) {
-      project.service<LoggerProjectService>().log(LogSource.BACKEND, "Could not run 'which java': $e")
-    }
-
-    project.service<LoggerProjectService>().log(LogSource.BACKEND, "Checking location of java using 'where'")
-    try {
-      val whereJavaProc = ProcessBuilder(listOf("where", "java"))
-      whereJavaProc.redirectOutput(ProcessBuilder.Redirect.PIPE)
-      whereJavaProc.redirectError(ProcessBuilder.Redirect.PIPE)
-      val p = whereJavaProc.start()
-      captureProcessOutput(p)
-      p.waitFor()
-    } catch (e: Exception) {
-      project.service<LoggerProjectService>().log(LogSource.BACKEND, "Could not run 'where java': $e")
-    }
-
     val command = listOf(
       "java",
       "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",

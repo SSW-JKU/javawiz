@@ -67,9 +67,9 @@ export function isHighlightedRefArrow (hoveredInfos: HoverInfo[], arrow: Arrow, 
 export function isHighlightedLifeLine (hoveredInfos: HoverInfo[], arrows: Arrow[], lifeLine: LifeLine): boolean {
   for (const info of hoveredInfos) {
     if ((info.kind === 'MethodCall' && info.time === lifeLine.start - 1 && arrows.some(a => a.kind === 'Constructor' && a.to === lifeLine)) ||
-        ((info.kind === 'HeapObject' && lifeLine.heapId && info.objId === lifeLine.heapId) ||
-            (info.kind === 'Class' && lifeLine.heapId === undefined && info.class === lifeLine.className)) ||
-        (info.kind === 'Local' && info.name === lifeLine.label && info.reference === lifeLine.heapId)) {
+        ((info.kind === 'HeapObject' && lifeLine.heapObjectId && info.objId === lifeLine.heapObjectId) ||
+            (info.kind === 'Class' && lifeLine.heapObjectId === undefined && info.class === lifeLine.className)) ||
+        (info.kind === 'Local' && info.name === lifeLine.label && info.reference === lifeLine.heapObjectId)) {
       return true
     }
   }
@@ -79,10 +79,10 @@ export function isHighlightedLifeLine (hoveredInfos: HoverInfo[], arrows: Arrow[
 export function getArrowHoverInfo (arrow: Arrow, state: HeapVizTraceState) {
   const hoverInfos: HoverInfo[] = []
   if (arrow.methodCallId !== -1 && arrow.time) {
-    if (arrow.kind === 'Constructor' && arrow.to && arrow.to.heapId) {
-      const hoverHeapObject = createHoverHeapObject(arrow.to.heapId)
+    if (arrow.kind === 'Constructor' && arrow.to && arrow.to.heapObjectId) {
+      const hoverHeapObject = createHoverHeapObject(arrow.to.heapObjectId)
       if (!hoverInfos.includes(hoverHeapObject)) hoverInfos.push(hoverHeapObject)
-      const addHoverInfos = getReferencesOfHoveredHeapItem(arrow.to.heapId, state)
+      const addHoverInfos = getReferencesOfHoveredHeapItem(arrow.to.heapObjectId, state)
       for (const info of addHoverInfos) {
         if (!hoverInfos.includes(info)) hoverInfos.push(info)
       }
@@ -90,7 +90,7 @@ export function getArrowHoverInfo (arrow: Arrow, state: HeapVizTraceState) {
     hoverInfos.push(createHoverMethodCall(arrow.label, arrow.methodCallId, arrow.time))
   }
   if ((arrow.reference || arrow.this) && arrow.to) {
-    const addHoverInfos = getLifeLineHoverInfo(arrow.to.className, arrow.to.heapId, state)
+    const addHoverInfos = getLifeLineHoverInfo(arrow.to.className, arrow.to.heapObjectId, state)
     for (const info of addHoverInfos) {
       if (!hoverInfos.includes(info)) hoverInfos.push(info)
     }
@@ -98,20 +98,20 @@ export function getArrowHoverInfo (arrow: Arrow, state: HeapVizTraceState) {
   return hoverInfos
 }
 
-export function getBoxHoverInfo (index: number, time: number, clazz: string, callArrow: Arrow | undefined, heapId: number | undefined, state: HeapVizTraceState) {
+export function getBoxHoverInfo (index: number, time: number, clazz: string, callArrow: Arrow | undefined, heapObjectId: number | undefined, state: HeapVizTraceState) {
   const hoverInfos: HoverInfo[] = []
   hoverInfos.push(createHoverBox(index, time))
-  getLifeLineHoverInfo(clazz, heapId, state).forEach(i => hoverInfos.push(i))
+  getLifeLineHoverInfo(clazz, heapObjectId, state).forEach(i => hoverInfos.push(i))
   if (callArrow) hoverInfos.push(createHoverMethod(clazz, callArrow.label.substring(callArrow.label.indexOf(' ') + 1, callArrow.label.indexOf('(') - 1)))
   return hoverInfos
 }
 
-export function getLifeLineHoverInfo (className: string, heapId: number | undefined, state: HeapVizTraceState) {
+export function getLifeLineHoverInfo (className: string, heapObjectId: number | undefined, state: HeapVizTraceState) {
   const hoverInfos: HoverInfo[] = []
-  if (heapId) {
-    const hoverHeapObject = createHoverHeapObject(heapId)
-    if (!hoverInfos.includes(hoverHeapObject)) hoverInfos.push(createHoverHeapObject(heapId))
-    const addHoverInfos = getReferencesOfHoveredHeapItem(heapId, state)
+  if (heapObjectId) {
+    const hoverHeapObject = createHoverHeapObject(heapObjectId)
+    if (!hoverInfos.includes(hoverHeapObject)) hoverInfos.push(createHoverHeapObject(heapObjectId))
+    const addHoverInfos = getReferencesOfHoveredHeapItem(heapObjectId, state)
     for (const info of addHoverInfos) {
       if (!hoverInfos.includes(info)) hoverInfos.push(info)
     }

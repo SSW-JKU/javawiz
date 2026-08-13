@@ -22,17 +22,19 @@
         Johannes Kepler University Linz, Austria.</p>
 
         <h2>Features</h2>
-        <p>At the moment it provides eight visualizations:</p>
+        <p>JavaWiz provides ten visualization views:</p>
         <ul>
             <li>Flow charts, visually representing the control flow of the program.</li>
             <li>A memory visualization. It displays statics, the stack, and the heap, to help understand how program memory works.</li>
             <li>A "tabular view" displaying the variable changes from line to line, which is useful for understanding simple algorithms.</li>
-            <li>Three dedicated visualizations for arrays, singly linked lists, and binary trees.
-            The goal is a simple and easy-to-follow representation to support understanding algorithms on these data structures.</li>
+            <li>An array visualization showing index expressions, assignments, and the values in each array cell.</li>
+            <li>A Linked List visualization showing nodes, references, and changes during list algorithms.</li>
+            <li>A Binary Tree visualization showing tree structure and changes during tree algorithms.</li>
             <li>A Java Stream API visualization using dynamic Marble Diagrams to show execution order, transformations, intermediate results, and element lineage through the pipeline.</li>
             <li>Sequence diagrams, which show how objects relate to each other by depicting the method calls between them.</li>
             <li>Input buffer visualization.
             To use this feature, use JavaWiz's <code>In.java</code> class to read input.</li>
+            <li>A History View for browsing calls and assignments across the complete execution trace, filtering or searching them, and jumping to matching program states.</li>
         </ul>
 
         <h2>How to use</h2>
@@ -62,7 +64,7 @@
     <depends>com.intellij.modules.java</depends>
 
     <actions>
-        <action id="${actionID}"
+        <action id="${actionId}"
                 class="at.jku.ssw.javawiz.intellij.action.DebugWithJavaWiz"
                 text="${actionName}"
                 description="${actionName}"

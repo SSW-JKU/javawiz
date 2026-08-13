@@ -78,10 +78,10 @@ export class SequenceDiagramHistory {
     let result = 0
     for (let i = 0; i < this.lifeLines.length; i++) {
       const lifeLine = this.lifeLines[i]
-      if (!lifeLine.heapId) {
+      if (!lifeLine.heapObjectId) {
         continue
       }
-      const obj = this.findHeapObject(current.heap, lifeLine.heapId)
+      const obj = this.findHeapObject(current.heap, lifeLine.heapObjectId)
       if (obj === null) {
         continue
       }
@@ -165,7 +165,7 @@ export class SequenceDiagramHistory {
       return [added, null]
     }
     for (let i = 0; i < this.lifeLines.length; i++) {
-      if (this.lifeLines[i].heapId && this.lifeLines[i].heapId === val.reference) {
+      if (this.lifeLines[i].heapObjectId && this.lifeLines[i].heapObjectId === val.reference) {
         return [added, null]
       }
     }
@@ -189,7 +189,7 @@ export class SequenceDiagramHistory {
     const otherLifeLine: LifeLine = {
       index: this.eventIdx,
       label: field.name,
-      heapId: val.reference,
+      heapObjectId: val.reference,
       start: this.timeIdx,
       className,
       currState: 'expanded',
@@ -269,7 +269,7 @@ export class SequenceDiagramHistory {
     const fromBoxes = getBoxesForLifeLine(from, this.boxes)
     const toBoxes = getBoxesForLifeLine(to, this.boxes)
     if (from === to) {
-      if (from.heapId) {
+      if (from.heapObjectId) {
         const maxDepth = this.getMaxDepthForLifeLine(from)
         for (let i = 0; i < fromBoxes.length; i++) {
           if (!fromBoxes[i].end) {
@@ -647,7 +647,7 @@ export class SequenceDiagramHistory {
     const thisReference = frame.this?.reference
     for (let i = 0; i < this.lifeLines.length; ++i) {
       const lifeLine = this.lifeLines[i]
-      if (thisReference !== undefined && lifeLine.heapId === thisReference) {
+      if (thisReference !== undefined && lifeLine.heapObjectId === thisReference) {
         return lifeLine
       }
       if (thisReference === undefined && lifeLine.label === frame.class) {
@@ -805,7 +805,7 @@ export class SequenceDiagramHistory {
     if (diffObject.objectId === 0 || !label) {
       return
     }
-    if (this.lifeLines.some(lifeLine => lifeLine.heapId === diffObject.objectId)) {
+    if (this.lifeLines.some(lifeLine => lifeLine.heapObjectId === diffObject.objectId)) {
       return
     }
     this.timeIdxStateIdxMap.set(this.timeIdx, stateIdx)
@@ -813,7 +813,7 @@ export class SequenceDiagramHistory {
     const newLifeLine: LifeLine = {
       index: this.eventIdx,
       label,
-      heapId: diffObject.objectId,
+      heapObjectId: diffObject.objectId,
       start: this.timeIdx,
       className,
       currState: 'expanded',
@@ -886,8 +886,8 @@ export class SequenceDiagramHistory {
       if (object.objectName === null) {
         let found: boolean = false
         for (let j = 0; j < this.lifeLines.length; j++) {
-          if (this.lifeLines[j].label === current.stack[i].class || (this.lifeLines[j].heapId && current.stack.length > 0 &&
-              current.stack[0].this && this.lifeLines[j].heapId === current.stack[0].this.reference)) {
+          if (this.lifeLines[j].label === current.stack[i].class || (this.lifeLines[j].heapObjectId && current.stack.length > 0 &&
+              current.stack[0].this && this.lifeLines[j].heapObjectId === current.stack[0].this.reference)) {
             found = true
             break
           }
@@ -910,11 +910,11 @@ export class SequenceDiagramHistory {
           this.eventIdx++
           this.timeIdx++
         }
-      } else if (this.lifeLines.every(lifeLine => lifeLine.heapId !== object.objectId) && name !== 'java' && name !== 'jdk') {
+      } else if (this.lifeLines.every(lifeLine => lifeLine.heapObjectId !== object.objectId) && name !== 'java' && name !== 'jdk') {
         const newLifeLine: LifeLine = {
           index: this.eventIdx,
           label: object.objectName,
-          heapId: object.objectId,
+          heapObjectId: object.objectId,
           start: this.timeIdx,
           className: name,
           currState: 'expanded',
@@ -947,10 +947,10 @@ export class SequenceDiagramHistory {
     let anyEnded: boolean = false
     for (let i = 0; i < this.lifeLines.length; i++) {
       const lifeLine = this.lifeLines[i]
-      if (!lifeLine.heapId || lifeLine.end) { // don't end static lifelines; ignore ended lifeLines
+      if (!lifeLine.heapObjectId || lifeLine.end) { // don't end static lifelines; ignore ended lifeLines
         continue
       }
-      const heapObject = this.findHeapObject(state.heap, lifeLine.heapId)
+      const heapObject = this.findHeapObject(state.heap, lifeLine.heapObjectId)
       if (heapObject === null) {
         lifeLine.end = this.timeIdx
         anyEnded = true
