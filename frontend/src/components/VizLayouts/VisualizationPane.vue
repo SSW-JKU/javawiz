@@ -3,9 +3,12 @@
   <pane :style="style">
     <viz-chooser v-if="!vizSelected" @selected="id => selectViz(id)" />
 
-    <!-- internally hidden if already compiled -->
-    <before-compilation-text v-if="vizSelected" />
-    <compilation-spinner v-if="vizSelected" />
+    <before-compilation-text v-if="vizSelected && !generalStore.debugger.compiled" />
+    <compilation-spinner v-if="vizSelected && !generalStore.debugger.compiled" />
+    <navigation-bar-with-settings
+      v-if="selectedViz && !generalStore.debugger.compiled"
+      :viz-id="selectedViz.id"
+      close-only />
 
     <component :is="selectedViz.view" v-if="selectedViz && generalStore.debugger.compiled" />
   </pane>
@@ -18,6 +21,7 @@ import { Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import CompilationSpinner from '@/components/VizLayouts/CompilationSpinner.vue'
 import BeforeCompilationText from '@/components/VizLayouts/BeforeCompilationText.vue'
+import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { UserLayoutPlacement, useVisualizationStore } from '@/store/VisualizationStore'
 
@@ -35,6 +39,7 @@ const selectedViz = computed(() => {
 const vizSelected = computed(() => selectedViz.value !== null)
 const style = computed(() => {
   return {
+    position: 'relative',
     'background-color': (selectedViz.value === null ? 'rgb(42,70,101)' : 'rgb(255, 255, 255)')
   }
 })

@@ -4,11 +4,6 @@ export const LOCAL_STORAGE = {
   prevName: 'LIST_prevName'
 }
 
-export const FUZZY_NAMES = {
-  list: 'List',
-  node: 'Node'
-}
-
 export const HTML = {
   ids: {
     parentDiv: 'list-div',

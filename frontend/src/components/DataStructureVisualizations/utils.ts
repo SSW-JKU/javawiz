@@ -1,7 +1,5 @@
 import { select } from 'd3-selection'
-import { ListNode } from './TheListVisualization/types'
-import { TreeNode } from './TheTreeVisualization/types'
-import { HeapItem, HeapObject, LoadedClass, ProcessedTraceState, StackFrame, TraceState } from '@/dto/TraceState'
+import { HeapItem, LoadedClass, ProcessedTraceState, StackFrame, TraceState } from '@/dto/TraceState'
 import { heapBFS } from './heapBFS'
 
 /**
@@ -30,48 +28,6 @@ export function moveElemInArray (array: any[] | undefined, fromPos: number, toPo
 export function removeChildren (selector: string) {
   select(selector).selectAll('*')
     .remove()
-}
-
-/**
- * checks if all field names are existent in the first node
- * @param nodes nodes array
- * @param fieldNames names of fields to be checked for
- * @param errorDivId string of selector for which the style "display" should be set to 'flex' if not all fields have been found, 'none' otherwise
- */
-export function checkFields (nodes: ListNode[] | TreeNode[], fieldNames: string[], errorDivId: string): boolean {
-  let fieldNotFound = false
-  if (nodes.length > 0) {
-    const fields = (nodes[0].node?.element as HeapObject).fields
-    fieldNames.forEach(name => {
-      if (!fields.find(field => field.name === name)) {
-        fieldNotFound = true
-      }
-    })
-  }
-  select(`#${errorDivId}`).style('display', fieldNotFound ? 'flex' : 'none')
-  return fieldNotFound
-}
-
-/**
- * searches for searchString in possibleStrings by first checking for an exact match and then checking if some string in possibleString includes searchString
- * @param searchString string to be searched for
- * @param searchSpace array of strings in search space
- * @return string in search space that fuzzy matches searchString otherwise undefined
- */
-export function fuzzySearch (searchString: string, searchSpace: string[]): string | undefined {
-  // if exact match exists return it
-  if (searchSpace.find(s => s === searchString)) {
-    return searchString
-  }
-
-  // check if fuzzy match exists
-  for (let i = 0; i < searchSpace.length; i++) {
-    if (searchSpace[i].includes(searchString)) {
-      return searchSpace[i]
-    }
-  }
-
-  return undefined
 }
 
 /**

@@ -1,42 +1,44 @@
 <template>
   <div ref="navigationBar" class="absolute-flex-container" data-export-ignore>
-    <div class="settings" :class="{invisible: !settingsVisible}">
-      <slot />
-    </div>
-    <button v-if="zoomIn" class="float-button" @click="_e => zoomIn()">
-      ➕
-    </button>
-    <button v-if="zoomOut" class="float-button" @click="_e => zoomOut()">
-      ➖
-    </button>
-    <button v-if="zoomReset" class="float-button" @click="_e => zoomReset()">
-      🏠
-    </button>
-    <button v-if="hasDefaultSlot" class="float-button" @click="settingsVisible = !settingsVisible">
-      ⚙
-    </button>
-    <div class="export-control">
-      <button
-        class="float-button"
-        title="Export visualization"
-        aria-label="Export visualization"
-        :disabled="exporting"
-        aria-haspopup="menu"
-        :aria-expanded="exportMenuVisible"
-        @click="toggleExportMenu">
-        💾
-      </button>
-      <div v-if="exportMenuVisible" class="export-menu" role="menu">
-        <button
-          v-for="format in exportFormats"
-          :key="format"
-          type="button"
-          role="menuitem"
-          @click="exportAs(format)">
-          {{ format.toUpperCase() }}
-        </button>
+    <template v-if="!closeOnly">
+      <div class="settings" :class="{invisible: !settingsVisible}">
+        <slot />
       </div>
-    </div>
+      <button v-if="zoomIn" class="float-button" @click="_e => zoomIn()">
+        ➕
+      </button>
+      <button v-if="zoomOut" class="float-button" @click="_e => zoomOut()">
+        ➖
+      </button>
+      <button v-if="zoomReset" class="float-button" @click="_e => zoomReset()">
+        🏠
+      </button>
+      <button v-if="hasDefaultSlot" class="float-button" @click="settingsVisible = !settingsVisible">
+        ⚙
+      </button>
+      <div class="export-control">
+        <button
+          class="float-button"
+          title="Export visualization"
+          aria-label="Export visualization"
+          :disabled="exporting"
+          aria-haspopup="menu"
+          :aria-expanded="exportMenuVisible"
+          @click="toggleExportMenu">
+          💾
+        </button>
+        <div v-if="exportMenuVisible" class="export-menu" role="menu">
+          <button
+            v-for="format in exportFormats"
+            :key="format"
+            type="button"
+            role="menuitem"
+            @click="exportAs(format)">
+            {{ format.toUpperCase() }}
+          </button>
+        </div>
+      </div>
+    </template>
     <button class="float-button" title="Close" @click="_e => removePane()">
       ❌
     </button>
@@ -66,11 +68,14 @@ const {
   zoomIn = undefined,
   zoomOut = undefined,
   zoomReset = undefined,
+  closeOnly = false,
   vizId
 } = defineProps<{
   zoomIn?:(() => void),
   zoomOut?:(() => void),
   zoomReset?:(() => void),
+  /** Hides every control except Close when no visualization content exists yet. */
+  closeOnly?: boolean,
   vizId: number
 }>()
 

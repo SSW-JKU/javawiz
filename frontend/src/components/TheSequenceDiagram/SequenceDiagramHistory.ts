@@ -760,9 +760,20 @@ export class SequenceDiagramHistory {
     let objectId: number | undefined = 0
     const thisObject = stack[0].this
     if (thisObject) {
+      /* SequenceDiagramHistory assumes that for every non-static frame,
+         the this object can also be discovered through some “normal” program reference,
+         e.g. a local variable, field, or static field pointing to that heap object.
+       */
       [objectName, objectId] = this.searchLocalVariables(stack, heap, thisObject.reference)
       if (objectName === null) {
         [objectName, objectId] = this.searchHeap(heap, newState.loadedClasses, thisObject.reference)
+      }
+      // If such a reference is not found, we just use the class name
+      // For example, this is the case for non-static main classes.
+      // There is a hidden "this" object behind the scenes but it is not referenced anywhere in code
+      if (objectName === null) {
+        objectName = stack[0].class
+        objectId = thisObject.reference
       }
     }
     return {

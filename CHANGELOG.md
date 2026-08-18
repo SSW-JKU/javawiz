@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.1.3] (released on 2026-08-18)
+* JW-81: Heapviz href error
+* JW-94: Visualize multiple list/tree/node classes in list and tree visualization
+* JW-366: List view (and potentially tree view) does not apply list and node class heuristic anymore.
+* JW-379: Fix all frontend linting errors revealed by corrected ESLint config
+* JW-492: Support `static void main()`
+* JW-511: Synchronize README and JavaWiz descriptions with website changes
+* JW-512: Support compact source files and instance main methods
+* JW-513: Remove custom VS Code main-method scanner
+* JW-514: Strengthen plan-and-implement approval, scope, and complexity triage
+* JW-515: Use the latest suitable JUnit version in the IntelliJ plugin
+* JW-519: Allow Codex to link YouTrack issues without an approval prompt
+* JW-523: Correct outdated run-javawiz startup, visualization, and cleanup guidance
+* JW-524: Allow unattended Chrome DevTools controls and YouTrack comment reads in Codex
+* JW-525: Clarify README instructions for local development and IntelliJ plugin runs
+* JW-526: Prevent list and tree redraws before zoom initialization
+* JW-527: Document list and tree class-selection frontend tests
+* JW-529: Prefer the in-app browser in the run-javawiz skill
+* JW-531: Use the next unreleased version for YouTrack issue planning
+* JW-532: Require issue-scoped commits for completed AI work
+* JW-535: Enable closing visualization views before compilation
+* JW-536: Support non-static main methods
+* JW-537: :backend:clean must also remove `bin` folder
+* JW-538: frontend build should store node and npm in user directory, not project directory
+
 [2.1.2] (released on 2026-08-13)
 * JW-304: Add frontend debug configurations for VS Code and IntelliJ
 * JW-407: Standardize MCP server configuration across all AI coding tools
@@ -54,6 +79,7 @@ All notable changes to this project will be documented in this file.
 * JW-468: Refresh repository descriptions and Serena knowledge after recent project changes
 
 [2.0.3] (released on 2026-06-24)
+* JW-433: Release JavaWiz IntelliJ plugin automatically on publish.
 * JW-461: Automate IntelliJ plugin publishing during releases
 * JW-462: Update Stream visualization descriptions across website and extensions
 * JW-463: IntelliJ-Plugin: Get rid of Verifier API compatibility violations
@@ -170,6 +196,7 @@ All notable changes to this project will be documented in this file.
 * JW-347: Fix broken :backend:copyRuntimeLibrariesToLib introduced by Gradle version upgrade
 
 [1.7.9] (released on 2025-10-24)
+* JW-142: Publishing Script: Reduce code redundance
 * JW-346: Move build logic out of extension project into root project
 
 [1.7.8] (released on 2025-10-22)
@@ -427,25 +454,12 @@ All notable changes to this project will be documented in this file.
 * JW-98: Certain steps sometimes not correctly resumed after being suspended by input
 
 [1.3.0] (released on 2023-07-04)
-* JW-15: Rework/rethink isInputExpected
-* JW-19: Current date is shortly visible when starting the frontend in the extension
-* JW-31: Implicit toString() (probably in combination with a string concat) can show Java-internal stack frames + Out.print(Object) can show "Out-internal" stack frames
 * JW-34: Special characters are not displayed correctly in outputs
 * JW-43: Trace array access in the backend for visualization
 * JW-44: Array visualization
-* JW-48: processedTrace and deskTestLines should be updated incrementally instead of fully when new trace states are added
-* JW-49: Step buttons should be disabled while vm.currentlyTalking is true
-* JW-52: Make sure that RUN_TO_LINE feature does not only take class name into account but also package name
 * JW-53: When performing "Run in JavaWiz", WebView sometimes cannot be opened, especially after extension rebuilding and publishing.
-* JW-54: Input and output should also work for STEP_OVER and RUN_TO_LINE
-* JW-55: In a for-loop, sometimes the $JavaWiz-internal call is visible on the stack, even though a class filter is set in the debugger
-* JW-56: Remove exception line number adjustment code if not needed anymore.
-* JW-60: Runtime exception in backend when starting workspace
-* JW-61: Make Run-To-Line Input field execute on pressing ENTER
 * JW-62: Enable Debugger to handle multiple events per eventSet, as well as multiple eventSets in eventQueue
 * JW-63: Create typing for StepResult on frontend
-* JW-64: Reintroduce the user notification that the program is waiting for input
-* JW-65: Disable step buttons once we reach end of trace and isVMRunning-flag of last step result was false
 * JW-67: Fuzzy checking for class names in data structure visualizations
 * JW-68: Inconsistent handling of escape characters
 * JW-69: Enum.valueOf displayed in stack
@@ -455,9 +469,7 @@ All notable changes to this project will be documented in this file.
 * JW-74: .vscode folder that is created to store settings confuses users, need to get rid of it
 * JW-75: Strings too large in desktest
 * JW-76: NoSuchElementException on backend in recursive program
-* JW-78: More step features
 * JW-79: Opening Array visualization crashes frontend
-* JW-80: Update extension's README to include data structure visualizations
 * JW-85: Refactor DeskTest CSS
 * JW-95: RUN_TO_END prematurely kills VM if input is expected
 * JW-96: After input, just continue the previous step request (if existing) instead of performing a single STEP_INTO and then continuing
@@ -467,26 +479,13 @@ All notable changes to this project will be documented in this file.
 * JW-17: Update icons in toolbar
 
 [1.2.0] (released on 2023-01-01)
-* JW-4: Multi-File support
 * JW-10: More step features: "Step into", "Step over", "Run to line X"
 * JW-39: Error messages can be hard to read -> Display error messages in console instead of in popups
-* JW-42: Having a text field selected in the DataStructureViz configuration pane, pressing the arrow keys also steps through trace states
 * JW-45: Multi-File Support: WebView loses focus after opening new editor
 * JW-46: Limiting float precision in visualization doesn't work in arrays
-* JW-51: Use JUnit Assertions in test cases
-
-[1.1.1] (released on 2022-12-02)
-* JW-41: Additional node is shown when fields of Node class are arranged in certain order
 
 [1.1.0] (released on 2022-12-01)
-* JW-6: Do not show desk test by default
-* JW-7: Changes are not correctly detected in recursive calls
-* JW-8: Reduce amount of pop-up boxes in JavaWiz VSC extenstion
 * JW-21: Make sure the $JavaWiz class is accessible everywhere
-* JW-23: Desk test should auto-scroll
-* JW-29: Synchronize fonts between heapviz and data structure visualization
-* JW-32: Write " ... show X more fields ..." instead of "! show more" below collapsed large objects in HeapViz
-* JW-33: Instead of / Additionally to collapsing large heap objects in HeapViz, by default do not expand fields of large objects
 
 [1.0.1] (released on 2022-11-11)
 * JW-92: Tee debugger stdout & stderr into logging files

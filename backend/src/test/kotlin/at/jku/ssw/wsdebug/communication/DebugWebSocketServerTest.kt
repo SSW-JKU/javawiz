@@ -337,6 +337,50 @@ internal class DebugWebSocketServerTest {
 
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testCompactSourceFile(testFlags: TestFlags) {
+        callRunToEndAndCompareTestcaseMetadataFiles(
+            "${BASIC_LANGUAGE_STRUCTURES}/CompactSourceFile",
+            listOf("CompactSourceFile.java"),
+            vscExtensionActive = true,
+            testFlags = testFlags
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testCompactSourceFileWithStaticMain(testFlags: TestFlags) {
+        callRunToEndAndCompareTestcaseMetadataFiles(
+            "${BASIC_LANGUAGE_STRUCTURES}/CompactSourceFile",
+            listOf("CompactStaticMain.java"),
+            vscExtensionActive = true,
+            testFlags = testFlags
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testCompactSourceFileWithInstanceMainArguments(testFlags: TestFlags) {
+        callRunToEndAndCompareTestcaseMetadataFiles(
+            "${BASIC_LANGUAGE_STRUCTURES}/CompactSourceFile",
+            listOf("CompactInstanceMainArguments.java"),
+            vscExtensionActive = true,
+            testFlags = testFlags
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testCompactSourceFileWithStaticMainArguments(testFlags: TestFlags) {
+        callRunToEndAndCompareTestcaseMetadataFiles(
+            "${BASIC_LANGUAGE_STRUCTURES}/CompactSourceFile",
+            listOf("CompactStaticMainArguments.java"),
+            vscExtensionActive = true,
+            testFlags = testFlags
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun testCompilesMainInEnum(testFlags: TestFlags) {
         assertTrue(compiles("/TestCases/ShouldCompile/MainInEnum.java", "MainInEnum.java", testFlags = testFlags))
     }
@@ -362,8 +406,8 @@ internal class DebugWebSocketServerTest {
 
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
-    fun testNotCompilesMainDynamic(testFlags: TestFlags) {
-        assertFalse(compiles("/TestCases/ShouldNotCompile/NoMainDynamic.java", "NoMainDynamic.java", testFlags = testFlags))
+    fun testCompilesInstanceMainWithArguments(testFlags: TestFlags) {
+        assertTrue(compiles("/TestCases/ShouldCompile/InstanceMainWithArguments.java", "InstanceMainWithArguments.java", testFlags = testFlags))
     }
 
     @ParameterizedTest
@@ -394,6 +438,12 @@ internal class DebugWebSocketServerTest {
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun testNotCompilesMainWithWrongSignature3(testFlags: TestFlags) {
         assertFalse(compiles("/TestCases/ShouldNotCompile/NoMainWithWrongSignature3.java", "NoMainWithWrongSignature3.java", testFlags = testFlags))
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testNotCompilesPrivateMain(testFlags: TestFlags) {
+        assertFalse(compiles("/TestCases/ShouldNotCompile/NoMainPrivate.java", "NoMainPrivate.java", testFlags = testFlags))
     }
 
     @ParameterizedTest

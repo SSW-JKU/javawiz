@@ -7,11 +7,6 @@ export const LOCAL_STORAGE = {
   parentName: 'TREE_parentName'
 }
 
-export const FUZZY_NAMES = {
-  tree: 'Tree',
-  node: 'Node'
-}
-
 export const HTML = {
   ids: {
     parentDiv: 'tree-div',

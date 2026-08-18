@@ -13,6 +13,8 @@ import java.io.StringWriter
 import java.nio.file.Files
 import java.nio.file.Paths
 import javax.lang.model.element.Modifier
+import javax.lang.model.type.ArrayType
+import javax.lang.model.type.TypeKind
 import javax.tools.*
 import kotlin.io.path.isRegularFile
 
@@ -198,15 +200,33 @@ private fun methodLines(ast: AbstractSyntaxTree): Set<Int> {
 private fun findMainClass(tree: JCTree.JCCompilationUnit, packageDot: String): String? {
     val classDeclarations = tree.typeDecls.filterIsInstance<JCTree.JCClassDecl>().filterNot { it.modifiers.toString().contains("interface") }
     return classDeclarations.find { cls ->
-        cls.members.filterIsInstance<JCTree.JCMethodDecl>().filter { it.name.contentEquals("main") }.any {
-            it.params.length() == 1 &&
-                    it.params[0].vartype.toString() == "String[]" &&
-                    it.restype.toString() == "void" &&
-                    it.mods.getFlags()
-                        .contains(Modifier.PUBLIC) &&
-                    it.mods.getFlags().contains(Modifier.STATIC)
-        }
+        cls.members.filterIsInstance<JCTree.JCMethodDecl>().any(::isCandidateMainMethod)
     }?.let { packageDot + it.name }
+}
+
+/**
+ * Reports whether javac attributed [method] as a directly declared Java 25 candidate main method.
+ *
+ * Candidate methods return `void`, have non-private access, and accept either no arguments or one
+ * `String[]`/`String...` argument. They may be static or instance methods; the Java launcher owns
+ * candidate priority and instance construction after JavaWiz selects the containing top-level class.
+ */
+private fun isCandidateMainMethod(method: JCTree.JCMethodDecl): Boolean {
+    if (!method.name.contentEquals("main") || method.mods.getFlags().contains(Modifier.PRIVATE)) {
+        return false
+    }
+    if (method.restype.type.kind != TypeKind.VOID) {
+        return false
+    }
+    if (method.params.isEmpty()) {
+        return true
+    }
+    if (method.params.size != 1) {
+        return false
+    }
+
+    val parameterType = method.params.single().vartype.type as? ArrayType ?: return false
+    return parameterType.componentType.toString() == "java.lang.String"
 }
 
 data class ParseInfo(

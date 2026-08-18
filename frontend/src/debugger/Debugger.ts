@@ -10,16 +10,17 @@ import { useHeapVizMetaStore } from '@/store/HeapVizMetaStore'
 import { NotificationType } from '@/components/TheNotifications/types'
 import { NotificationGroups } from '@/components/TheNotifications/Notifications'
 import { usePetStore } from '@/store/PetStore'
+import { reactive } from 'vue'
 
 export class Debugger {
   private websocket: WebSocket | null
   private port: number
-  private compiledClasses: string[] | undefined
   private trace: Trace
   private undoStack: number[]
   private stateIndex: number
   private state: DebuggerState
   private compileErrorMessage: string | undefined
+  private compiledClasses = reactive<string[]>([])
   private generalStore
   private heapVizMetaStore
 
@@ -42,7 +43,8 @@ export class Debugger {
     this.port = port
   }
 
-  public getCompiledClasses (): string[] | undefined {
+  /** Returns the reactive class list reported by the most recent successful compilation. */
+  public getCompiledClasses (): readonly string[] {
     return this.compiledClasses
   }
 
@@ -156,7 +158,7 @@ export class Debugger {
           this.showNotification({ kind: 'FeatureWarning', warnings: data.featureWarnings })
         }
         this.generalStore.asts = data.asts
-        this.compiledClasses = data.compiledClasses
+        this.compiledClasses.splice(0, this.compiledClasses.length, ...data.compiledClasses)
         if (states && result.vmrunning) {
           this.trace.addTraceStates(states)
           this.handleDebugStateChange()

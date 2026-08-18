@@ -25,7 +25,7 @@ function processNode (
     nextPointers: NextPointer[],
     dummyNodes: ListNode[]
   },
-  component: { nodeClassName: string, nextName: string, valName: string }
+  component: { nodeClassNames: ReadonlySet<string>, nextName: string, valName: string }
 ) {
   // add node
   const lists = heapNode.list ? [heapNode.list] : []
@@ -84,10 +84,10 @@ function processNode (
     }
   } else {
     // next node does not exist yet
-    if (nextHeapNode && nextHeapNode.element?.kind === 'HeapObject') {
+    if (nextHeapNode?.element?.kind === 'HeapObject' && component.nodeClassNames.has(nextHeapNode.element.type)) {
       // set nextNode to be processed
       nextNode = nextHeapNode
-    } else {
+    } else if (!nextHeapNode || nextHeapNode.element?.kind !== 'HeapObject') {
       // if next node is null, add dummy next pointer
       const dummyNode = { index: positionInfo.index + 1, lists, level: positionInfo.level, height: 0, valFieldIndex: -1, nextFieldIndex: -1 }
       structures.dummyNodes.push(dummyNode)
@@ -105,7 +105,7 @@ export function createListAndNextPointerStructs (
   heapTree: HeapTreeNode,
   lists: HeapTreeNode[],
   levelCoordinates: number[],
-  component: { nodeClassName: string, nextName: string, valName: string }
+  component: { nodeClassNames: ReadonlySet<string>, nextName: string, valName: string }
 ) {
   const nodes: ListNode[] = []
   const referenceNodes: ReferenceNode[] = []
@@ -113,16 +113,18 @@ export function createListAndNextPointerStructs (
   const nextPointers: NextPointer[] = []
 
   // get all variables that point to a node
-  const pointers = getVariablePointers(heapTree, component.nodeClassName)
+  const pointers = getVariablePointers(heapTree, component.nodeClassNames)
 
   // collect nodes
   const heapNodes: (HeapTreeNode & { list?: HeapTreeNode })[] = lists.flatMap(list =>
-    list.children.filter(child => child.element?.kind === 'HeapObject' && child.element.type === component.nodeClassName)
+    list.children.filter(child => child.element?.kind === 'HeapObject' && component.nodeClassNames.has(child.element.type))
       .map(node => {
         return { ...node, list }
       })
   )
-  heapNodes.push(...pointers.filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal').map(pointer => pointer.children[0]))
+  heapNodes.push(...pointers
+    .filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal' && pointer.children[0])
+    .map(pointer => pointer.children[0]))
 
   // process nodes
   let level = 0
@@ -190,7 +192,7 @@ export function createPointerStructure (
   nodes: ListNode[],
   pointers: HeapTreeNode[],
   lists: HeapTreeNode[],
-  component: { prevName: string, nodeClassName: string }
+  component: { prevName: string, nodeClassNames: ReadonlySet<string> }
 ) {
   // create data-structure for node pointers
   const nodePointers: ListNodePointer[] = nodes.flatMap(node =>
@@ -229,7 +231,9 @@ export function createPointerStructure (
   // add variables of tree itself (root, ...)
   lists.forEach(heapNode => {
     const dataStructure = heapNode.element as HeapObject
-    dataStructure.fields.filter(field => field.type === component.nodeClassName)
+    dataStructure.fields.filter(field => field.value.kind === 'ReferenceVal'
+      ? nodes.some(node => (node.node?.element as HeapObject).id === (field.value as ReferenceVal).reference)
+      : field.value.kind === 'NullVal' && component.nodeClassNames.has(field.type))
       .slice()
       .reverse()
       .forEach(field => {
@@ -317,55 +321,4 @@ function processReferenceNode (listNode: ListNode, referenceNodes: ReferenceNode
     return referenceNode.reference.children.length
   }
   return 0
-}
-
-/**
- * adds pointers for fields in given data structures
- * @param dataStructures array with data structures
- * @param nodes nodes of data structure
- * @param nodePointers array with pointers of nodes
- * @param nodeClassName name of the node class
- * @param addPointerFunctions functions to add pointers to pointer data structure
- */
-export function addFieldPointers (
-  dataStructures: HeapTreeNode[],
-  nodes: ListNode[],
-  nodePointers: ListNodePointer[],
-  nodeClassName: string,
-  addPointerFunctions: {
-    addNormalPointer: (nodePointers: ListNodePointer[], field: Var, dataStructure: HeapObject, heapNode: HeapTreeNode, node: ListNode) => void,
-    addNullPointer: (nodePointers: ListNodePointer[], field: Var, dataStructure: HeapObject, heapNode: HeapTreeNode, nrOfNullPointers: number) => void
-  }
-) {
-  // index for pointers that are null
-  let nrOfNullPointers = 0
-
-  // add variables of tree itself (root, ...)
-  dataStructures.forEach(heapNode => {
-    const dataStructure = heapNode.element as HeapObject
-    dataStructure.fields.filter(field => field.type === nodeClassName)
-      .slice()
-      .reverse()
-      .forEach(field => {
-        if (field.value.kind === 'ReferenceVal') {
-          const fieldReference = field.value.reference
-          // increment indices of all other pointers to same node, so list-pointers are displayed first
-          nodePointers.filter(pointer =>
-            (pointer.node?.node?.element as HeapObject | undefined)?.id === fieldReference)
-            .forEach(pointer => {
-              pointer.index++
-            })
-          // find node and add entry
-          const node = nodes.find(node =>
-            (node.node?.element as HeapObject).id === fieldReference)
-          if (node) {
-            addPointerFunctions.addNormalPointer(nodePointers, field, dataStructure, heapNode, node)
-          }
-        } else if (field.value.kind === 'NullVal') {
-          addPointerFunctions.addNullPointer(nodePointers, field, dataStructure, heapNode, nrOfNullPointers)
-          nrOfNullPointers++
-        }
-      })
-  })
-  return nrOfNullPointers
 }

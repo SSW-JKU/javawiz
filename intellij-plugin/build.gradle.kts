@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.1.2"
+version = "2.1.3"
 
 fun htmlEscape(value: String): String =
     value
@@ -99,6 +99,8 @@ repositories {
 }
 
 dependencies {
+    val junitVersion = "6.1.3"
+
     // Ktor embedded HTTP + WebSocket server
     implementation("io.ktor:ktor-server-core:2.3.4")
     implementation("io.ktor:ktor-server-netty:2.3.4")
@@ -111,26 +113,44 @@ dependencies {
 
     // SLF4J binding (suppresses "No SLF4J providers found" at runtime)
     implementation("org.slf4j:slf4j-simple:2.0.9")
+
+    // Keep Jupiter and its Platform launcher aligned as one explicit, reviewable JUnit release.
+    testImplementation(platform("org.junit:junit-bom:$junitVersion"))
     testImplementation(kotlin("test-junit5"))
-    // IntelliJ 2026.1's test javaagent uses the coroutine-debug API shipped with 1.8.x.
-    // Keep this alignment test-only; the plugin's production Ktor dependency remains unchanged.
-    testRuntimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.0")
-    // IntelliJ's JUnit 5 session listener still references the JUnit 4 TestCase compatibility type.
-    testRuntimeOnly("junit:junit:4.13.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // IntelliJ's JUnit 5 listener still loads JUnit 4 TestCase/TestRule types at runtime:
+    // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-faq.html#junit5-test-framework-refers-to-junit4
+    // https://youtrack.jetbrains.com/issue/IJPL-159134/JUnit5-Test-Framework-refers-to-JUnit4-java.lang.NoClassDefFoundError-junit-framework-TestCase
+    // https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1711
+    // BasePlatformTestCase also exposes TestCase at compile time, so this must be testImplementation:
+    // https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1976
+    testImplementation("junit:junit:4.13.2")
 
     // IntelliJ Platform
     intellijPlatform {
         // Target IntelliJ IDEA 2026.1.1 (unified distribution — IC no longer exists for 2025.3+)
         intellijIdea("2026.1.1")
 
-        // Bundled plugins required at runtime
+        // Use the actual bundled plugin ID, not its legacy `java` directory name:
+        // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-faq.html#migrateToPluginId
         bundledPlugin("com.intellij.java")
 
-        // Plugin verifier + test framework
+        // Declare every framework used by the headless model-level tests explicitly:
+        // https://plugins.jetbrains.com/docs/intellij/tests-and-fixtures.html
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
+        // Java PSI fixtures require the Java plugin's dedicated test framework:
+        // https://plugins.jetbrains.com/docs/intellij/light-and-heavy-tests.html#plugins-using-java-psi
+        testFramework(TestFrameworkType.Plugin.Java)
     }
+}
+
+// IDEA's test framework supplies a JetBrains-patched coroutine core. Avoid shadowing it with
+// Ktor's ordinary Maven variant while leaving the plugin's production runtime unchanged.
+configurations.testRuntimeClasspath {
+    exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core-jvm")
 }
 
 intellijPlatform {

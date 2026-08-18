@@ -239,6 +239,8 @@ subprojects {
     plugins.withId("base") {
         // Extended clean
         clean {
+            delete layout.projectDirectory.dir("bin")
+            delete layout.projectDirectory.dir("build")
             delete layout.projectDirectory.dir("out")
             delete layout.projectDirectory.dir("dist")
             delete layout.projectDirectory.file("dist.zip")

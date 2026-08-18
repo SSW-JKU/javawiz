@@ -1,7 +1,7 @@
 <template>
   <div :id="HTML.ids.parentDiv" :style="cssVariables">
-    <div :id="HTML.ids.fieldNotFound" class="pane-default-text" style="color: red; display: none">
-      The nodes do not contain the given fields. Please check the names of the next pointer and the value field in settings.
+    <div v-if="visualizationMessage" :id="HTML.ids.fieldNotFound" class="pane-default-text" style="color: red">
+      {{ visualizationMessage }}
     </div>
     <svg
       :id="HTML.ids.listSvg"
@@ -21,24 +21,18 @@
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
       :viz-id="visualizationStore.LINKEDLIST.id">
-      <p class="no-break">
-        <small><b>List settings:</b></small><br>
-        Name of list class:
-      </p>
-      <select v-model="listClassName" class="class-selector" name="list class name" @change="redraw(hoveredInfos)">
-        <option value="" />
-        <option v-for="(compiledClass, i) in compiledClasses" :key="i" :value="compiledClass">
-          {{ compiledClass }}
-        </option>
-      </select> <br>
-      <small><b>Node settings:</b></small> <br>
-      Name of node class: <br>
-      <select v-model="nodeClassName" class="class-selector" name="node class name" @change="redraw(hoveredInfos)">
-        <option value="" />
-        <option v-for="(compiledClass, i) in compiledClasses" :key="i" :value="compiledClass">
-          {{ compiledClass }}
-        </option>
-      </select> <br>
+      <ClassCheckboxGroup
+        id-prefix="list-wrapper-class"
+        :classes="compiledClasses"
+        label="List classes:"
+        :model-value="selectedListClassNames"
+        @update:model-value="updateListClassNames" />
+      <ClassCheckboxGroup
+        id-prefix="list-node-class"
+        :classes="compiledClasses"
+        label="Node classes:"
+        :model-value="selectedNodeClassNames"
+        @update:model-value="updateNodeClassNames" />
       Name of next pointer: <br>
       <input v-model="nextName" class="text-input" placeholder="Enter name of next pointer ..."> <br>
       Name of value field: <br>
@@ -59,15 +53,17 @@ import { zoom, zoomIdentity } from 'd3-zoom'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { transform, setTransform, levelCoordinates, setLevelCoordinates } from './state'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import ClassCheckboxGroup from '../ClassCheckboxGroup.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
-import { FUZZY_NAMES, HTML, LAYOUT, LOCAL_STORAGE } from './constants'
+import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
 import { drawNextPointers, drawNodeRectangles, drawPointers, drawReferenceNodes } from './drawing'
 import { processChildren, createListAndNextPointerStructs, createPointerStructure } from './preprocessing'
 import { getCoordinatesOfChange } from './node-utils'
 import { CSS, SVG } from '../constants'
 import { zoomToChange } from '../zooming'
-import { checkFields, fuzzySearch, getHeapTree, removeChildren } from '../utils'
-import { getNodesOfType } from '../preprocessing-utils'
+import { getHeapTree, removeChildren } from '../utils'
+import { reconcileClassSelections } from '../classSelection'
+import { findMissingFieldsByClass, formatMissingFields, getNodesOfTypes } from '../preprocessing-utils'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverInfo } from '@/hover/types'
 import { useVisualizationStore } from '@/store/VisualizationStore'
@@ -84,16 +80,26 @@ const zoomCall = ref(zoom().on('zoom', (event) => {
   setTransform(event.transform)
   select(`#${HTML.ids.list}`).attr('transform', event.transform)
 }))
-const listClassName = ref<string | undefined>('')
-const nodeClassName = ref<string | undefined>('')
+const selectedListClassNames = ref<string[]>([])
+const selectedNodeClassNames = ref<string[]>([])
+const selectedListClassNameSet = computed<ReadonlySet<string>>(() => new Set(selectedListClassNames.value))
+const selectedNodeClassNameSet = computed<ReadonlySet<string>>(() => new Set(selectedNodeClassNames.value))
+const fieldValidationMessage = ref('')
+const visualizationMessage = computed(() => {
+  if (selectedListClassNames.value.length === 0 || selectedNodeClassNames.value.length === 0) {
+    return 'Select at least one list class and one node class in settings.'
+  }
+  return fieldValidationMessage.value
+})
 const svg = ref(select(`#${HTML.ids.listSvg}`))
 const hoveredInfos = ref([] as HoverInfo[])
 
 const generalStore = useGeneralStore()
+const compiledClasses = generalStore.debugger.getCompiledClasses()
 const traceState = computed(() => generalStore.currentTraceData?.processedTraceState)
 const firstState = computed(() => generalStore.currentTraceData!.firstTraceState)
 const stateIndex = computed(() => generalStore.currentTraceData?.stateIndex ?? 0)
-const compiledClasses = computed(() => generalStore.debugger.getCompiledClasses()!)
+let isMounted = false
 const cssVariables = {
   '--cell-font-size': CSS.cell.fontSize + 'px',
   '--cell-name-font-family': CSS.cell.name.fontFamily,
@@ -123,22 +129,25 @@ function redraw (hoveredInfos: HoverInfo[]) {
   const { root: heapTree, heapNodes } = getHeapTree(stateIndex.value, traceState.value, firstState.value, undefined)
 
   // get lists
-  const lists = getNodesOfType(heapNodes, listClassName.value!)
+  const lists = getNodesOfTypes(heapNodes, selectedListClassNameSet.value)
 
   // create data-structure for nodes and next-pointers
   setLevelCoordinates([LAYOUT.nodes.yOrigin])
   const { nodes, pointers, nextPointers, referenceNodes } = createListAndNextPointerStructs(heapTree, lists, levelCoordinates, {
-    nodeClassName: nodeClassName.value!, nextName: nextName.value, valName: valName.value
+    nodeClassNames: selectedNodeClassNameSet.value, nextName: nextName.value, valName: valName.value
   })
   // create data-structure for node pointers
   const _svg = svg.value as Selection<BaseType, unknown, HTMLElement, any>
   const nodePointers = createPointerStructure(_svg, nodes, pointers, lists, {
-    prevName: prevName.value, nodeClassName: nodeClassName.value!
+    prevName: prevName.value, nodeClassNames: selectedNodeClassNameSet.value
   })
 
-  // check if fields (next, value) in nodes exist
-  const fieldNotFound = checkFields(nodes, [nextName.value, valName.value], HTML.ids.fieldNotFound)
-  if (fieldNotFound) {
+  const missingFields = findMissingFieldsByClass(
+    nodes.flatMap(node => node.node ? [node.node] : []),
+    [nextName.value, valName.value]
+  )
+  fieldValidationMessage.value = formatMissingFields(missingFields)
+  if (fieldValidationMessage.value) {
     deleteViz()
     return
   }
@@ -160,6 +169,22 @@ function redraw (hoveredInfos: HoverInfo[]) {
 
   // translate zoom, so x and y are visible
   zoomToChange(x, y, transform, zoomCall.value, HTML.ids.parentDiv, svgWidth, _svg)
+}
+
+/** Applies a manual wrapper-class selection and redraws the mounted visualization. */
+function updateListClassNames (classNames: string[]) {
+  selectedListClassNames.value = classNames
+  if (isMounted) {
+    redraw(hoveredInfos.value)
+  }
+}
+
+/** Applies a manual node-class selection and redraws the mounted visualization. */
+function updateNodeClassNames (classNames: string[]) {
+  selectedNodeClassNames.value = classNames
+  if (isMounted) {
+    redraw(hoveredInfos.value)
+  }
 }
 
 function getTransition () {
@@ -189,12 +214,19 @@ watch(prevName, () => {
   localStorage.setItem(LOCAL_STORAGE.prevName, prevName.value)
   redraw(hoveredInfos.value)
 })
-watch(compiledClasses, () => {
-  listClassName.value = fuzzySearch(FUZZY_NAMES.list, compiledClasses.value)
-  nodeClassName.value = fuzzySearch(FUZZY_NAMES.node, compiledClasses.value)
-})
+watch(compiledClasses, (classes) => {
+  // Reconcile only on compilation changes so a manually cleared group stays empty.
+  selectedListClassNames.value = reconcileClassSelections(selectedListClassNames.value, classes, 'list')
+  selectedNodeClassNames.value = reconcileClassSelections(selectedNodeClassNames.value, classes, 'node')
+
+  if (isMounted) {
+    redraw(hoveredInfos.value)
+  }
+}, { immediate: true })
 
 onMounted(() => {
+  isMounted = true
+  setTransform(zoomIdentity)
   // selection was empty when component was created, since template was not inserted yet
   svg.value = select(`#${HTML.ids.listSvg}`)
 
@@ -217,6 +249,7 @@ onMounted(() => {
   redraw(hoveredInfos.value)
 })
 onUnmounted(() => {
+  isMounted = false
   const div = document.getElementById(HTML.ids.parentDiv)
   if (div) {
     resizeObserver.value.unobserve(div)
@@ -294,17 +327,16 @@ onUnmounted(() => {
   height: 100%;
 }
 
+#list-field-not-found {
+  transform: translateX(35px);
+}
+
 #list-svg {
   min-width: 100%;
   min-height: 100%;
   position: absolute;
   top: 0;
   left: 0;
-}
-
-.class-selector {
-  width: 100%;
-  padding: 3px 0px;
 }
 
 .text-input {

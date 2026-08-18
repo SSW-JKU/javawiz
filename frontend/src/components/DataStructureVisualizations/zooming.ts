@@ -1,7 +1,8 @@
-import { ZoomBehavior, ZoomedElementBaseType } from 'd3-zoom'
+import { ZoomBehavior, ZoomedElementBaseType, type ZoomTransform } from 'd3-zoom'
 import * as d3 from 'd3'
 import { SVG, ZOOM } from './constants'
 import { TRANSFORMATION } from '@/helpers/constants'
+import { resolveZoomTransform } from './zoom-transform'
 
 /**
  * Zooms to change if needed
@@ -16,7 +17,7 @@ import { TRANSFORMATION } from '@/helpers/constants'
 export function zoomToChange (
   x: number,
   y: number,
-  transform: any,
+  transform: ZoomTransform | null,
   zoom: ZoomBehavior<ZoomedElementBaseType, unknown>,
   divId: string,
   svgWidth: number,
@@ -24,12 +25,13 @@ export function zoomToChange (
 ) {
   const nodeHeight = 2 * SVG.cellHeight
   const nodeWidth = SVG.cellWidth
+  const currentTransform = resolveZoomTransform(transform)
 
   // calculate corner-coordinates
-  const upperLeft = transform.invert([0, 0])
+  const upperLeft = currentTransform.invert([0, 0])
   const divDOM = document.getElementById(divId)
   const height = divDOM ? divDOM.clientHeight / divDOM.clientWidth * svgWidth : 0
-  const lowerRight = transform.invert([svgWidth, height])
+  const lowerRight = currentTransform.invert([svgWidth, height])
   // calculate how much to translate the view
   let dX = 0
   let dY = 0
@@ -37,8 +39,8 @@ export function zoomToChange (
   const viewWidth = lowerRight[0] - upperLeft[0]
   const viewHeight = lowerRight[1] - upperLeft[1]
   // calculate scaled node size
-  const scaledNodeWidth = nodeWidth * transform.k
-  const scaledNodeHeight = (nodeHeight || (nodeWidth / 2)) * transform.k
+  const scaledNodeWidth = nodeWidth * currentTransform.k
+  const scaledNodeHeight = (nodeHeight || (nodeWidth / 2)) * currentTransform.k
   // calculate offset that is added when translating
   let offsetX = scaledNodeWidth / 2 * ZOOM.offsetMultiplier
   let offsetY = scaledNodeHeight * ZOOM.offsetMultiplier

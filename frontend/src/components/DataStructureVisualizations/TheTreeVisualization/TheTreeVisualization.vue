@@ -1,7 +1,7 @@
 <template>
   <div :id="HTML.ids.parentDiv" :style="cssVariables">
-    <div :id="HTML.ids.fieldNotFound" class="pane-default-text" style="color: red; display: none">
-      The nodes do not contain the given fields. Please check the names of the left child, the right child and the value field in settings.
+    <div v-if="visualizationMessage" :id="HTML.ids.fieldNotFound" class="pane-default-text" style="color: red">
+      {{ visualizationMessage }}
     </div>
     <svg
       :id="HTML.ids.treeSvg"
@@ -21,24 +21,18 @@
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
       :viz-id="visualizationStore.BINARYTREE.id">
-      <p class="no-break">
-        <small><b>Tree settings:</b></small> <br>
-        Name of tree class:
-      </p>
-      <select v-model="treeClassName" class="class-selector" name="tree class name" @change="redraw()">
-        <option value="" />
-        <option v-for="(compiledClass, i) in compiledClasses" :key="i" :value="compiledClass">
-          {{ compiledClass }}
-        </option>
-      </select> <br>
-      <small><b>Node settings:</b></small> <br>
-      Name of node class: <br>
-      <select v-model="nodeClassName" class="class-selector" name="node class name" @change="redraw()">
-        <option value="" />
-        <option v-for="(compiledClass, i) in compiledClasses" :key="i" :value="compiledClass">
-          {{ compiledClass }}
-        </option>
-      </select> <br>
+      <ClassCheckboxGroup
+        id-prefix="tree-wrapper-class"
+        :classes="compiledClasses"
+        label="Tree classes:"
+        :model-value="selectedTreeClassNames"
+        @update:model-value="updateTreeClassNames" />
+      <ClassCheckboxGroup
+        id-prefix="tree-node-class"
+        :classes="compiledClasses"
+        label="Node classes:"
+        :model-value="selectedNodeClassNames"
+        @update:model-value="updateNodeClassNames" />
       Name of left child: <br>
       <input v-model="leftName" class="text-input" placeholder="Enter name of left child ..."> <br>
       Name of right child: <br>
@@ -61,14 +55,16 @@ import { BaseType, select, Selection } from 'd3-selection'
 import { zoom, zoomIdentity } from 'd3-zoom'
 import { transform, setTransform, levelCoordinates, setLevelCoordinates, levelWidths, setLevelWidths } from './state'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import ClassCheckboxGroup from '../ClassCheckboxGroup.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
-import { FUZZY_NAMES, HTML, LAYOUT, LOCAL_STORAGE } from './constants'
+import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
 import { drawNodeRectangles, drawChildPointers, drawPointers } from './drawing'
 import { processChildren, createTreeAndChildPointerStructs, createPointerStructure } from './preprocessing'
 import { CSS } from '../constants'
 import { zoomToChange } from '../zooming'
-import { checkFields, fuzzySearch, getHeapTree, removeChildren } from '../utils'
-import { getNodesOfType } from '../preprocessing-utils'
+import { getHeapTree, removeChildren } from '../utils'
+import { reconcileClassSelections } from '../classSelection'
+import { findMissingFieldsByClass, formatMissingFields, getNodesOfTypes } from '../preprocessing-utils'
 import { calcTreeWidth } from './layout'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverInfo } from '@/hover/types'
@@ -92,12 +88,22 @@ const svg = ref(select(`#${HTML.ids.treeSvg}`))
 const hoveredInfos = ref<HoverInfo[]>([])
 
 const generalStore = useGeneralStore()
+const compiledClasses = generalStore.debugger.getCompiledClasses()
 const stateIndex = computed(() => generalStore.currentTraceData?.processedTraceState?.stateIndex ?? 0)
 const traceState = computed(() => generalStore.currentTraceData?.processedTraceState)
 const firstState = computed(() => generalStore.currentTraceData!.firstTraceState!)
-const compiledClasses = computed(() => generalStore.debugger.getCompiledClasses()!)
-const treeClassName = computed(() => fuzzySearch(FUZZY_NAMES.tree, compiledClasses.value) ?? '')
-const nodeClassName = computed(() => fuzzySearch(FUZZY_NAMES.node, compiledClasses.value) ?? '')
+const selectedTreeClassNames = ref<string[]>([])
+const selectedNodeClassNames = ref<string[]>([])
+const selectedTreeClassNameSet = computed<ReadonlySet<string>>(() => new Set(selectedTreeClassNames.value))
+const selectedNodeClassNameSet = computed<ReadonlySet<string>>(() => new Set(selectedNodeClassNames.value))
+const fieldValidationMessage = ref('')
+const visualizationMessage = computed(() => {
+  if (selectedTreeClassNames.value.length === 0 || selectedNodeClassNames.value.length === 0) {
+    return 'Select at least one tree class and one node class in settings.'
+  }
+  return fieldValidationMessage.value
+})
+let isMounted = false
 const cssVariables = {
   '--cell-font-size': CSS.cell.fontSize + 'px',
   '--cell-name-font-family': CSS.cell.name.fontFamily,
@@ -115,21 +121,24 @@ function redraw (hoveredInfos: HoverInfo[] = []) {
 
   // create tree from heap tree
   // get trees
-  const trees = getNodesOfType(heapNodes, treeClassName.value)
+  const trees = getNodesOfTypes(heapNodes, selectedTreeClassNameSet.value)
 
   // explore tree and create data-structure for tree nodes and child pointers
   setLevelCoordinates([])
   setLevelWidths([calcTreeWidth(0)])
   const { treeNodes, childPointers, pointers } = createTreeAndChildPointerStructs(heapTree, trees, levelCoordinates, levelWidths, {
-    nodeClassName: nodeClassName.value,
+    nodeClassNames: selectedNodeClassNameSet.value,
     valueName: valueName.value,
     leftName: leftName.value,
     rightName: rightName.value
   })
 
-  // check if fields (left, right, value) in nodes exist
-  const fieldNotFound = checkFields(treeNodes, [leftName.value, rightName.value, valueName.value], HTML.ids.fieldNotFound)
-  if (fieldNotFound) {
+  const missingFields = findMissingFieldsByClass(
+    treeNodes.flatMap(node => node.node ? [node.node] : []),
+    [leftName.value, rightName.value, valueName.value]
+  )
+  fieldValidationMessage.value = formatMissingFields(missingFields)
+  if (fieldValidationMessage.value) {
     deleteViz()
     return
   }
@@ -142,7 +151,7 @@ function redraw (hoveredInfos: HoverInfo[] = []) {
   // create data-structure for node pointers
   const nodePointers = createPointerStructure(treeNodes, pointers, trees, {
     parentName: parentName.value,
-    nodeClassName: nodeClassName.value
+    nodeClassNames: selectedNodeClassNameSet.value
   })
 
   // visualize everything
@@ -162,6 +171,22 @@ function redraw (hoveredInfos: HoverInfo[] = []) {
 
   // translate zoom, so x and y are visible
   zoomToChange(x, y, transform, zoomCall.value, HTML.ids.parentDiv, LAYOUT.svgWidth, _svg)
+}
+
+/** Applies a manual wrapper-class selection and redraws the mounted visualization. */
+function updateTreeClassNames (classNames: string[]) {
+  selectedTreeClassNames.value = classNames
+  if (isMounted) {
+    redraw(hoveredInfos.value)
+  }
+}
+
+/** Applies a manual node-class selection and redraws the mounted visualization. */
+function updateNodeClassNames (classNames: string[]) {
+  selectedNodeClassNames.value = classNames
+  if (isMounted) {
+    redraw(hoveredInfos.value)
+  }
 }
 
 function onHover (hoverInfos: HoverInfo[]) {
@@ -190,7 +215,15 @@ function zoomReset () {
 
 watch(stateIndex, () => redraw())
 
-watch(treeClassName, () => redraw())
+watch(compiledClasses, (classes) => {
+  // Reconcile only on compilation changes so a manually cleared group stays empty.
+  selectedTreeClassNames.value = reconcileClassSelections(selectedTreeClassNames.value, classes, 'tree')
+  selectedNodeClassNames.value = reconcileClassSelections(selectedNodeClassNames.value, classes, 'node')
+
+  if (isMounted) {
+    redraw(hoveredInfos.value)
+  }
+}, { immediate: true })
 
 watch(leftName, () => {
   redraw()
@@ -212,6 +245,8 @@ watch(parentName, () => {
 })
 
 onMounted(() => {
+  isMounted = true
+  setTransform(zoomIdentity)
   // selection was empty when component was created, since template was not inserted yet
   svg.value = select(`#${HTML.ids.treeSvg}`)
 
@@ -235,6 +270,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  isMounted = false
   const div = document.getElementById(HTML.ids.parentDiv)
   if (div) {
     resizeObserver.value?.unobserve(div)
@@ -307,14 +343,13 @@ onUnmounted(() => {
     height: 100%;
   }
 
+  #tree-field-not-found {
+    transform: translateX(35px);
+  }
+
   #tree-svg {
     min-width: 100%;
     position: absolute;
-  }
-
-  .class-selector {
-    width: 100%;
-    padding: 3px 0px;
   }
 
   .text-input {

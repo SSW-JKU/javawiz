@@ -6,6 +6,10 @@ plugins {
 
 node {
     version = '22.13.1'
+    download = true
+
+    // Keep the downloaded Node runtime outside the project.
+    workDir = file("${gradle.gradleUserHomeDir}/nodejs")
 }
 
 tasks.named("npm_run_build") {

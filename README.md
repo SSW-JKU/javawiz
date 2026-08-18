@@ -83,13 +83,19 @@ JavaWiz was developed at the [Institute for System Software](https://ssw.jku.at/
 > **JavaWiz ThreadViz - A Visual Debugger for Multi-threaded Programs Based on the Espresso Java VM.**<br>
 > 40th European Conference on Object-Oriented Programming (ECOOP 2026).
 
-[Read the paper](https://ssw.jku.at/General/Staff/Weninger/Papers/Sen_ECOOP_26_Preprint.pdf)
+[Read the paper](https://javawiz.net/paper/ECOOP_26_Preprint.pdf)
 
 > Markus Weninger.<br>
 > **Towards Guided Omniscient Debugging in Education Using Pedagogical Execution Traces (PETs).**<br>
 > Fourth Workshop on Future Debugging Techniques (DEBT 2026).
 
-[Read the paper](https://ssw.jku.at/General/Staff/Weninger/Papers/Weninger_DEBT_26_Preprint.pdf)
+[Read the paper](https://javawiz.net/paper/DEBT_26_Preprint.pdf)
+
+> Sebastian Stiegler and Markus Weninger.<br>
+> **Dynamic Visualization of Java Stream Operations for Education Using Marble Diagrams.**<br>
+> 14th IEEE Working Conference on Software Visualization (VISSOFT 2026).
+
+[Read the paper](https://javawiz.net/paper/VISSOFT_26_Preprint.pdf)
 
 ## 🛠️ For Developers
 
@@ -123,12 +129,6 @@ Use the repository's Gradle wrapper from the project root:
 
 On Windows, use `gradlew.bat` instead of `./gradlew`.
 
-The Gradle configuration cache is enabled centrally for all wrapper commands,
-including IDE, CI, development, and publishing tasks. Repeated commands can
-therefore reuse their configured task graph automatically. For troubleshooting
-an incompatible task or plugin, disable it for one invocation with
-`--no-configuration-cache`.
-
 Build outputs:
 
 - Frontend: `frontend/dist/index.html`
@@ -137,18 +137,34 @@ Build outputs:
 
 ### Running Locally
 
+#### Dev Environment
+
+Perform the following two commands.
+
+```shell
+# Start the backend
+./gradlew :backend:run
+```
+
 ```shell
 # Start the frontend development server
 ./gradlew :frontend:run
+```
 
-# Start the backend
-./gradlew :backend:run
+Then open the localhost URL printed by `:frontend:run`.
 
+These tasks are also available as IntelliJ run configurations when the repository is imported into IntelliJ IDEA.
+
+#### Running the extension as IntelliJ plugin
+
+Run the following command.
+
+```shell
 # Run the IntelliJ plugin in a sandboxed IDE
 ./gradlew :intellij-plugin:runIde
 ```
 
-These tasks are also available as IntelliJ run configurations when the repository is imported into IntelliJ IDEA.
+This automatically builds frontend and backend, packages them and runs the plugin in an IntelliJ session.
 
 ### Testing
 

@@ -33,11 +33,14 @@ function processChildNode (
     childPointers: ChildPointer[],
     levelCoordinates: number[][]
   },
-  component: { valueName: string, leftName: string; rightName: string }
+  component: { nodeClassNames: ReadonlySet<string>, valueName: string, leftName: string; rightName: string }
 ) {
   let actualChildNode: TreeNode = childNode
   let depth = parentNode.level
   if (childNode.node?.element?.kind === 'HeapObject') {
+    if (!component.nodeClassNames.has(childNode.node.element.type)) {
+      return depth
+    }
     const existing = structures.treeNodes.find(treeNode =>
       (treeNode.node?.element as HeapObject).id === (childNode.node!.element as HeapObject).id)
     if (existing) {
@@ -68,7 +71,7 @@ export function exploreTree (
     childPointers: ChildPointer[],
     levelCoordinates: number[][]
   },
-  component: { valueName: string, leftName: string; rightName: string }
+  component: { nodeClassNames: ReadonlySet<string>, valueName: string, leftName: string; rightName: string }
 ) {
   if (treeNode.node) {
     const leftChild = treeNode.node?.children[treeNode.leftFieldIndex]
@@ -109,17 +112,19 @@ export function createTreeAndChildPointerStructs (
   trees: HeapTreeNode[],
   levelCoordinates: number[][],
   levelWidths: number[],
-  component: { nodeClassName: string, valueName: string, leftName: string, rightName: string }
+  component: { nodeClassNames: ReadonlySet<string>, valueName: string, leftName: string, rightName: string }
 ) {
   // get all variables that point to a node
-  const pointers = getVariablePointers(heapTree, component.nodeClassName)
+  const pointers = getVariablePointers(heapTree, component.nodeClassNames)
 
   // collect nodes
   const heapNodes = trees
     .flatMap(tree =>
-      tree.children.filter(child => child.element?.kind === 'HeapObject' && child.element.type === component.nodeClassName)
+      tree.children.filter(child => child.element?.kind === 'HeapObject' && component.nodeClassNames.has(child.element.type))
     )
-  heapNodes.push(...pointers.filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal').map(pointer => pointer.children[0]))
+  heapNodes.push(...pointers
+    .filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal' && pointer.children[0])
+    .map(pointer => pointer.children[0]))
 
   let treeLevel = 0
   const structures = {
@@ -167,7 +172,7 @@ export function createPointerStructure (
   treeNodes: TreeNode[],
   pointers: HeapTreeNode[],
   trees: HeapTreeNode[],
-  component: { parentName: string, nodeClassName: string }
+  component: { parentName: string, nodeClassNames: ReadonlySet<string> }
 ) {
   const nodePointers: TreeNodePointer[] = []
   treeNodes.forEach(node => {
@@ -204,7 +209,9 @@ export function createPointerStructure (
   // add variables of tree itself (root, ...)
   trees.forEach(heapNode => {
     const dataStructure = heapNode.element as HeapObject
-    dataStructure.fields.filter(field => field.type === component.nodeClassName)
+    dataStructure.fields.filter(field => field.value.kind === 'ReferenceVal'
+      ? treeNodes.some(node => (node.node?.element as HeapObject).id === (field.value as ReferenceVal).reference)
+      : field.value.kind === 'NullVal' && component.nodeClassNames.has(field.type))
       .slice()
       .reverse()
       .forEach(field => {
