@@ -19,7 +19,7 @@ JavaWiz provides ten visualization views:
 - A History View for browsing calls and assignments across the complete execution trace, filtering or searching them, and jumping to matching program states.
 
 ## How to use
-The extension requires at least **JDK 25** to run.
+The extension requires **Visual Studio Code 1.87.0 or newer** and at least **JDK 25** to run.
 
 ### Start
 

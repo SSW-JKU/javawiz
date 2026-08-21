@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.2.0] (released on 2026-08-21)
+* JW-541: IntelliJ plugin 2.1.3 cannot load JBCefBrowser on IntelliJ IDEA 2026.2.1
+* JW-542: Raise minimum IntelliJ version to 2026.2.1 due to JCEF dependency change
+* JW-543: Use JUnit 5 Java PSI fixture for IntelliJ line-marker tests
+* JW-544: Document IDE compatibility requirements
+* JW-545: Document minimum JDK requirement
+
 [2.1.3] (released on 2026-08-18)
 * JW-81: Heapviz href error
 * JW-94: Visualize multiple list/tree/node classes in list and tree visualization
@@ -454,11 +461,8 @@ All notable changes to this project will be documented in this file.
 * JW-98: Certain steps sometimes not correctly resumed after being suspended by input
 
 [1.3.0] (released on 2023-07-04)
-* JW-34: Special characters are not displayed correctly in outputs
 * JW-43: Trace array access in the backend for visualization
-* JW-44: Array visualization
 * JW-53: When performing "Run in JavaWiz", WebView sometimes cannot be opened, especially after extension rebuilding and publishing.
-* JW-62: Enable Debugger to handle multiple events per eventSet, as well as multiple eventSets in eventQueue
 * JW-63: Create typing for StepResult on frontend
 * JW-67: Fuzzy checking for class names in data structure visualizations
 * JW-68: Inconsistent handling of escape characters
@@ -468,9 +472,7 @@ All notable changes to this project will be documented in this file.
 * JW-72: Discuss Exception tracing/visualization
 * JW-74: .vscode folder that is created to store settings confuses users, need to get rid of it
 * JW-75: Strings too large in desktest
-* JW-76: NoSuchElementException on backend in recursive program
 * JW-79: Opening Array visualization crashes frontend
-* JW-85: Refactor DeskTest CSS
 * JW-95: RUN_TO_END prematurely kills VM if input is expected
 * JW-96: After input, just continue the previous step request (if existing) instead of performing a single STEP_INTO and then continuing
 * JW-97: Some backend unit tests are broken

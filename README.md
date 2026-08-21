@@ -61,11 +61,11 @@ Unlike a traditional debugger, JavaWiz records the execution trace. You can move
 
 ### Visual Studio Code
 
-Install [JavaWiz from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz), open a Java file, and use **Debug with JavaWiz** above a `main` method or from the editor context menu.
+Install [JavaWiz from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz), open a Java file, and use **Debug with JavaWiz** above a `main` method or from the editor context menu. JavaWiz requires **Visual Studio Code 1.87.0 or newer**.
 
 ### IntelliJ IDEA
 
-Download the latest IntelliJ plugin ZIP from [GitHub Releases](https://github.com/SSW-JKU/javawiz/releases). In IntelliJ IDEA, open **Settings → Plugins → ⚙ → Install Plugin from Disk**, then select the downloaded ZIP.
+Download the latest IntelliJ plugin ZIP from [GitHub Releases](https://github.com/SSW-JKU/javawiz/releases). In IntelliJ IDEA, open **Settings → Plugins → ⚙ → Install Plugin from Disk**, then select the downloaded ZIP. JavaWiz requires **IntelliJ IDEA 2026.2.1 or newer**.
 
 > JavaWiz currently requires **JDK 25 or newer**.
 

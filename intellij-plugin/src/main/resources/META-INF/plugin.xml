@@ -38,7 +38,8 @@
         </ul>
 
         <h2>How to use</h2>
-        <p>The plugin requires at least <strong>JDK 25</strong> to run.</p>
+        <p>The plugin requires <strong>IntelliJ IDEA 2026.2.1 or newer</strong> and at least
+        <strong>JDK 25</strong> to run.</p>
 
         <h3>Start</h3>
         <p>After installing JavaWiz and opening a Java file, start it by clicking
@@ -62,6 +63,10 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
+
+    <dependencies>
+        <module name="intellij.platform.ui.jcef"/>
+    </dependencies>
 
     <actions>
         <action id="${actionId}"

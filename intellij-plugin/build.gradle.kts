@@ -6,12 +6,12 @@ import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.3.0"
-    id("org.jetbrains.intellij.platform") version "2.16.0"
+    id("org.jetbrains.intellij.platform") version "2.18.1"
     kotlin("plugin.serialization") version "2.3.0"
 }
 
 group = "at.jku.ssw"
-version = "2.1.3"
+version = "2.2.0"
 
 fun htmlEscape(value: String): String =
     value
@@ -129,18 +129,23 @@ dependencies {
 
     // IntelliJ Platform
     intellijPlatform {
-        // Target IntelliJ IDEA 2026.1.1 (unified distribution — IC no longer exists for 2025.3+)
-        intellijIdea("2026.1.1")
+        // Target IntelliJ IDEA 2026.2.1 (unified distribution — IC no longer exists for 2025.3+)
+        intellijIdea("2026.2.1")
 
         // Use the actual bundled plugin ID, not its legacy `java` directory name:
         // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-faq.html#migrateToPluginId
         bundledPlugin("com.intellij.java")
+
+        // IntelliJ 2026.2 isolates JCEF into content modules that must be declared explicitly.
+        bundledModule("intellij.platform.ui.jcef")
+        bundledModule("intellij.libraries.jcef")
 
         // Declare every framework used by the headless model-level tests explicitly:
         // https://plugins.jetbrains.com/docs/intellij/tests-and-fixtures.html
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.JUnit5)
         // Java PSI fixtures require the Java plugin's dedicated test framework:
         // https://plugins.jetbrains.com/docs/intellij/light-and-heavy-tests.html#plugins-using-java-psi
         testFramework(TestFrameworkType.Plugin.Java)
@@ -151,6 +156,10 @@ dependencies {
 // Ktor's ordinary Maven variant while leaving the plugin's production runtime unchanged.
 configurations.testRuntimeClasspath {
     exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core-jvm")
+    // IntelliJ 2026.2's bundled plugins use newer serialization APIs. Keep the test JVM on
+    // the platform-provided serialization implementation instead of the plugin's runtime copy.
+    exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-serialization-core-jvm")
+    exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-serialization-json-jvm")
 }
 
 intellijPlatform {
@@ -159,7 +168,7 @@ intellijPlatform {
         version = project.version.toString()
 
         ideaVersion {
-            sinceBuild = "253"
+            sinceBuild = "262"
             // untilBuild is intentionally left unset — the plugin supports all future builds
         }
 
@@ -178,7 +187,7 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            create(IntelliJPlatformType.IntellijIdeaUltimate, "2026.1.1")
+            create(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2.1")
         }
     }
 }
@@ -212,6 +221,20 @@ val copyFrontendToIntellijPlugin by tasks.registering(Copy::class) {
 }
 
 tasks {
+    processTestResources {
+        // Light fixture tests reuse one application and do not exercise the execution UI.
+        // Loading JWExecutor there registers its global context action twice, which Jupiter's
+        // uncaught-exception extension correctly reports. Keep every other plugin extension.
+        val testPluginDescriptor = layout.buildDirectory.file("resources/test/META-INF/plugin.xml")
+        doLast {
+            val descriptor = testPluginDescriptor.get().asFile
+            val retainedLines = descriptor.readLines().filterNot {
+                "at.jku.ssw.javawiz.intellij.action.JWExecutor" in it
+            }
+            descriptor.writeText(retainedLines.joinToString(System.lineSeparator(), postfix = System.lineSeparator()))
+        }
+    }
+
     test {
         useJUnitPlatform()
     }
