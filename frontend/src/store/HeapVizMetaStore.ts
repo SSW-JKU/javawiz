@@ -1,5 +1,5 @@
+import { HeapVizMeta } from '@/components/TheHeapVisualization/Types/HeapVizElement'
 import { defineStore } from 'pinia'
-import { HeapVizMeta } from '@/components/TheHeapVisualization/types'
 
 export const useHeapVizMetaStore = defineStore('heapVizMeta', {
   state: () => {

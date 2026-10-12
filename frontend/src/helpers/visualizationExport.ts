@@ -4,7 +4,7 @@ export type VisualizationExportFormat = 'html' | 'png' | 'svg'
 
 const EXPORT_IGNORE_ATTRIBUTE = 'data-export-ignore'
 
-function download (content: Blob | string, fileName: string) {
+function download (content: Blob | string, fileName: string): string {
   const link = document.createElement('a')
   link.download = fileName
   link.href = typeof content === 'string' ? content : URL.createObjectURL(content)
@@ -13,6 +13,8 @@ function download (content: Blob | string, fileName: string) {
   if (content instanceof Blob) {
     window.setTimeout(() => URL.revokeObjectURL(link.href), 0)
   }
+
+  return fileName
 }
 
 function shouldExportNode (node: Node): boolean {
@@ -60,7 +62,7 @@ function cloneRenderedElement<T extends Element> (source: T): T {
   return clone
 }
 
-function exportHtml (target: HTMLElement, fileName: string) {
+function exportHtml (target: HTMLElement, fileName: string): string {
   const clone = cloneRenderedElement(target)
   const bounds = target.getBoundingClientRect()
   clone.setAttribute(
@@ -81,10 +83,10 @@ function exportHtml (target: HTMLElement, fileName: string) {
     '</html>'
   ].join('')
 
-  download(new Blob([html], { type: 'text/html;charset=utf-8' }), `${fileName}.html`)
+  return download(new Blob([html], { type: 'text/html;charset=utf-8' }), `${fileName}.html`)
 }
 
-function exportSvg (target: HTMLElement, fileName: string) {
+function exportSvg (target: HTMLElement, fileName: string): string {
   const svg = target.querySelector('svg')
   if (!svg) {
     throw new Error('The visualization does not contain an SVG element.')
@@ -97,10 +99,10 @@ function exportSvg (target: HTMLElement, fileName: string) {
   clone.setAttribute('height', `${bounds.height}`)
 
   const serialized = new XMLSerializer().serializeToString(clone)
-  download(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }), `${fileName}.svg`)
+  return download(new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' }), `${fileName}.svg`)
 }
 
-async function exportPng (target: HTMLElement, fileName: string) {
+async function exportPng (target: HTMLElement, fileName: string): Promise<string> {
   const backgroundColor = window.getComputedStyle(target).backgroundColor
   const dataUrl = await toPng(target, {
     backgroundColor: backgroundColor === 'rgba(0, 0, 0, 0)' ? '#ffffff' : backgroundColor,
@@ -108,19 +110,19 @@ async function exportPng (target: HTMLElement, fileName: string) {
     filter: shouldExportNode,
     pixelRatio: 2
   })
-  download(dataUrl, `${fileName}.png`)
+  return download(dataUrl, `${fileName}.png`)
 }
 
 export async function exportVisualization (
   target: HTMLElement,
   format: VisualizationExportFormat,
   fileName: string
-) {
+): Promise<string> {
   if (format === 'html') {
-    exportHtml(target, fileName)
+    return exportHtml(target, fileName)
   } else if (format === 'svg') {
-    exportSvg(target, fileName)
+    return exportSvg(target, fileName)
   } else {
-    await exportPng(target, fileName)
+    return exportPng(target, fileName)
   }
 }

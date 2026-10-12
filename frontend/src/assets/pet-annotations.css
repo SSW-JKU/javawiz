@@ -134,6 +134,23 @@ svg .pet-question-option-text {
   user-select: none;
 }
 
+.pet-html-callout:not(.collapsed) {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pet-callout-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  object-fit: contain;
+}
+
+.pet-callout-content {
+  min-width: 0;
+}
+
 .pet-html-callout.pet-question {
   border-color: #6aa7ff;
   background: #eef6ff;
@@ -141,12 +158,25 @@ svg .pet-question-option-text {
 
 .pet-html-callout.collapsed {
   display: flex;
-  width: 26px;
-  min-width: 26px;
-  height: 26px;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
   align-items: center;
   justify-content: center;
   padding: 0;
+  gap: 0;
+}
+
+.pet-html-callout.collapsed .pet-callout-icon {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+}
+
+.pet-callout-collapsed-marker {
+  position: absolute;
+  right: 4px;
+  bottom: 1px;
 }
 
 .pet-html-callout:focus-visible,

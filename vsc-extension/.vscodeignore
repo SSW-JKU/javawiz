@@ -11,3 +11,5 @@ vsc-extension-quickstart.md
 *.py
 .gradle/**
 HOW_TO_RELEASE.md
+watch.cjs
+build/**

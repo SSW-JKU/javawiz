@@ -50,7 +50,7 @@
 import { BaseType, select, Selection } from 'd3-selection'
 import 'd3-transition'
 import { zoom, zoomIdentity } from 'd3-zoom'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { transform, setTransform, levelCoordinates, setLevelCoordinates } from './state'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
 import ClassCheckboxGroup from '../ClassCheckboxGroup.vue'
@@ -75,8 +75,9 @@ const visualizationStore = useVisualizationStore()
 const nextName = ref(localStorage.getItem(LOCAL_STORAGE.nextName) || 'next')
 const valName = ref(localStorage.getItem(LOCAL_STORAGE.valName) || 'val')
 const prevName = ref(localStorage.getItem(LOCAL_STORAGE.prevName) || 'prev')
-const resizeObserver = ref(null as unknown as ResizeObserver)
-const zoomCall = ref(zoom().on('zoom', (event) => {
+// Track handle replacement without deep-proxying imperative browser and D3 objects.
+const resizeObserver = shallowRef(null as unknown as ResizeObserver)
+const zoomCall = shallowRef(zoom().on('zoom', (event) => {
   setTransform(event.transform)
   select(`#${HTML.ids.list}`).attr('transform', event.transform)
 }))
@@ -91,7 +92,7 @@ const visualizationMessage = computed(() => {
   }
   return fieldValidationMessage.value
 })
-const svg = ref(select(`#${HTML.ids.listSvg}`))
+const svg = shallowRef(select(`#${HTML.ids.listSvg}`))
 const hoveredInfos = ref([] as HoverInfo[])
 
 const generalStore = useGeneralStore()
@@ -250,10 +251,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
   isMounted = false
-  const div = document.getElementById(HTML.ids.parentDiv)
-  if (div) {
-    resizeObserver.value.unobserve(div)
-  }
+  resizeObserver.value.disconnect()
   HoverSynchronizer.removeOnHover(onHover)
 })
 </script>

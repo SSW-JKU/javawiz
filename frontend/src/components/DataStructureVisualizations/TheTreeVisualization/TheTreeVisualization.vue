@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { BaseType, select, Selection } from 'd3-selection'
 import { zoom, zoomIdentity } from 'd3-zoom'
 import { transform, setTransform, levelCoordinates, setLevelCoordinates, levelWidths, setLevelWidths } from './state'
@@ -79,12 +79,13 @@ const leftName = ref(localStorage.getItem(LOCAL_STORAGE.leftName) || 'left')
 const rightName = ref(localStorage.getItem(LOCAL_STORAGE.rightName) || 'right')
 const valueName = ref(localStorage.getItem(LOCAL_STORAGE.valueName) || 'val')
 const parentName = ref(localStorage.getItem(LOCAL_STORAGE.parentName) || 'parent')
-const resizeObserver = ref<ResizeObserver>()
-const zoomCall = ref(zoom().on('zoom', (event) => {
+// Track handle replacement without deep-proxying imperative browser and D3 objects.
+const resizeObserver = shallowRef<ResizeObserver>()
+const zoomCall = shallowRef(zoom().on('zoom', (event) => {
   setTransform(event.transform)
   select(`#${HTML.ids.tree}`).attr('transform', event.transform)
 }))
-const svg = ref(select(`#${HTML.ids.treeSvg}`))
+const svg = shallowRef(select(`#${HTML.ids.treeSvg}`))
 const hoveredInfos = ref<HoverInfo[]>([])
 
 const generalStore = useGeneralStore()
@@ -271,10 +272,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   isMounted = false
-  const div = document.getElementById(HTML.ids.parentDiv)
-  if (div) {
-    resizeObserver.value?.unobserve(div)
-  }
+  resizeObserver.value?.disconnect()
   HoverSynchronizer.removeOnHover(onHover)
 })
 </script>

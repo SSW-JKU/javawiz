@@ -43,6 +43,7 @@
 import * as d3 from 'd3'
 import { computed, onMounted, watch } from 'vue'
 import { useGeneralStore } from '@/store/GeneralStore'
+import { CONSOLE_TEXT_WATCH_OPTIONS } from '@/components/consoleWatcherOptions'
 
 const generalStore= useGeneralStore()
 const compileError = computed(() => generalStore.debugger.getCompileErrorMessage())
@@ -50,16 +51,22 @@ const isInputExpected = computed(() => generalStore.debugger.inputExpected)
 const isLive = computed(() => generalStore.debugger.isLive || !generalStore.debugger.compiled)
 const consoleText = computed(() => generalStore.consoleLines.map(line => line.output + line.input + line.error).join(''))
 
-watch(isInputExpected, () => {
+/** Focuses the input only when the debugger is waiting for program input. */
+function focusInputIfExpected () {
   if (isInputExpected.value) {
     document.getElementById('console-input-field')?.focus()
   }
-})
+}
 
-watch(consoleText, () => {
+watch(isInputExpected, focusInputIfExpected)
+
+/** Keeps the console viewport at the newest output after rendering. */
+function scrollConsoleToBottom () {
   const console = document.getElementById('console-output')
   if (console) console.scrollTop = console.scrollHeight
-})
+}
+
+watch(consoleText, scrollConsoleToBottom, CONSOLE_TEXT_WATCH_OPTIONS)
 
 onMounted(() => {
   d3.select('#console-input-field')
@@ -69,6 +76,8 @@ onMounted(() => {
         d3.select('#console-input-button').dispatch('click')
       }
     })
+  focusInputIfExpected()
+  scrollConsoleToBottom()
 })
 
 function blur () {

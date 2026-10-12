@@ -33,9 +33,7 @@ data class HeapObject(
     override val id: Long,
     override val type: String,
     override val faked: Boolean,
-    val fields: List<Var>, //does not include static fields
-    /** True if this object's fields were collected for specialised visualisations only and must not be shown in the Memory View. */
-    val detailedFieldsOnly: Boolean = false
+    val fields: List<Var> //does not include static fields
 ) : HeapItem {
     override fun copyAsFaked(): HeapItem = copy(faked = true)
 }

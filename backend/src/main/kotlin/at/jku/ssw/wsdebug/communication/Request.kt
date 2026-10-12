@@ -26,18 +26,18 @@ data class Compile(
     val vscExtensionActive: Boolean,
     /** Patterns for classes that are excluded from stepping and instrumentation. Defaults to [VirtualMachine.INTERNAL_CLASS_PATTERNS]. */
     val excludeFromSteppingPatterns: List<String>?,
-    /** Patterns for classes whose fields are not collected. Defaults to [VirtualMachine.INTERNAL_CLASS_PATTERNS]. */
-    val excludeFieldsPatterns: List<String>?,
-    /** Patterns for classes whose fields are collected but only shown in specialised visualisations, not in the Memory View. Defaults to [VirtualMachine.DATA_STRUCTURE_CLASSES]. */
-    val detailedFieldsPatterns: List<String>?,
+    /** Patterns for classes at which ordinary heap traversal stops. Defaults to [VirtualMachine.INTERNAL_CLASS_PATTERNS]. */
+    val heapTraversalStopPatterns: List<String>?,
+    /** Patterns for Java data structures whose fields are collected despite being heap-traversal stops. Defaults to [VirtualMachine.DATA_STRUCTURE_CLASSES]. */
+    val dataStructurePatterns: List<String>?,
     val openEditorLocalUri: String? = null
 ) : Request() {
     override val task: TaskKind = TaskKind.COMPILE
 
     override fun toString(): String {
         return "CompileRequest(classes=${classContents.map { cc -> cc.localUri }}, vscExtensionActive=$vscExtensionActive, " +
-                "excludeFromSteppingPatterns=$excludeFromSteppingPatterns, excludeFieldsPatterns=$excludeFieldsPatterns, " +
-                "detailedFieldsPatterns=$detailedFieldsPatterns, openEditorLocalUri=$openEditorLocalUri)"
+                "excludeFromSteppingPatterns=$excludeFromSteppingPatterns, heapTraversalStopPatterns=$heapTraversalStopPatterns, " +
+                "dataStructurePatterns=$dataStructurePatterns, openEditorLocalUri=$openEditorLocalUri)"
     }
 }
 

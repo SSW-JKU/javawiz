@@ -1,4 +1,4 @@
-import { InputBufferInfo, ProcessedTraceState, StackFrame, StreamVizInfo, TraceState } from '@/dto/TraceState'
+import { InputBufferInfo, ProcessedTraceState, StackFrame, MarbleDiagramDataCollection, TraceState } from '@/dto/TraceState'
 import { Arrow, Box, LifeLine } from '@/components/TheSequenceDiagram/types'
 import { ConsoleLine } from '@Shared/Protocol'
 import { DeskTestLine } from '@/components/TheDeskTest/types'
@@ -20,5 +20,5 @@ type TraceData = {
   arrows: Arrow[],
   timeIdxStateIdxMap: Map<number, number>,
   visitedLines: number[],
-  streamVizInfo: StreamVizInfo
+  streamVisualizationData: MarbleDiagramDataCollection
 }

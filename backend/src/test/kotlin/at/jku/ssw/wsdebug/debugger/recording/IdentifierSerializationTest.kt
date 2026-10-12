@@ -12,22 +12,26 @@ class IdentifierSerializationTest {
 
     @Test
     fun `serializes stream identifiers with Id casing`() {
-        val streamValue = StreamOperationValue(
+        val streamEvent = StreamEvent(
             seq = 1,
-            type = "map",
-            direction = "OUT",
+            operation = "map",
+            eventKind = StreamEventKind.OUT,
             operationId = 2,
             elementId = 3,
             parentIds = listOf(1),
-            valuetype = "int",
-            value = 4,
-            param = ""
+            type = "int",
+            observedValue = 4,
+            operationParameter = ""
         )
-        val json = mapper.readTree(mapper.writeValueAsString(streamValue))
+        val json = mapper.readTree(mapper.writeValueAsString(streamEvent))
 
+        assertEquals("map", json["operation"].textValue())
+        assertEquals("int", json["type"].textValue())
+        assertEquals("OUT", json["eventKind"].textValue())
         assertTrue(json.has("operationId"))
         assertTrue(json.has("elementId"))
         assertTrue(json.has("parentIds"))
+        assertFalse(json.has("valuetype"))
         assertFalse(json.has("operationID"))
         assertFalse(json.has("elementID"))
         assertFalse(json.has("parentIDs"))

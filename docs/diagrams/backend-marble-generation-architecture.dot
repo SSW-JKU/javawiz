@@ -1,0 +1,131 @@
+digraph backend_marble_generation {
+    graph [bgcolor="#F7F9FC" color="#CBD5E1" fontcolor="#1F2937" fontname="Arial" fontsize=18
+        label="JavaWiz stream instrumentation and visualization — compile time to frontend"
+        labelloc=t labeljust=l margin=0.18 nodesep=0.28 rankdir=TB ranksep=0.72
+        splines=polyline compound=true newrank=true]
+    node [fontname="Arial" fontsize=10 margin="0.08,0.04"]
+    edge [color="#64748B" fontcolor="#334155" fontname="Arial" fontsize=9 penwidth=1.15 arrowsize=0.68]
+
+    subgraph cluster_compile {
+        label="1  COMPILE TIME — discover independent operation sites"
+        color="#9CC2E5" fontcolor="#1E4E79" fontname="Arial Bold" fontsize=12 style="rounded,filled" fillcolor="#EEF6FF"
+        compiler [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#6B9DC8" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#D7EAF9"><B>OnTheFlyCompiler</B><BR/><FONT POINT-SIZE="9">parse → attribute → rewrite → compile</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">One OperationIdAllocator per compile request.<BR/>No compile-time stream owns another operation.</FONT></TD></TR>
+            </TABLE>>]
+        visitor [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#6B9DC8" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#D7EAF9"><B>StreamOperationVisitor</B><BR/><FONT POINT-SIZE="9">attributed AST visitor</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Finds source, intermediate, flatMap, and terminal calls.<BR/>Visits callback/lambda bodies too. One fixed ID per site.</FONT></TD></TR>
+            </TABLE>>]
+        operationInfo [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>StreamOperationInstrumentationInfo</B><BR/><FONT POINT-SIZE="9">one independent operation site</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">operationId, name, source/terminal flags,<BR/>receiver type, parameter and source coordinates</FONT></TD></TR>
+            </TABLE>>]
+        instrumentation [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#6B9DC8" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#D7EAF9"><B>Instrumentation</B><BR/><FONT POINT-SIZE="9">source rewriting</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Sources get START peeks; intermediates get IN/OUT peeks.<BR/>Terminals get completion wrappers; flatMap gets a child wrapper.</FONT></TD></TR>
+            </TABLE>>]
+        rewritten [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#6B9DC8" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#D7EAF9"><B>Instrumented debuggee source</B><BR/><FONT POINT-SIZE="9">the code actually compiled</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">User code plus $JavaWiz.traceStream(...),<BR/>completeStreamVisualization(...), and flatMap wrappers.</FONT></TD></TR>
+            </TABLE>>]
+        compiler -> visitor [label="attributed AST"]
+        visitor -> operationInfo [label="one record per operation site"]
+        operationInfo -> instrumentation [label="coordinates + operation IDs"]
+        instrumentation -> rewritten [label="insert right-to-left"]
+    }
+
+    subgraph cluster_debuggee {
+        label="2  DEBUGGEE RUNTIME — identify executions lazily"
+        color="#A8D5C2" fontcolor="#246044" fontname="Arial Bold" fontsize=12 style="rounded,filled" fillcolor="#EFFAF5"
+        javaWiz [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#68A98A" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#D8F1E3"><B>$JavaWiz</B><BR/><FONT POINT-SIZE="9">generated helper inside the debuggee</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">activeStreamFrames is a runtime stack.<BR/>A first START opens an execution; flatMap pre-opens children.<BR/>Completion pops and restores the parent.</FONT></TD></TR>
+            </TABLE>>]
+        sourceHook [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>Source hook</B><BR/><FONT POINT-SIZE="9">lazy START</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">peek(element → traceStream("START", ...))<BR/>The first element assigns the execution ID.</FONT></TD></TR>
+            </TABLE>>]
+        operationHooks [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>Operation hooks</B><BR/><FONT POINT-SIZE="9">element and completion events</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">IN/OUT peeks carry operation-site IDs.<BR/>Terminal wrappers preserve the return value and publish completion data.</FONT></TD></TR>
+            </TABLE>>]
+        flatMap [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>flatMap child wrapper</B><BR/><FONT POINT-SIZE="9">object and primitive streams</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Opens a child before consumption; restores the parent around downstream action.<BR/>Exhaustion calls endNestedFlatmapStream, including empty children.</FONT></TD></TR>
+            </TABLE>>]
+        rewritten -> javaWiz [label="executed helper calls"]
+        javaWiz -> sourceHook [label="source operation"]
+        javaWiz -> operationHooks [label="intermediate / terminal"]
+        javaWiz -> flatMap [label="nested stream boundary"]
+    }
+
+    subgraph cluster_jdi {
+        label="3  JDI BRIDGE — convert helper exits into backend events"
+        color="#A8D5C2" fontcolor="#246044" fontname="Arial Bold" fontsize=12 style="rounded,filled" fillcolor="#EFFAF5"
+        jdi [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#68A98A" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#D8F1E3"><B>JDIVirtualMachine</B><BR/><FONT POINT-SIZE="9">MethodExit adapter</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Reads trace arguments and $JavaWiz static fields:<BR/>active execution, completed execution, operation, result.</FONT></TD></TR>
+            </TABLE>>]
+        event [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>Normalized stream event</B><BR/><FONT POINT-SIZE="9">backend recording input</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">START, IN, OUT, END/completion, or child exhaustion<BR/>with operation ID and active runtime execution ID.</FONT></TD></TR>
+            </TABLE>>]
+        tracer [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#3D8B68" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#BFE7CE"><B>StreamOperationTracer</B><BR/><FONT POINT-SIZE="9">runtime execution coordinator</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Creates execution at START or completion, activates parent chains,<BR/>records events, and rebuilds after completed boundaries.</FONT></TD></TR>
+            </TABLE>>]
+        execution [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>StreamExecution</B><BR/><FONT POINT-SIZE="9">one runtime execution</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">id is the runtime execution ID.<BR/>parentStreamExecution links nested execution.<BR/>Ordered events and operation indexes are local.</FONT></TD></TR>
+            </TABLE>>]
+        javaWiz -> jdi [label="MethodExit"]
+        jdi -> event [label="normalize"]
+        event -> tracer [label="dispatch"]
+        tracer -> execution [label="create / activate / pop"]
+    }
+
+    subgraph cluster_projection {
+        label="4  PROJECTION — turn execution events into marble data"
+        color="#C5B0E3" fontcolor="#5B3C82" fontname="Arial Bold" fontsize=12 style="rounded,filled" fillcolor="#F7F2FD"
+        generator [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#9A78C2" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#E8DDF5"><B>MarbleDiagramGenerator</B><BR/><FONT POINT-SIZE="9">pure projection and layout</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Uses first-observed operation order, not adjacent IDs.<BR/>Creates lanes, marbles, lineage links, labels,<BR/>coordinates, colors, and playback steps.</FONT></TD></TR>
+            </TABLE>>]
+        data [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#C99A2E" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#FFF0C2"><B>MarbleDiagramDataCollection</B><BR/><FONT POINT-SIZE="9">frontend-facing payload</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">One MarbleDiagramData per runtime execution,<BR/>including empty executions; each carries parent ID,<BR/>operation lanes, marbles, and links.</FONT></TD></TR>
+            </TABLE>>]
+        frontend [label=<
+            <TABLE BORDER="0" CELLBORDER="1" COLOR="#64748B" CELLSPACING="0" CELLPADDING="6">
+                <TR><TD BGCOLOR="#E2E8F0"><B>Frontend StreamViz</B><BR/><FONT POINT-SIZE="9">JSON consumer</FONT></TD></TR>
+                <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">Renders lanes, values, parent/child streams,<BR/>links, colors, and time-travel playback.</FONT></TD></TR>
+            </TABLE>>]
+        execution -> generator [label="ordered event history"]
+        tracer -> generator [label="completion boundary"]
+        generator -> data [label="project all executions"]
+        data -> frontend [label="TraceState / WebSocket JSON"]
+    }
+
+    example [label=<
+        <TABLE BORDER="0" CELLBORDER="1" COLOR="#B96E6E" CELLSPACING="0" CELLPADDING="6">
+            <TR><TD BGCOLOR="#F4D7D7"><B>Runtime example</B></TD></TR>
+            <TR><TD ALIGN="LEFT" BGCOLOR="#FFFFFF"><FONT POINT-SIZE="9">source().flatMap(x → Stream.of(x)).count()<BR/>source START → execution 1<BR/>flatMap child → execution 2<BR/>child completion restores execution 1<BR/>count completion pops execution 1</FONT></TD></TR>
+        </TABLE>>]
+    javaWiz -> example [style=dashed color="#B96E6E" fontcolor="#7B3434" label="mental model"]
+}

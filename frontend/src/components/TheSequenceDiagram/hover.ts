@@ -4,7 +4,7 @@ import { Arrow, Box, LifeLine } from '@/components/TheSequenceDiagram/types'
 import {createHoverBox, createHoverClass, createHoverHeapObject, createHoverMethod, createHoverMethodCall} from '@/hover/hoverinfo-builder'
 import { getBoxByIndex } from '@/components/TheSequenceDiagram/data-utils'
 import { getReferencesOfHoveredHeapItem } from '@/components/TheHeapVisualization/hover'
-import { HeapVizTraceState } from '@/components/TheHeapVisualization/types'
+import { HeapVizTraceState } from '../TheHeapVisualization/Types/HeapVizTraceState'
 
 export function isHighlightedArrow (hoveredInfos: HoverInfo[], arrow: Arrow, boxes: Box[]): boolean {
   return hoveredInfos.some(info => {

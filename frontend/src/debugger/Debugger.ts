@@ -241,8 +241,8 @@ export class Debugger {
   public startCompilation (
     classContents: DebuggerProtocol.ClassContent[],
     excludeFromSteppingPatterns: string[] | undefined,
-    excludeFieldsPatterns: string[] | undefined,
-    detailedFieldsPatterns: string[] | undefined
+    heapTraversalStopPatterns: string[] | undefined,
+    dataStructurePatterns: string[] | undefined
   ) {
     if (this.compiling) {
       return
@@ -254,8 +254,8 @@ export class Debugger {
       vscExtensionActive: this.generalStore.vscExtensionMode,
       openEditorLocalUri: this.generalStore.openEditorLocalUri,
       excludeFromSteppingPatterns,
-      excludeFieldsPatterns,
-      detailedFieldsPatterns
+      heapTraversalStopPatterns,
+      dataStructurePatterns
     })
     this.showNotification({ kind: 'Compiling' })
   }

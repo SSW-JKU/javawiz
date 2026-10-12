@@ -11,6 +11,7 @@ import * as http from 'http'
 import * as path from 'path'
 import shared from '../../shared/src/Shared'
 import { JavaRuntimeCompatibilityError } from './JavaRuntime'
+import { hasHiddenPathSegment } from './HiddenPath'
 
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -145,7 +146,8 @@ export async function getAllFilesWithContents(): Promise<{
   localUri: string,
   content: string
 }[]> {
-  const files = await vscode.workspace.findFiles('**/*.java')
+  const files = (await vscode.workspace.findFiles('**/*.java'))
+    .filter(uri => !hasHiddenPathSegment(uri.path))
   return Promise.all(files.map(async uri => {
     const textDocument = await vscode.workspace.openTextDocument(uri)
     let localUri

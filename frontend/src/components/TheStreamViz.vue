@@ -1,12 +1,12 @@
 <template>
-  <div v-if="streamVizInfo" id="stream-viz-wrapper">
+  <div v-if="streamVisualizationData" id="stream-viz-wrapper">
     <NavigationBarWithSettings
       :zoom-reset="zoomAndCenter"
       :viz-id="STREAMVIZ_ID" />
-    <div v-if="streamVizInfo.marbles.length > 0" id="stream-viz">
+    <div v-if="streamVisualizationData.marbles.length > 0" id="stream-viz">
       <div class="controls">
         <div class="stepControls">
-          <button id="prevBtn" class="myButton" title="Step back" @click="stepBack">
+          <button id="prevBtn" class="myButton" title="Step back" @click="stepBackward">
             &laquo;
           </button>
           <div style="user-select: none; cursor: pointer;" @click="editMode = true">
@@ -18,35 +18,35 @@
                 class="inputField"
                 type="number"
                 min="0"
-                :max="allNodes.length"
+                :max="allMarbles.length"
                 autofocus
                 @keyup.esc="cancelEdit"
                 @keyup.enter="applyStep"
                 @blur="applyStep">
             </span>
-            <span style="font-weight: bolder; font-size: 1.2rem;">/{{ allNodes.length }}</span>
+            <span style="font-weight: bolder; font-size: 1.2rem;">/{{ allMarbles.length }}</span>
           </div>
-          <button id="nextBtn" class="myButton" title="Step forward" @click="stepForwards">
+          <button id="nextBtn" class="myButton" title="Step forward" @click="stepForward">
             &raquo;
           </button>
         </div>
         <div v-if="!isPlaying" class="playControls">
           <button
-            v-if="currentStep > 0 && currentStep < allNodes.length" id="resumeBtn" class="playButton" title="Resume animation from current step"
-            @click="playFrom">
+            v-if="currentStep > 0 && currentStep < allMarbles.length" id="resumeBtn" class="playButton" title="Resume animation from current step"
+            @click="resumePlayback">
             Resume animation from current step
           </button>
-          <button id="startBtn" class="playButton" title="Play animation from the beginning" @click="playThrough">
+          <button id="startBtn" class="playButton" title="Play animation from the beginning" @click="playToStep">
             Play from start
           </button>
         </div>
         <div v-else class="playControls">
-          <button id="pauseBtn" class="stopButton" title="Pause animation" @click="pausePlaying">
+          <button id="pauseBtn" class="stopButton" title="Pause animation" @click="pausePlayback">
             Pause
           </button>
           <button
             id="stopBtn" class="stopButton" style="font-size: 1.4rem;" title="Stop and reset animation"
-            @click="stopAndResetPlaying">
+            @click="stopAndResetPlayback">
             Stop
           </button>
         </div>
@@ -66,8 +66,9 @@ import {computed, defineComponent, nextTick, onUnmounted, ref, watch} from 'vue'
 import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import {useGeneralStore} from '@/store/GeneralStore'
+import {latestTopLevelStream} from '@/debugger/streamVisualization'
 import * as d3 from 'd3'
-import type {HeapObject, HeapString} from '@/dto/TraceState';
+import type {HeapItem, Val, MarbleDiagramMarble, MarbleDiagramLink, MarbleDiagramLane} from '@/dto/TraceState';
 
 defineComponent({
   name: 'TheStreamViz',
@@ -76,21 +77,21 @@ defineComponent({
 const generalStore = useGeneralStore()
 const visualizationStore = useVisualizationStore()
 const STREAMVIZ_ID = visualizationStore.STREAMVIZ.id
-const streamVizInfo = computed(() => generalStore.currentTraceData?.streamVizInfo)
-const allNodes = computed(() => streamVizInfo.value?.marbles ?? [])
-const allLinks = computed(() => streamVizInfo.value?.links ?? [])
-const operationLines = computed(() => streamVizInfo.value?.operationLines ?? new Map())
+const streamVisualizationData = computed(() => latestTopLevelStream(generalStore.currentTraceData?.streamVisualizationData.streams ?? []))
+const allMarbles = computed(() => streamVisualizationData.value?.marbles ?? [])
+const allLinks = computed(() => streamVisualizationData.value?.links ?? [])
+const operationLanes = computed(() => streamVisualizationData.value?.operationLanes ?? {})
 const heap = computed(() => generalStore.currentTraceData?.processedTraceState?.heapBeforeExecution)
-const RADIUS = 15;
+const MARBLE_RADIUS = 15;
 const HALFWIDTH = 75;
-const WIDTH = 150;
-const MARGIN = 10;
+const MARBLE_WIDTH = 150;
+const LAYOUT_MARGIN = 10;
 const MAPKEYX = -145;
 const MAPKEYBOXWIDTH = 60;
 const PARAMX = 200;
 const PARAMSTARTX = 175;
 const PARAMY = 25;
-const DURATION = 500;
+const TRANSITION_DURATION_MS = 500;
 const isPlaying = ref(false);
 const currentStep = ref(0);
 const editMode = ref(false);
@@ -145,30 +146,44 @@ const stringFontSize = new Map<number, string>([
   [13, '13px']
 ])
 
-let svg: any;
-let container: d3.Selection<SVGGElement, unknown, any, undefined>;
-let linkGroup: d3.Selection<SVGGElement, unknown, any, undefined>;
-let nodeGroup: d3.Selection<SVGGElement, unknown, any, undefined>;
-let zoom = d3.zoom()
+const optionalTypes = new Set(['Optional', 'OptionalInt', 'OptionalLong', 'OptionalDouble'])
+
+type MarbleGroup = d3.Selection<SVGGElement, MarbleDiagramMarble, null, undefined>;
+type ContainerGroup = d3.Selection<SVGGElement, unknown, null, undefined>;
+type DisplayValue = Val | { kind: 'Ellipsis'; value: string };
+type DisplayField = { name: string; value: DisplayValue };
+
+// Keep parsed map labels outside the backend payload; entries expire with their marbles.
+const mapEntries = new WeakMap<MarbleDiagramMarble, { keys: string[]; values: string[] }>();
+let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | undefined;
+let container: ContainerGroup | undefined;
+let linkGroup: ContainerGroup | undefined;
+let nodeGroup: ContainerGroup | undefined;
+let zoom = d3.zoom<SVGSVGElement, unknown>()
   .scaleExtent([0.1, 10])
   .on('zoom', zoomed);
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let animationSpeed = 800;
-let skipLimitElements = [];
+let visibleMarblesForCount: MarbleDiagramMarble[] = [];
 
 // Hilfsfunktion: F├╝r jede ID nur den neuesten Knoten (max step <= currentStep) ausw├ñhlen
-function getVisibleNodesAtStep (nodes: any, step: number) {
+function getVisibleMarblesAtStep (marbles: MarbleDiagramMarble[], step: number) {
   const grouped = d3.group(
-    nodes.filter((n: any) => n.id <= step),
-    (d: any) => d.elemId
+    marbles.filter((n) => n.playbackStep <= step),
+    (d) => d.marbleKey
   );
   return Array.from(grouped, ([_, group]) =>
-    group.reduce((maxNode: any, current: any) => current.id > maxNode.id ? current : maxNode)
+    group.reduce((latestMarble, currentMarble) => currentMarble.playbackStep > latestMarble.playbackStep ? currentMarble : latestMarble)
   );
 }
 
-function isSmallerType (type: string) {
-  return ['int', 'long', 'double', 'float', 'boolean', 'char', 'byte', 'short', 'Average'].includes(type);
+function isCompactType (type: string | null | undefined) {
+  return ['int', 'long', 'double', 'float', 'boolean', 'char', 'byte', 'short', 'Average'].includes(type ?? '');
+}
+
+/** Identifies optionals whose value is represented by a label instead of a heap object. */
+function isOptionalType (type: string | null | undefined) {
+  return optionalTypes.has(type ?? '')
 }
 
 function applyStep () {
@@ -177,8 +192,8 @@ function applyStep () {
   } else {
     if (inputStep.value < 0) {
       currentStep.value = 0;
-    } else if (inputStep.value > allNodes.value.reduce((max: any, n: any) => Math.max(max, n.id), 0)) {
-      currentStep.value = allNodes.value.reduce((max: any, n: any) => Math.max(max, n.id), 0);
+    } else if (inputStep.value > allMarbles.value.reduce((max, n) => Math.max(max, n.playbackStep), 0)) {
+      currentStep.value = allMarbles.value.reduce((max, n) => Math.max(max, n.playbackStep), 0);
     } else {
       currentStep.value = inputStep.value;
     }
@@ -192,45 +207,46 @@ function cancelEdit () {
 }
 
 function render () {
-  const visibleNodes = getVisibleNodesAtStep(allNodes.value, currentStep.value);
-  const hasBigTypesOrStart = visibleNodes.some(n => !isSmallerType(n.valuetype)) || visibleNodes.length === 0;
-  var lastVisibleNode = visibleNodes[visibleNodes.length - 1];
-  var newX = lastVisibleNode ? lastVisibleNode.x + PARAMX : PARAMSTARTX;
-  if (!hasBigTypesOrStart) {
+  if (!container || !nodeGroup || !linkGroup) return;
+  const visibleMarbles = getVisibleMarblesAtStep(allMarbles.value, currentStep.value);
+  const usesCompactMarbleRendering = visibleMarbles.length > 0 && !visibleMarbles.some(marble => !isCompactType(marble.type));
+  var lastVisibleMarble = visibleMarbles[visibleMarbles.length - 1];
+  var newX = lastVisibleMarble ? lastVisibleMarble.x + PARAMX : PARAMSTARTX;
+  if (usesCompactMarbleRendering) {
     newX -= HALFWIDTH;
   }
-  container.selectAll('.opline')
+  container.selectAll<SVGLineElement, MarbleDiagramLane>('.opline')
     .transition()
-    .duration(DURATION)
-    .attr('x2', newX + MARGIN);
-  container.selectAll('.oplabel')
+    .duration(TRANSITION_DURATION_MS)
+    .attr('x2', newX + LAYOUT_MARGIN);
+  container.selectAll<SVGTextElement, MarbleDiagramLane>('.oplabel')
     .transition()
-    .duration(DURATION)
+    .duration(TRANSITION_DURATION_MS)
     .attr('x', newX);
-  container.selectAll('.param-label-group')
+  container.selectAll<SVGGElement, MarbleDiagramLane>('.param-label-group')
     .transition()
-    .duration(DURATION)
-    .attr('transform', function(d: any) {
+    .duration(TRANSITION_DURATION_MS)
+    .attr('transform', function(d) {
       return `translate(${newX}, ${d.y + PARAMY})`;
     });
 
   // update param-label with new label
-  container.selectAll('.param-label-group')
-    .each(function(d: any) {
-      const textElement = d3.select(this)
-        .select('.param-label') as d3.Selection<SVGTextElement, any, any, any>;
+  container.selectAll<SVGGElement, MarbleDiagramLane>('.param-label-group')
+    .each(function(d) {
+      const textElement = d3.select<SVGGElement, MarbleDiagramLane>(this)
+        .select<SVGTextElement>('.param-label');
 
-      if (!['limit', 'skip'].includes(d.type)) {
+      if (!['limit', 'skip'].includes(d.operation)) {
         return;
       }
 
-      skipLimitElements = visibleNodes.filter((n: any) =>
-        n.type === d.type
+      visibleMarblesForCount = visibleMarbles.filter((n) =>
+        n.operation === d.operation
       );
 
-      const target = Number(String(d.param).match(/\d+/)?.[0]);
+      const target = Number(String(d.parameter).match(/\d+/)?.[0]);
       const current = Math.min(
-        skipLimitElements.length,
+        visibleMarblesForCount.length,
         target
       );
 
@@ -243,32 +259,32 @@ function render () {
         .text(`${current}/${target}`);
     });
 
-  const visibleNodeIds = new Set(visibleNodes.map(n => n.elemId));
+  const visibleMarbleKeys = new Set(visibleMarbles.map(n => n.marbleKey));
   const visibleLinks = Array.from(d3.group(
-    allLinks.value.filter((l: any) =>
-      l.visibleAt <= currentStep.value &&
-      visibleNodeIds.has(l.source) &&
-      visibleNodeIds.has(l.target)
+    allLinks.value.filter((l) =>
+      l.visibleFromStep <= currentStep.value &&
+      visibleMarbleKeys.has(l.source) &&
+      visibleMarbleKeys.has(l.target)
     ),
-    (d: any) => d.source + '-' + d.target
+    (d) => d.source + '-' + d.target
   ), ([_, group]) =>
-    group.reduce((maxLink: any, current: any) => current.visibleAt > maxLink.visibleAt ? current : maxLink)
+    group.reduce((maxLink, current) => current.visibleFromStep > maxLink.visibleFromStep ? current : maxLink)
   );
-  const nodes = nodeGroup.selectAll('.node')
-    .data(visibleNodes, (d: any) => d.id)
+  const marbles = nodeGroup.selectAll<SVGGElement, MarbleDiagramMarble>('.node')
+    .data(visibleMarbles, (d) => d.playbackStep)
     .join(
       enter => {
-        // add node with id d.elemId
+        // Add a renderer group keyed by the marble's marble key.
         const g = enter.append('g')
           .attr('class', 'node')
-          .attr('id', (d: any) => `node-${d.elemId}`)
+          .attr('id', (d) => `node-${d.marbleKey}`)
           .attr('transform', d => `translate(${d.x},${d.y})`)
           .style('opacity', 0)
-        g.each(function(d: any) {
-          const group = d3.select(this);
+        g.each(function(d) {
+          const group = d3.select<SVGGElement, MarbleDiagramMarble>(this);
           group.selectAll('*').remove();
-          if (d.direction === 'IN') {
-            const size = RADIUS + 5;
+          if (d.eventKind === 'IN') {
+            const size = MARBLE_RADIUS + 5;
 
             group.append('circle')
               .attr('r', size)
@@ -295,20 +311,22 @@ function render () {
               .attr('stroke-width', 2)
               .attr('stroke-linecap', 'round');
           } else {
-            if (d.valuetype === 'java.lang.String') {
-              renderStringNode(group, d);
-            } else if (isSmallerType(d.valuetype)) {
-              renderSmallTypeNode(group, d);
-            } else if (d.valuetype === 'void') {
-              renderVoidNode(group, d);
-            } else if (['List', 'Array', 'Set'].includes(d.valuetype)) {
-              renderVerticalListNode(group, d);
-            } else if (d.valuetype === 'Map') {
-              renderMapNode(group, d);
-            } else if (d.valuetype.includes('[]')) {
-              renderHorizontalListNode(group, d);
+            if (d.type === 'java.lang.String') {
+              renderStringMarble(group, d);
+            } else if (isCompactType(d.type)) {
+              renderSmallTypeMarble(group, d);
+            } else if (d.type === 'void') {
+              renderVoidMarble(group, d);
+            } else if (isOptionalType(d.type)) {
+              renderOptionalMarble(group, d);
+            } else if (['List', 'Array', 'Set'].includes(d.type ?? '')) {
+              renderVerticalListMarble(group, d);
+            } else if (d.type === 'Map') {
+              renderMapMarble(group, d);
+            } else if (d.type?.includes('[]')) {
+              renderHorizontalListMarble(group, d);
             } else {
-              renderObjectNode(group, d);
+              renderObjectMarble(group, d);
             }
           }
         });
@@ -321,33 +339,36 @@ function render () {
         .style('opacity', 0)
         .remove()
     );
-  nodes.transition()
-    .duration(DURATION)
+  marbles.transition()
+    .duration(TRANSITION_DURATION_MS)
     .attr('transform', d => `translate(${d.x},${d.y})`)
     .style('opacity', 1);
 
-  const nodeLinksMap = new Map(visibleNodes.map(node => [node.elemId, node]));
-  const links = linkGroup.selectAll('.link')
-    .data(visibleLinks, (d: any) => d.source + '-' + d.target)
+  const linksByMarbleKey = new Map(visibleMarbles.map(marble => [marble.marbleKey, marble]));
+  const links = linkGroup.selectAll<SVGLineElement, MarbleDiagramLink>('line')
+    .data(visibleLinks, (d) => d.source + '-' + d.target)
     .join(
       enter => {
         const g = enter.append('line')
-          .attr('class', 'link')
+          .attr('stroke', '#999')
+          .attr('stroke-width', 2)
+          .attr('fill', 'none')
+          .attr('marker-end', 'url(#arrow)')
           .style('opacity', 0)
-          .attr('x1', (d: any) => {
-            const src = nodeLinksMap.get(d.source);
+          .attr('x1', (d) => {
+            const src = linksByMarbleKey.get(d.source);
             return src ? src.x : 0;
           })
-          .attr('y1', (d: any) => {
-            const src = nodeLinksMap.get(d.source);
+          .attr('y1', (d) => {
+            const src = linksByMarbleKey.get(d.source);
             return src ? src.y : 0;
           })
-          .attr('x2', (d: any) => { // Start the line collapsed at the source
-            const src = nodeLinksMap.get(d.source);
+          .attr('x2', (d) => { // Start the line collapsed at the source
+            const src = linksByMarbleKey.get(d.source);
             return src ? src.x : 0;
           })
-          .attr('y2', (d: any) => { // Start the line collapsed at the source
-            const src = nodeLinksMap.get(d.source);
+          .attr('y2', (d) => { // Start the line collapsed at the source
+            const src = linksByMarbleKey.get(d.source);
             return src ? src.y : 0;
           });
         return g;
@@ -361,62 +382,85 @@ function render () {
     );
 
   links.transition()
-    .duration(DURATION)
+    .duration(TRANSITION_DURATION_MS)
     .style('opacity', 1) // Fades in new links
-    .attr('x1', (d: any) => {
-      const src = nodeLinksMap.get(d.source);
+    .attr('x1', (d) => {
+      const src = linksByMarbleKey.get(d.source);
       return src ? src.x : 0;
     })
-    .attr('y1', (d: any) => {
-      const src = nodeLinksMap.get(d.source);
-      if (src.valuetype === 'java.lang.String' || isSmallerType(src.valuetype) || src.valuetype.includes('[]')) {
-        const type = src.type.endsWith('[]') ?
-          src.valuetype.substring(0, src.valuetype.length - 2) :
-          src.valuetype;
-        if (!isSmallerType(type) && type !== 'java.lang.String') {
-          const safeId = CSS.escape(`node-${src.elemId}`);
-          const node = d3.select(`#${safeId}`) as d3.Selection<SVGGElement, any, any, any>;
+    .attr('y1', (d) => {
+      const src = linksByMarbleKey.get(d.source);
+      if (!src) return 0;
+      if (src.type === 'java.lang.String' || isCompactType(src.type) || src.type?.includes('[]')) {
+        const type = src.operation.endsWith('[]') ?
+          src.type?.substring(0, src.type.length - 2) :
+          src.type;
+        if (!isCompactType(type) && type !== 'java.lang.String') {
+          const safeId = CSS.escape(`node-${src.marbleKey}`);
+          const node = d3.select<SVGGElement, MarbleDiagramMarble>(`#${safeId}`);
           const bbox = node.node()?.getBBox();
           const height = bbox ? bbox.height : 0;
           return src.y + height - 20;
         }
         return src.y + 20;
-      } else if (['List', 'Array', 'Set'].includes(src.valuetype)) {
+      } else if (['List', 'Array', 'Set'].includes(src.type ?? '')) {
         return src.y + 30;
       }
-      const objectfieldslength = (heap.value?.find(obj => obj.id.toString() === src.label) as any).fields.length || 0;
-      const fieldOffset = (objectfieldslength > 3 ? 3.5 : objectfieldslength);
+      const object = findHeapItem(src.label);
+      const objectFieldCount = object?.kind === 'HeapObject' ? object.fields.length : 0;
+      const fieldOffset = (objectFieldCount > 3 ? 3.5 : objectFieldCount);
       return src.y + fieldOffset * 30 + 10;
     })
-    .attr('x2', (d: any) => {
-      // const src = nodeLinksMap.get(d.source);
-      const tgt = nodeLinksMap.get(d.target);
+    .attr('x2', (d) => {
+      // const src = linksByMarbleKey.get(d.source);
+      const tgt = linksByMarbleKey.get(d.target);
       // return edgePoint(tgt, src).x;
       return tgt ? tgt.x : 0;
     })
-    .attr('y2', (d: any) => {
-      // const src = nodeLinksMap.get(d.source);
-      const tgt = nodeLinksMap.get(d.target);
+    .attr('y2', (d) => {
+      // const src = linksByMarbleKey.get(d.source);
+      const tgt = linksByMarbleKey.get(d.target);
       // return edgePoint(tgt, src).y;
       return tgt ? tgt.y - 20 : 0;
     });
 }
 
-function renderStringNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
+/** Find a processed heap item using a numeric reference or a serialized label. */
+function findHeapItem (id: string | number | undefined) {
+  return id === undefined ? undefined : heap.value?.find(item => item.id.toString() === String(id));
+}
+
+/** Only reference values identify heap items; primitives and ellipses do not. */
+function referenceId (value: DisplayValue | undefined) {
+  return value?.kind === 'ReferenceVal' ? value.reference : undefined;
+}
+
+/** Preserve the renderer's primitive text and shortened reference labels. */
+function displayValue (value: DisplayValue): string {
+  if (value.kind === 'Ellipsis') return value.value;
+  if (value.kind === 'PrimitiveVal') return value.primitiveValue;
+  if (value.kind === 'NullVal') return '';
+  const item = findHeapItem(value.reference);
+  if (!item) return '';
+  const text = (item.kind === 'HeapString' && item.string) || item.type.substring(item.type.lastIndexOf('.') + 1);
+  return text.length > 10 ? text.substring(0, 10) + '...' : text;
+}
+
+function renderStringMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
   group.append('rect')
     .attr('x', -HALFWIDTH)
-    .attr('y', -RADIUS - 5)
-    .attr('width', WIDTH)
-    .attr('height', (RADIUS + 5) * 2)
+    .attr('y', -MARBLE_RADIUS - 5)
+    .attr('width', MARBLE_WIDTH)
+    .attr('height', (MARBLE_RADIUS + 5) * 2)
     .attr('rx', 5)
     .attr('ry', 5)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
-    .attr('fill', d.color || '#cceeff');
+    .attr('fill', marble.color || '#cceeff');
 
   group.append('text')
     .text(() => {
-      const str = d.label || d.string;
+      const str = marble.label;
       if (str.length > 15) {
         return `"${str.substring(0, 15)}..."`;
       } else {
@@ -428,148 +472,149 @@ function renderStringNode (group: d3.Selection<SVGGElement, any, any, any>, d: a
     .attr('font-size', '16px');
 }
 
-function renderSmallTypeNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
-  const labelLength = d.label.toString().length;
+function renderSmallTypeMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
+  const labelLength = marble.label.toString().length;
   group.append('circle')
-    .attr('r', RADIUS + 5)
+    .attr('r', MARBLE_RADIUS + 5)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
-    .attr('fill', d.color);
+    .attr('fill', marble.color);
   group.append('text')
-    .text(d.label)
+    .text(marble.label)
     .attr('text-anchor', 'middle')
     .attr('dominant-baseline', 'middle')
     .attr('font-size', circleFontSize.get(labelLength) || '7px');
 }
 
-function renderObjectNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
-  const labelKey = typeof d.label === 'string' ? d.label.replace(/\..*$/, '') : d.label;
+function renderObjectMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
+  const labelKey = typeof marble.label === 'string' ? marble.label.replace(/\..*$/, '') : marble.label;
   const object = heap.value?.find(obj => obj.id.toString() === labelKey);
-  var fields = (object as HeapObject)?.fields || [];
-  var result: any = fields;
+  var fields = object?.kind === 'HeapObject' ? object.fields : [];
+  var result: DisplayField[] = fields;
   if (fields.length > 3) {
     // search for field with name "name", "Name", "title" or "Title"
     const idField = fields.find(f => ['id', 'Id', 'ID'].includes(f.name));
     const nameField = fields.find(f => ['name', 'Name', 'title', 'Title'].includes(f.name));
 
-    result = [idField, nameField].filter(Boolean);
+    result = [idField, nameField].filter(f => f !== undefined);
     fields = fields.filter(f => f !== idField && f !== nameField);
     fields = fields.slice(0, 3 - result.length);
     result = result.concat(fields);
-    result.push({name: '...', value: {type: '...', value: '...'}});
+    result.push({name: '...', value: {kind: 'Ellipsis', value: '...'}});
   }
 
   group.append('rect')
     .attr('x', -HALFWIDTH)
-    .attr('y', -RADIUS - 5)
-    .attr('width', WIDTH)
-    .attr('height', (RADIUS) * 2)
+    .attr('y', -MARBLE_RADIUS - 5)
+    .attr('width', MARBLE_WIDTH)
+    .attr('height', (MARBLE_RADIUS) * 2)
     .attr('rx', 2)
     .attr('ry', 2)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
-    .attr('fill', d.color);
+    .attr('fill', marble.color);
 
   group.append('text')
-    .text(d.valuetype)
+    .text(marble.type)
     .attr('text-anchor', 'middle')
     .attr('dominant-baseline', 'middle');
 
   for (let i = 0; i < result.length; i++) {
     const isEllipsis = result[i].name === '...';
-    const height = isEllipsis ? RADIUS : (RADIUS + 5) + 10;
+    const height = isEllipsis ? MARBLE_RADIUS : (MARBLE_RADIUS + 5) + 10;
     group.append('rect')
       .attr('x', -HALFWIDTH)
-      .attr('y', 10 * (i + 1) + i * (RADIUS + 5))
-      .attr('width', (RADIUS) * 5)
+      .attr('y', 10 * (i + 1) + i * (MARBLE_RADIUS + 5))
+      .attr('width', (MARBLE_RADIUS) * 5)
       .attr('height', height)
       .attr('rx', 2)
       .attr('ry', 2)
       .attr('stroke', '#333')
       .attr('stroke-width', 1.5)
-      .attr('fill', d3.color(d.color)?.copy({opacity: 0.2})
-        ?.toString() || d.color);
+      .attr('fill', d3.color(marble.color)?.copy({opacity: 0.2})
+        ?.toString() || marble.color);
 
-    let tempval = result[i].name;
-    let templength = tempval.length;
+    const fieldName = result[i].name;
+    let fieldTextLength = fieldName.length;
     group.append('text')
-      .text(tempval)
+      .text(fieldName)
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
       .attr('y', isEllipsis ? height * 7 : height * (i + 1))
       .attr('x', -HALFWIDTH / 2)
-      .attr('font-size', stringFontSize.get(templength) || '12px');
+      .attr('font-size', stringFontSize.get(fieldTextLength) || '12px');
 
     group.append('rect')
       .attr('x', 0)
-      .attr('y', 10 * (i + 1) + i * (RADIUS + 5))
+      .attr('y', 10 * (i + 1) + i * (MARBLE_RADIUS + 5))
       .attr('width', HALFWIDTH)
       .attr('height', height)
       .attr('rx', 2)
       .attr('ry', 2)
       .attr('stroke', '#333')
       .attr('stroke-width', 1.5)
-      .attr('fill', d3.color(d.color)?.copy({opacity: 0.2})
-        ?.toString() || d.color);
+      .attr('fill', d3.color(marble.color)?.copy({opacity: 0.2})
+        ?.toString() || marble.color);
 
     group.append('text')
       .text(() => {
-        const object = result[i].value;
-        if (object.reference) {
-          let refobject = heap.value?.find(obj => obj.id === object.reference) as HeapString;
-          let t = refobject?.string;
-
-          if (!t) {
-            let type = refobject.type;
-            t = type.substring(type.lastIndexOf('.') + 1, type.length);
-          }
-          if (t.length > 10) {
-            t = t.substring(0, 10) + '...';
-          }
-          templength = t.length;
-          return t;
-        } else if (object.primitiveValue) {
-          templength = object.primitiveValue.toString().length;
-          return object.primitiveValue;
-        } else if (object.value) {
-          templength = object.value.toString().length;
-          return object.value;
-        }
-        return '';
+        const text = displayValue(result[i].value);
+        if (text) fieldTextLength = text.length;
+        return text;
       })
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
       .attr('y', isEllipsis ? height * 7 : height * (i + 1))
       .attr('x', HALFWIDTH / 2)
-      .attr('font-size', stringFontSize.get(templength) || '12px');
+      .attr('font-size', stringFontSize.get(fieldTextLength) || '12px');
   }
 }
 
-function renderVoidNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
+function renderVoidMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
   group.append('ellipse')
     .attr('rx', HALFWIDTH / 2)
-    .attr('ry', RADIUS + 5)
+    .attr('ry', MARBLE_RADIUS + 5)
     .attr('stroke', '#000')
     .attr('stroke-width', 3)
     .attr('fill', '#FFF');
 
   group.append('text')
-    .text(d.label)
+    .text(marble.label)
     .attr('text-anchor', 'middle')
     .attr('dominant-baseline', 'middle')
     .attr('font-size', '16px');
 }
 
+/** Renders an optional result directly because empty optionals have no heap object to inspect. */
+function renderOptionalMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
+  group.append('rect')
+    .attr('x', -HALFWIDTH)
+    .attr('y', -MARBLE_RADIUS - 5)
+    .attr('width', MARBLE_WIDTH)
+    .attr('height', (MARBLE_RADIUS + 5) * 2)
+    .attr('rx', 5)
+    .attr('ry', 5)
+    .attr('stroke', '#333')
+    .attr('stroke-width', 1.5)
+    .attr('fill', marble.color);
+
+  group.append('text')
+    .text(marble.label)
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'middle')
+    .attr('font-size', marble.label.length > 15 ? '12px' : '16px');
+}
+
 
 function renderMiniCircleNode (
-  group: d3.Selection<SVGGElement, any, any, any>,
+  group: MarbleGroup,
   fontsize: string,
   label: string,
   circlewidth: number
 ) {
   group.append('circle')
     .attr('cx', circlewidth)
-    .attr('r', RADIUS - 1)
+    .attr('r', MARBLE_RADIUS - 1)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
     .attr('fill', '#f0f0f0');
@@ -582,31 +627,31 @@ function renderMiniCircleNode (
 }
 
 function renderMiniObjectNode (
-  group: d3.Selection<SVGGElement, any, any, any>,
-  elemNode: any,
-  d: any,
+  group: MarbleGroup,
+  heapElement: HeapItem,
+  marble: MarbleDiagramMarble,
   rectWidth: number,
   xPos: number
 ) {
-  let fields = (elemNode as HeapObject)?.fields || [];
-  let result: any = fields;
+  let fields = heapElement.kind === 'HeapObject' ? heapElement.fields : [];
+  let result: DisplayField[] = fields;
 
   if (fields.length > 3) {
     const idField = fields.find(f => ['id', 'Id', 'ID'].includes(f.name));
     const nameField = fields.find(f => ['name', 'Name', 'title', 'Title'].includes(f.name));
 
-    result = [idField, nameField].filter(Boolean);
+    result = [idField, nameField].filter(f => f !== undefined);
     fields = fields.filter(f => f !== idField && f !== nameField);
     fields = fields.slice(0, 3 - result.length);
     result = result.concat(fields);
-    result.push({ name: '...', value: { type: '...', value: '...' }});
+    result.push({ name: '...', value: { kind: 'Ellipsis', value: '...' }});
   }
 
   group.append('rect')
     .attr('x', xPos)
-    .attr('y', -RADIUS)
+    .attr('y', -MARBLE_RADIUS)
     .attr('width', rectWidth)
-    .attr('height', RADIUS * 2 - 5)
+    .attr('height', MARBLE_RADIUS * 2 - 5)
     .attr('rx', 2)
     .attr('ry', 2)
     .attr('stroke', '#333')
@@ -614,7 +659,7 @@ function renderMiniObjectNode (
     .attr('fill', '#d0d0d0');
 
   group.append('text')
-    .text(d.valuetype.substring(0, d.valuetype.length - 2))
+    .text(marble.type!.substring(0, marble.type!.length - 2))
     .attr('x', xPos + rectWidth / 2)
     .attr('text-anchor', 'middle')
     .attr('dominant-baseline', 'middle')
@@ -623,11 +668,11 @@ function renderMiniObjectNode (
   for (let i = 0; i < result.length; i++) {
     const field = result[i];
     const isEllipsis = field.name === '...';
-    const height = isEllipsis ? RADIUS : (RADIUS + 5) + 10;
+    const height = isEllipsis ? MARBLE_RADIUS : (MARBLE_RADIUS + 5) + 10;
 
     group.append('rect')
       .attr('x', xPos)
-      .attr('y', 10 * (i + 1) + i * (RADIUS + 5))
+      .attr('y', 10 * (i + 1) + i * (MARBLE_RADIUS + 5))
       .attr('width', rectWidth)
       .attr('height', height)
       .attr('rx', 2)
@@ -638,22 +683,7 @@ function renderMiniObjectNode (
 
     group.append('text')
       .text(() => {
-        const object = field.value;
-
-        if (object.reference) {
-          let refobject = heap.value?.find(obj => obj.id === object.reference);
-          let t = (refobject as any)?.string;
-
-          if (!t) {
-            let type = refobject!.type;
-            t = type.substring(type.lastIndexOf('.') + 1);
-          }
-          if (t.length > 10) t = t.substring(0, 10) + '...';
-          return t;
-        }
-        if (object.primitiveValue) return object.primitiveValue;
-        if (object.value) return object.value;
-        return '';
+        return displayValue(field.value);
       })
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
@@ -663,112 +693,121 @@ function renderMiniObjectNode (
   }
 }
 
-function renderVerticalListNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
-  let labelAsList = d.label.split(',');
+function renderVerticalListMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
+  let labelAsList = marble.label.split(',');
   let length = labelAsList.length;
-  let firstElem = allNodes.value?.find((n: any) => n.elemId.toString() === labelAsList[0]);
-  let typeOfElements = firstElem?.valuetype || 'Unknown';
+  let firstMarble = allMarbles.value?.find((n) => n.marbleKey.toString() === labelAsList[0]);
+  let typeOfElements = firstMarble?.type || 'Unknown';
   if (typeOfElements.endsWith('[]')) {
     typeOfElements = typeOfElements.substring(0, typeOfElements.length - 2);
   }
-  let elemHeight = (RADIUS + 5) * 2 + MARGIN;
-  if (!isSmallerType(typeOfElements) && typeOfElements !== 'java.lang.String') {
-    let elem = heap.value?.find(o => o.id.toString() === firstElem!.label) as any;
-    if (elem.type.includes('[]')) {
-      elem = heap.value?.find(obj => obj.id === elem?.elements?.[0]?.value?.reference) as HeapObject;
+  let elementHeight = (MARBLE_RADIUS + 5) * 2 + LAYOUT_MARGIN;
+  if (!isCompactType(typeOfElements) && typeOfElements !== 'java.lang.String') {
+    let element = findHeapItem(firstMarble?.label);
+    if (element?.kind === 'HeapArray') {
+      element = findHeapItem(referenceId(element.elements[0]?.value));
     }
-    if (elem) {
-      const fieldsLength = elem.fields.length;
-      elemHeight = Math.min(fieldsLength, 3) * (RADIUS + 5) * 2 + MARGIN * 2;
+    if (element?.kind === 'HeapObject') {
+      const fieldsLength = element.fields.length;
+      elementHeight = Math.min(fieldsLength, 3) * (MARBLE_RADIUS + 5) * 2 + LAYOUT_MARGIN * 2;
     }
   }
 
   const subGroup = group.append('g');
 
   for (let i = 0; i < length; i++) {
-    const elemNode = allNodes.value!.find((n: any) => n.elemId.toString() === labelAsList[i].trim());
-    const elemGroup = subGroup.append('g')
-      .attr('transform', `translate(0, ${MARGIN + i * elemHeight})`);
-    if (elemNode!.valuetype === 'java.lang.String') {
-      renderStringNode(elemGroup, elemNode);
-    } else if (isSmallerType(elemNode!.valuetype)) {
-      renderSmallTypeNode(elemGroup, elemNode);
-    } else if (elemNode!.valuetype.includes('[]')) {
-      renderHorizontalListTerminalNode(elemGroup, elemNode);
+    const childMarble = allMarbles.value!.find((n) => n.marbleKey.toString() === labelAsList[i].trim());
+    if (!childMarble) continue;
+    const elementGroup = subGroup.append('g')
+      .attr('transform', `translate(0, ${LAYOUT_MARGIN + i * elementHeight})`);
+    const elementType = childMarble!.type || 'Unknown';
+    if (elementType === 'java.lang.String') {
+      renderStringMarble(elementGroup, childMarble);
+    } else if (isCompactType(elementType)) {
+      renderSmallTypeMarble(elementGroup, childMarble);
+    } else if (elementType.includes('[]')) {
+      renderHorizontalListTerminalNode(elementGroup, childMarble);
     }  else {
-      renderObjectNode(elemGroup, elemNode);
+      renderObjectMarble(elementGroup, childMarble);
     }
   }
 
   const bbox = subGroup.node()?.getBBox();
-  let width = WIDTH + MARGIN * 2, height = elemHeight * length + MARGIN;
+  let width = MARBLE_WIDTH + LAYOUT_MARGIN * 2, height = elementHeight * length + LAYOUT_MARGIN;
   if (bbox) {
-    width = Math.max(bbox.width + MARGIN * 2, WIDTH + MARGIN * 2);
-    height = bbox.height + MARGIN * 2;
+    width = Math.max(bbox.width + LAYOUT_MARGIN * 2, MARBLE_WIDTH + LAYOUT_MARGIN * 2);
+    height = bbox.height + LAYOUT_MARGIN * 2;
   }
 
   group.insert('rect', ':first-child')
     .attr('id', 'list-node')
-    .attr('x', -HALFWIDTH - MARGIN)
-    .attr('y', -RADIUS - 5)
+    .attr('x', -HALFWIDTH - LAYOUT_MARGIN)
+    .attr('y', -MARBLE_RADIUS - 5)
     .attr('width', width)
     .attr('height',  height)
     .attr('rx', 5)
     .attr('ry', 5)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
-    .attr('fill', d.color);
+    .attr('fill', marble.color);
 }
 
-function renderHorizontalListNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
-  let labelAsList = d.label.split(',');
-  let elem = heap.value?.find(n => n.id.toString() === labelAsList[0]) as any;
-  let elems = elem?.elements;
-  let length = elems.length;
+function renderHorizontalListMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
+  let labelAsList = marble.label.split(',');
+  const arrayElement = findHeapItem(labelAsList[0]);
+  if (arrayElement?.kind !== 'HeapArray') return;
+  let elements: { value: DisplayValue }[] = arrayElement.elements;
+  let length = elements.length;
   if (length > 5) {
     length = 5;
-    elems = [elem.elements[0], elem.elements[1], {name: '...', value: { primitiveValue: '...' }}, elem.elements[elem.elements.length - 2], elem.elements[elem.elements.length - 1]];
+    elements = [
+      arrayElement.elements[0],
+      arrayElement.elements[1],
+      { value: { kind: 'Ellipsis', value: '...' } },
+      arrayElement.elements[arrayElement.elements.length - 2],
+      arrayElement.elements[arrayElement.elements.length - 1]
+    ];
   }
-  let height = (RADIUS + 5) * 2;
-  let width = WIDTH;
-  const type = elem.type.endsWith('[]') ?
-    elem.type.substring(0, elem.type.length - 2) :
-    elem.type;
-  if (!isSmallerType(type) && type !== 'java.lang.String') {
+  let height = (MARBLE_RADIUS + 5) * 2;
+  let width = MARBLE_WIDTH;
+  const type = arrayElement.type.endsWith('[]') ?
+    arrayElement.type.substring(0, arrayElement.type.length - 2) :
+    arrayElement.type;
+  if (!isCompactType(type) && type !== 'java.lang.String') {
     // find or null
-    const firstElemNode = elems.length > 0 ? heap.value?.find(n => n.id === elems[0].value.reference) as HeapObject : null;
-    if (firstElemNode) {
-      const fieldsLength = firstElemNode.fields.length;
-      height = Math.min(fieldsLength, 3) * (RADIUS + 5) * 2 + MARGIN * 2;
+    const firstHeapObject = findHeapItem(referenceId(elements[0]?.value));
+    if (firstHeapObject?.kind === 'HeapObject') {
+      const fieldsLength = firstHeapObject.fields.length;
+      height = Math.min(fieldsLength, 3) * (MARBLE_RADIUS + 5) * 2 + LAYOUT_MARGIN * 2;
     }
-    width = WIDTH * 2 - MARGIN;
+    width = MARBLE_WIDTH * 2 - LAYOUT_MARGIN;
   }
 
   group.append('rect')
     .attr('x', -HALFWIDTH - 2)
-    .attr('y', -RADIUS - 5)
+    .attr('y', -MARBLE_RADIUS - 5)
     .attr('width', width + 4)
     .attr('height', height)
     .attr('rx', 5)
     .attr('ry', 5)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
-    .attr('fill', d.color);
+    .attr('fill', marble.color);
 
   for (let i = 0; i < length; i++) {
-    let elemNode = heap.value?.find(n => n.id === elems[i].value.reference) as any;
-    if (!elemNode) {
+    let heapElement = findHeapItem(referenceId(elements[i].value));
+    if (!heapElement) {
       let circlewidth = -HALFWIDTH + i * (width / length) + (width / length) / 2;
-      let fontsize = miniCircleFontSize.get(elems[i].value.primitiveValue.toString().length) || '10px';
-      let label = elems[i].value.primitiveValue;
+      let fontsize = miniCircleFontSize.get(displayValue(elements[i].value).length) || '10px';
+      let label = displayValue(elements[i].value);
       renderMiniCircleNode(group, fontsize, label, circlewidth);
     } else {
-      if (elemNode.type === 'java.lang.String') {
+      if (heapElement.kind === 'HeapString') {
         group.append('rect')
-          .attr('x', -HALFWIDTH + i * (WIDTH / length) + (WIDTH / length) / 2 - HALFWIDTH / length)
-          .attr('y', -RADIUS)
-          .attr('width', WIDTH/length)
-          .attr('height', (RADIUS - 1) * 2)
+          .attr('x', -HALFWIDTH + i * (MARBLE_WIDTH / length) + (MARBLE_WIDTH / length) / 2 - HALFWIDTH / length)
+          .attr('y', -MARBLE_RADIUS)
+          .attr('width', MARBLE_WIDTH/length)
+          .attr('height', (MARBLE_RADIUS - 1) * 2)
           .attr('rx', 5)
           .attr('ry', 5)
           .attr('stroke', '#333')
@@ -776,7 +815,7 @@ function renderHorizontalListNode (group: d3.Selection<SVGGElement, any, any, an
           .attr('fill', '#f0f0f0');
         group.append('text')
           .text(() => {
-            const str = elemNode.label || elemNode.string;
+            const str = heapElement.string;
             let maxLength = miniStringLength.get(length) || 3;
             if (str.length > maxLength) {
               return `"${str.substring(0, maxLength)}..."`;
@@ -786,36 +825,37 @@ function renderHorizontalListNode (group: d3.Selection<SVGGElement, any, any, an
           })
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
-          .attr('x', -HALFWIDTH + i * (WIDTH / length) + (WIDTH / length) / 2)
+          .attr('x', -HALFWIDTH + i * (MARBLE_WIDTH / length) + (MARBLE_WIDTH / length) / 2)
           .attr('font-size', '9px');
       } else {
-        const rectWidth = HALFWIDTH - MARGIN * 2;
+        const rectWidth = HALFWIDTH - LAYOUT_MARGIN * 2;
         const minGap = 2;
         const gap = (width - 2 * minGap - length * rectWidth) / (length + 1);
         const xPos = -HALFWIDTH + minGap + gap + i * (rectWidth + gap);
-        renderMiniObjectNode(group, elemNode, d, rectWidth, xPos);
+        renderMiniObjectNode(group, heapElement, marble, rectWidth, xPos);
       }
     }
   }
 }
 
-function renderHorizontalListTerminalNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
-  let labelAsList = d.label.split(',');
-  let elem = heap.value?.find(n => n.id.toString() === labelAsList[0]) as any;
-  let elems = elem?.elements;
-  let length = elems.length;
+function renderHorizontalListTerminalNode (group: MarbleGroup, marble: MarbleDiagramMarble) {
+  let labelAsList = marble.label.split(',');
+  const arrayElement = findHeapItem(labelAsList[0]);
+  if (arrayElement?.kind !== 'HeapArray') return;
+  let elements: { value: DisplayValue }[] = arrayElement.elements;
+  let length = elements.length;
   let stringlength = 0;
 
   for (let i = 0; i < length; i++) {
-    let elemNode = heap.value?.find(n => n.id === elems[i].value.reference) as any;
-    if (!elemNode) {
-      const cx = -HALFWIDTH + (i + 1) * RADIUS * 2 - RADIUS;
-      let fontsize = miniCircleFontSize.get(elems[i].value.primitiveValue.toString().length) || '10px';
-      let label = elems[i].value.primitiveValue;
+    let heapElement = findHeapItem(referenceId(elements[i].value));
+    if (!heapElement) {
+      const cx = -HALFWIDTH + (i + 1) * MARBLE_RADIUS * 2 - MARBLE_RADIUS;
+      let fontsize = miniCircleFontSize.get(displayValue(elements[i].value).length) || '10px';
+      let label = displayValue(elements[i].value);
       renderMiniCircleNode(group, fontsize, label, cx);
     } else {
-      if (elemNode.type === 'java.lang.String') {
-        const label = elemNode.label || elemNode.string;
+      if (heapElement.kind === 'HeapString') {
+        const label = heapElement.string;
         const textValue = '"' + label + '"';
 
         const tempText = group.append('text')
@@ -825,14 +865,14 @@ function renderHorizontalListTerminalNode (group: d3.Selection<SVGGElement, any,
 
         const textWidth = tempText.node()?.getBBox().width || 0;
 
-        const x = -HALFWIDTH + stringlength + MARGIN / 2;
-        const rectWidth = textWidth + MARGIN;
+        const x = -HALFWIDTH + stringlength + LAYOUT_MARGIN / 2;
+        const rectWidth = textWidth + LAYOUT_MARGIN;
 
         group.append('rect')
           .attr('x', x)
-          .attr('y', -RADIUS)
+          .attr('y', -MARBLE_RADIUS)
           .attr('width', rectWidth)
-          .attr('height', (RADIUS - 1) * 2)
+          .attr('height', (MARBLE_RADIUS - 1) * 2)
           .attr('rx', 5)
           .attr('ry', 5)
           .attr('stroke', '#333')
@@ -843,51 +883,52 @@ function renderHorizontalListTerminalNode (group: d3.Selection<SVGGElement, any,
           .text(textValue)
           .attr('text-anchor', 'left')
           .attr('dominant-baseline', 'middle')
-          .attr('x', x + MARGIN / 2)
+          .attr('x', x + LAYOUT_MARGIN / 2)
           .attr('font-size', '9px');
 
         tempText.remove();
         stringlength += rectWidth;
       } else {
-        const rectWidth = HALFWIDTH - MARGIN * 2;
-        const xPos = -HALFWIDTH + rectWidth * i + MARGIN/2;
-        renderMiniObjectNode(group, elemNode, d, rectWidth, xPos);
+        const rectWidth = HALFWIDTH - LAYOUT_MARGIN * 2;
+        const xPos = -HALFWIDTH + rectWidth * i + LAYOUT_MARGIN/2;
+        renderMiniObjectNode(group, heapElement, marble, rectWidth, xPos);
       }
     }
   }
 
   const bbox = group.node()?.getBBox();
-  const width = bbox ? Math.max(bbox.width + MARGIN * 1.5, WIDTH) : WIDTH;
-  const height = bbox ? bbox.height + MARGIN : (RADIUS + 5) * 2;
+  const width = bbox ? Math.max(bbox.width + LAYOUT_MARGIN * 1.5, MARBLE_WIDTH) : MARBLE_WIDTH;
+  const height = bbox ? bbox.height + LAYOUT_MARGIN : (MARBLE_RADIUS + 5) * 2;
 
   group.insert('rect', ':first-child')
     .attr('x', -HALFWIDTH - 2)
-    .attr('y', -RADIUS - 5)
+    .attr('y', -MARBLE_RADIUS - 5)
     .attr('width', width)
     .attr('height', height)
     .attr('rx', 5)
     .attr('ry', 5)
     .attr('stroke', '#333')
     .attr('stroke-width', 1.5)
-    .attr('fill', d.color);
+    .attr('fill', marble.color);
 
 }
 
-function renderMapNode (group: d3.Selection<SVGGElement, any, any, any>, d: any) {
+function renderMapMarble (group: MarbleGroup, marble: MarbleDiagramMarble) {
   let length = 0;
   let keys: string[] = [];
   let values: string[] = [];
-  if (d.mapKeys) {
-    keys = d.mapKeys;
-    values = d.mapValues;
-    length = d.mapKeys.length;
+  const cached = mapEntries.get(marble);
+  if (cached) {
+    keys = cached.keys;
+    values = cached.values;
+    length = keys.length;
   }
   if (length === 0) {
-    let refpairs = d.label.substring(2, d.label.length - 2).split('), (');
-    length = refpairs.length;
-    let isList = refpairs[0].includes('[') && refpairs[0].includes(']');
+    let referencePairs = marble.label.substring(2, marble.label.length - 2).split('), (');
+    length = referencePairs.length;
+    let isList = referencePairs[0].includes('[') && referencePairs[0].includes(']');
     for (let i = 0; i < length; i++) {
-      let pair = refpairs[i];
+      let pair = referencePairs[i];
       if (isList) {
         pair = pair.replace('[', '').replace(']', '');
       }
@@ -908,93 +949,92 @@ function renderMapNode (group: d3.Selection<SVGGElement, any, any, any>, d: any)
   let maxWidth = 0;
 
   for (let i = 0; i < length; i++) {
-    let tempval = values[i].split(',');
-    d.label = tempval.map((v: string) => {
-      let foundNode = allNodes.value.find((n: any) => n.label.toString() === v.trim());
-      return foundNode ? foundNode.elemId.toString() : '';
+    let valueParts = values[i].split(',');
+    const label = valueParts.map((v: string) => {
+      let foundMarble = allMarbles.value.find((n) => n.label.toString() === v.trim());
+      return foundMarble ? foundMarble.marbleKey.toString() : '';
     }).join(', ');
 
-    const elemGroup = subGroup.append('g')
+    const elementGroup = subGroup.append('g')
       .attr('transform', `translate(0, ${heightOffset})`);
-    renderVerticalListNode(elemGroup, d);
+    renderVerticalListMarble(elementGroup, { ...marble, label });
 
     const bbox = subGroup.node()?.getBBox();
     if (bbox) {
       maxWidth = Math.max(maxWidth, bbox.width);
       heightOffset = bbox.height;
     }
-    const elembbox = elemGroup.node()?.getBBox();
-    let elemHeight = elembbox ? elembbox.height : 0;
-    // ToDo: set rect with key in front of elemGroup
-    elemGroup.append('rect')
-      .attr('height', elemHeight)
+    const elementBounds = elementGroup.node()?.getBBox();
+    let elementHeight = elementBounds ? elementBounds.height : 0;
+    // ToDo: set rect with key in front of elementGroup
+    elementGroup.append('rect')
+      .attr('height', elementHeight)
       .attr('width', MAPKEYBOXWIDTH)
-      .attr('fill', d.color)
+      .attr('fill', marble.color)
       .attr('x', MAPKEYX)
-      .attr('y', -RADIUS - 5)
+      .attr('y', -MARBLE_RADIUS - 5)
       .attr('rx', 5)
       .attr('ry', 5)
       .attr('stroke', '#333')
       .attr('stroke-width', 1.5);
-    elemGroup.append('text')
+    elementGroup.append('text')
       .text(keys[i])
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
       .attr('x', MAPKEYX + MAPKEYBOXWIDTH / 2)
-      .attr('y', elemHeight / 2 - RADIUS - 5)
+      .attr('y', elementHeight / 2 - MARBLE_RADIUS - 5)
       .attr('font-size', '16px');
   }
   subGroup.selectAll('#list-node')
     .attr('width', maxWidth);
-  d.mapKeys = keys;
-  d.mapValues = values;
+  mapEntries.set(marble, { keys, values });
 }
 
-function stepForwards () {
-  if (currentStep.value < allNodes.value.reduce((max: any, n: any) => Math.max(max, n.id), 0)) {
+function stepForward () {
+  if (currentStep.value < allMarbles.value.reduce((max, n) => Math.max(max, n.playbackStep), 0)) {
     currentStep.value++;
   }
 }
 
-function stepBack () {
+function stepBackward () {
   if (currentStep.value > 0) {
     currentStep.value--;
   }
 }
 
-function playThrough () {
+function playToStep () {
   if (isPlaying.value) {
     return;
   }
   currentStep.value = 0;
   render();
-  play();
+  startPlayback();
 }
 
-function playFrom () {
+function resumePlayback () {
   if (isPlaying.value) {
     return;
   }
-  play();
+  startPlayback();
 }
 
-function play () {
+function startPlayback () {
   isPlaying.value = true;
   intervalId = setInterval(() => {
-    if (isPlaying.value && currentStep.value < allNodes.value.reduce((max: any, n: any) => Math.max(max, n.id), 0)) {
+    if (isPlaying.value && currentStep.value < allMarbles.value.reduce((max, n) => Math.max(max, n.playbackStep), 0)) {
       currentStep.value++;
     } else {
-      pausePlaying()
+      pausePlayback()
     }
   }, animationSpeed);
 }
 
-function stopAndResetPlaying () {
+function stopAndResetPlayback () {
   currentStep.value = 0;
-  pausePlaying();
+  pausePlayback();
 }
 
-function pausePlaying () {
+function pausePlayback () {
   isPlaying.value = false;
   if (intervalId) {
     clearInterval(intervalId);
@@ -1002,14 +1042,16 @@ function pausePlaying () {
   }
 }
 
-function zoomed (event: any) {
-  container.attr('transform', event.transform);
+function zoomed (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) {
+  container?.attr('transform', event.transform.toString());
 }
 
 function zoomAndCenter () {
   if (!svg || !container) return;
 
-  const { width: svgWidth, height: svgHeight } = svg.node().getBoundingClientRect();
+  const svgElement = svg.node();
+  if (!svgElement) return;
+  const { width: svgWidth, height: svgHeight } = svgElement.getBoundingClientRect();
 
   const bounds = container.node()?.getBBox() as DOMRect;
   const fullWidth = bounds.width || 0;
@@ -1032,12 +1074,14 @@ function zoomAndCenter () {
   svg.call(zoom.transform, transform);
 }
 
-watch(streamVizInfo, (newVal, oldVal) => {
-  pausePlaying();
+watch(streamVisualizationData, (newVal, oldVal) => {
+  pausePlayback();
   if ((newVal?.marbles.length ?? 0) > 0 && JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
     currentStep.value = 0;
     nextTick(() => {
-      svg = d3.select('#stream-viz-svg');
+      const svgElement = document.querySelector<SVGSVGElement>('#stream-viz-svg');
+      if (!svgElement) return;
+      svg = d3.select<SVGSVGElement, unknown>(svgElement);
       svg.selectAll('*').remove();
 
       svg.append('rect')
@@ -1061,36 +1105,36 @@ watch(streamVizInfo, (newVal, oldVal) => {
         .attr('d', 'M0,-5L10,0L0,5')
         .attr('fill', '#999');
 
-      container.selectAll('.opline')
-        .data(Object.values({ ...operationLines.value }))
+      container.selectAll<SVGLineElement, MarbleDiagramLane>('.opline')
+        .data(Object.values({ ...operationLanes.value }))
         .join('line')
         .attr('class', 'opline')
         .attr('x1', 0)
-        .attr('y1', (d: any) => d.y)
+        .attr('y1', (d) => d.y)
         .attr('x2', 10 + 210)
-        .attr('y2', (d: any) => d.y)
+        .attr('y2', (d) => d.y)
         .attr('stroke', '#999')
         .attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '8 4');
 
-      container.selectAll('.oplabel')
-        .data(Object.values({ ...operationLines.value }))
+      container.selectAll<SVGTextElement, MarbleDiagramLane>('.oplabel')
+        .data(Object.values({ ...operationLanes.value }))
         .join('text')
         .attr('class', 'oplabel')
         .attr('x', PARAMSTARTX)
-        .attr('y', (d: any) => d.y - 5)
+        .attr('y', (d) => d.y - 5)
         .attr('text-anchor', 'end')
-        .text((d: any) => d.type)
+        .text((d) => d.operation)
         .attr('fill', '#555')
         .attr('font-size', '24px');
 
-      const paramLabelGroups = container.selectAll('.param-label-group')
-        .data(Object.values({ ...operationLines.value }))
+      const paramLabelGroups = container.selectAll<SVGGElement, MarbleDiagramLane>('.param-label-group')
+        .data(Object.values({ ...operationLanes.value }))
         .join(
           enter => {
             const g = enter.append('g')
               .attr('class', 'param-label-group')
-              .attr('transform', (d: any) => `translate(${10 + 150}, ${d.y + 25})`);
+              .attr('transform', (d) => `translate(${10 + 150}, ${d.y + 25})`);
 
             // Füge ein leeres Text-Element hinzu, um die tspan-Elemente aufzunehmen
             g.append('text')
@@ -1105,29 +1149,29 @@ watch(streamVizInfo, (newVal, oldVal) => {
             return g;
           },
           update => {
-            update.attr('transform', (d: any) => `translate(${10 + 10}, ${d.y + 25})`);
+            update.attr('transform', (d) => `translate(${10 + 10}, ${d.y + 25})`);
             return update;
           },
           exit => exit.remove()
         );
 
 
-      paramLabelGroups.each(function(d: any) {
-        const group = d3.select(this);
-        const textElement = group.select('.param-label') as d3.Selection<SVGTextElement, unknown, null, undefined>;
+      paramLabelGroups.each(function(d) {
+        const group = d3.select<SVGGElement, MarbleDiagramLane>(this);
+        const textElement = group.select<SVGTextElement>('.param-label');
         textElement.selectAll('tspan').remove();
 
-        //const lines = d.param.replace(/\\n/g, '\n').split('\n');
+        //const lines = d.parameter.replace(/\\n/g, '\n').split('\n');
 
-        skipLimitElements = [];
+        visibleMarblesForCount = [];
 
         const lines = (
-          ['limit', 'skip'].includes(d.type)
+          ['limit', 'skip'].includes(d.operation)
             ? `${Math.min(
-              skipLimitElements.length,
-              Number(String(d.param).match(/\d+/)?.[0])
-            )}/${Number(String(d.param).match(/\d+/)?.[0])}`
-            : d.param
+              visibleMarblesForCount.length,
+              Number(String(d.parameter).match(/\d+/)?.[0])
+            )}/${Number(String(d.parameter).match(/\d+/)?.[0])}`
+            : d.parameter ?? ''
         ).replace(/\\n/g, '\n').split('\n');
 
         lines.forEach((line: string, i: number) => {
@@ -1154,7 +1198,7 @@ watch(streamVizInfo, (newVal, oldVal) => {
             .attr('opacity', 0.8) // Leicht transparent
             .style('pointer-events', 'none'); // Ignoriert Mausereignisse
         } else {
-          // Falls bbox leer ist (z.B. d.param ist leer), das Rechteck entfernen
+          // Falls bbox leer ist (z.B. d.parameter ist leer), das Rechteck entfernen
           group.select('.param-bg-rect').remove();
         }
       });
@@ -1184,7 +1228,7 @@ watch(editMode, (val) => {
 });
 
 onUnmounted(() => {
-  pausePlaying();
+  pausePlayback();
 })
 </script>
 
@@ -1200,12 +1244,6 @@ onUnmounted(() => {
   height: 100%;
 }
 
-.link {
-  fill: none;
-  stroke: #999;
-  stroke-width: 2px;
-  marker-end: url(#arrow);
-}
 .node circle {
   stroke-width: 1.5px;
   padding: 5px;
@@ -1216,6 +1254,7 @@ text {
 .controls {
   margin-top: 20px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
@@ -1228,6 +1267,7 @@ text {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 button {
@@ -1254,7 +1294,9 @@ button {
   gap: 10px;
   align-items: center;
   justify-content: flex-end;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: min-content;
+  margin-left: auto;
 }
 
 .playControls button {
@@ -1264,7 +1306,7 @@ button {
   border: 2px solid black;
   background-color: #efefef;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .playButton {

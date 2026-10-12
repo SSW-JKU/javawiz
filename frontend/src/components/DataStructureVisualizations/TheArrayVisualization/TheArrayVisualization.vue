@@ -138,7 +138,7 @@
 
 <script setup lang="ts">
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { BaseType, select, Selection } from 'd3-selection'
 import { zoom, zoomIdentity } from 'd3-zoom'
 import { transform, setTransform, levelCoordinates } from './state'
@@ -173,12 +173,13 @@ const onlyCurrentStackFrame = ref(localStorage.getItem(LOCAL_STORAGE.onlyCurrent
   ? localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame) === 'true'
   : false)
 const highlightIndexes = ref(localStorage.getItem(LOCAL_STORAGE.highlightIndexes) ? localStorage.getItem(LOCAL_STORAGE.highlightIndexes) === 'true' : false)
-const resizeObserver = ref<ResizeObserver>(null as any)
-const zoomCall = ref(zoom().on('zoom', (event) => {
+// Track handle replacement without deep-proxying imperative browser and D3 objects.
+const resizeObserver = shallowRef<ResizeObserver>(null as any)
+const zoomCall = shallowRef(zoom().on('zoom', (event) => {
   setTransform(event.transform)
   select(`#${HTML.ids.arrayViz}`).attr('transform', event.transform)
 }))
-const svg = ref(select(`#${HTML.ids.arraySvg}`))
+const svg = shallowRef(select(`#${HTML.ids.arraySvg}`))
 
 const generalStore = useGeneralStore()
 const traceState = computed(() => generalStore.currentTraceData!.processedTraceState)
@@ -320,6 +321,10 @@ onMounted(() => {
   resizeObserver.value.observe(div!)
   deleteViz()
   redraw()
+})
+
+onUnmounted(() => {
+  resizeObserver.value?.disconnect()
 })
 </script>
 

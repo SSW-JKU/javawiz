@@ -41,6 +41,7 @@ import { HoverInfo } from '@/hover/types'
 const generalStore = useGeneralStore()
 
 let editor: monaco.editor.IStandaloneCodeEditor | undefined
+let resizeObserver: ResizeObserver | undefined
 let decorations: string[] = []
 const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   language: 'java',
@@ -138,6 +139,15 @@ function highlightHoveredAndCurrentLine () {
   decorations = editor.deltaDecorations(decorations, [hoveredDecoration, currentLineDecoration])
 }
 
+/** Replays the current debugger line after Monaco has been created. */
+function synchronizeCurrentLine () {
+  if (!editor) return
+  if (generalStore.currentLine >= 0) {
+    editor.revealLine(generalStore.currentLine)
+  }
+  highlightHoveredAndCurrentLine()
+}
+
 onMounted(() => {
   const editorDiv = document.getElementById('code-editor')!
 
@@ -150,6 +160,7 @@ onMounted(() => {
     editorDiv,
     editorOptions
   )
+  synchronizeCurrentLine()
 
   d3.select('#code-editor')
     .on('mouseenter', function() {
@@ -179,22 +190,19 @@ onMounted(() => {
   const splitpane = editorDiv.parentElement!.parentElement!
   const tabs = document.getElementById('tabs')!
 
-  const ro = new ResizeObserver(entries => {
+  resizeObserver = new ResizeObserver(entries => {
     const width = entries[entries.length - 1].contentRect.width
     const height = entries[entries.length - 1].contentRect.height - tabs.offsetHeight
     editor?.layout({ width, height })
   })
 
-  ro.observe(splitpane)
+  resizeObserver.observe(splitpane)
 
   HoverSynchronizer.onHover(onHover)
 })
 
 watch(() => generalStore.currentLine, () => {
-  if (editor) {
-    editor.revealLine(generalStore.currentLine)
-    highlightHoveredAndCurrentLine()
-  }
+  synchronizeCurrentLine()
 })
 
 watch(() => generalStore.currentFileUri, () => {
@@ -218,6 +226,11 @@ watch(() => generalStore.fileManager.openFile, () => {
   highlightHoveredAndCurrentLine()
 })
 onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = undefined
+  editor?.dispose()
+  editor = undefined
+  decorations = []
   HoverSynchronizer.removeOnHover(onHover)
 })
 </script>

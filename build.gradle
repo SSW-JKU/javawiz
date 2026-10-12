@@ -200,8 +200,8 @@ subprojects {
         // specify that all files from the dist and out folder should be zipped
         distZip {
             dependsOn('copyRuntimeLibrariesToLib')
-            from("$projectDir\\out")
-            from("$projectDir\\dist")
+            from(layout.projectDirectory.dir("out"))
+            from(layout.projectDirectory.dir("dist"))
             archiveFileName = "dist.zip"
             destinationDirectory = file("$projectDir")
         }

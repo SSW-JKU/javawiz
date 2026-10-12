@@ -13,19 +13,21 @@ fun buildTraceState(
     lineNumber: Int,
     conditionValues: Map<Int, Set<ConditionValue>>,
     arrayAccessValues: Map<Int, Set<ArrayAccessValue>>,
-    streamOperationValues: StreamVisualizationInfo,
+    streamVisualizationData: MarbleDiagramDataCollection,
     output: String,
     error: String,
     input: String,
-    relevantClasses: Collection<ReferenceType>,
+    loadedClassClassifications: Map<ReferenceType, LoadedClassClassification>,
     inputBufferInfo: InputBufferInfo,
     excludeFromSteppingPatterns: List<String>,
-    detailedFieldsClasses: Collection<ReferenceType>,
     latestSingleStepStartTime: Long,
     stepProcessingTime: Long,
     timeSinceLastStep: Long
 ): TraceState {
     val heap: MutableMap<Long, HeapItem> = mutableMapOf()
+    val classesWithCollectedFields = loadedClassClassifications
+        .filterValues { it.hasCollectedFields }
+        .keys
 
     val frameCount = event.thread().frameCount()
     val stackFrameToConditionValues: Map<com.sun.jdi.StackFrame, Set<ConditionValue>> = conditionValues
@@ -42,29 +44,30 @@ fun buildTraceState(
                 stackFrameToConditionValues[frame] ?: setOf(),
                 stackFrameToArrayAccessValues[frame] ?: setOf(),
                 excludeFromSteppingPatterns,
-                relevantClasses,
-                detailedFieldsClasses
+                classesWithCollectedFields
             )
         }
-    val loadedClasses = relevantClasses
-        .map { clazz ->
-            if (clazz in detailedFieldsClasses) {
-                // do not track statics of classes which are only "detail classes" (e.g., collections) because they extremely blow up the trace
-                LoadedClass(
-                    clazz.name(),
-                    listOf(),
-                    true
-                )
-            } else {
-                LoadedClass(
-                    clazz.name(),
+    val loadedClasses = loadedClassClassifications
+        // Keep traversal-stop metadata when an object of that class reached the heap, but do not
+        // expose every prepared JDK helper class merely because class-prepare events are observed.
+        .filter { (clazz, classification) ->
+            classification.hasCollectedFields || heap.values.any { heapItem -> heapItem.type == clazz.name() }
+        }
+        .map { (clazz, classification) ->
+            LoadedClass(
+                clazz.name(),
+                if (classification.hasCollectedFields) {
                     clazz
                         .allFields()
                         .filter { it.isStatic && !it.isSynthetic }
-                        .map { field -> createVar(field, heap, relevantClasses, detailedFieldsClasses) },
-                    clazz in detailedFieldsClasses
-                )
-            }
+                        .map { field -> createVar(field, heap, classesWithCollectedFields) }
+                } else {
+                    emptyList()
+                },
+                classification.isHeapTraversalStop,
+                classification.isJavaDataStructure,
+                classification.hasCollectedFields
+            )
         }
 
     val traceState = TraceState(
@@ -79,7 +82,7 @@ fun buildTraceState(
         inputBufferInfo.normalizeLineEndings(),
         stepProcessingTime,
         timeSinceLastStep,
-        streamOperationValues.snapshot()
+        streamVisualizationData.snapshot()
     )
 
     return traceState
@@ -102,8 +105,7 @@ private fun buildStackItem(
     conditionValues: Collection<ConditionValue>,
     arrayAccessValues: Collection<ArrayAccessValue>,
     excludeFromSteppingPatterns: List<String>,
-    relevantClasses: Collection<ReferenceType>,
-    detailedFieldsClasses: Collection<ReferenceType>
+    classesWithCollectedFields: Collection<ReferenceType>
 ): StackFrame {
     val loc = frame.location()
     val methodRef = loc.method()
@@ -119,7 +121,7 @@ private fun buildStackItem(
     val localVariables = mutableListOf<Var>()
     if (!isInternal) {
         try {
-            localVariables += frame.visibleVariables().map { createVar(frame, it, heap, relevantClasses, detailedFieldsClasses) }
+            localVariables += frame.visibleVariables().map { createVar(frame, it, heap, classesWithCollectedFields) }
         } catch (ex: Exception) {
             // Could happen if no local variable information is available / if the method is native.
             // For example, this is the case (or has at least been the case in one test case) if the
@@ -128,7 +130,7 @@ private fun buildStackItem(
             // In this case, assume we have no local variables
         }
     }
-    val thisVar = frame.thisObject()?.let { createThisVar(declaringTypeName, it, heap, relevantClasses, detailedFieldsClasses) }
+    val thisVar = frame.thisObject()?.let { createThisVar(declaringTypeName, it, heap, classesWithCollectedFields) }
 
     return StackFrame(
         line,

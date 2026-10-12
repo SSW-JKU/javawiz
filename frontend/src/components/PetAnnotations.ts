@@ -1,11 +1,15 @@
 import * as d3 from 'd3'
+import lightbulbIcon from '@/assets/icons/pets/lightbulb.png'
+import questionIcon from '@/assets/icons/pets/question-sign.png'
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 const DEFAULT_CALLOUT_GAP = 16
 const CALLOUT_MARGIN = 8
 const CALLOUT_MIN_WIDTH = 96
 const CALLOUT_MAX_CONTENT_WIDTH = 240
-const COLLAPSED_CALLOUT_SIZE = 26
+const COLLAPSED_CALLOUT_SIZE = 36
+const CALLOUT_ICON_SIZE = 20
+const CALLOUT_ICON_GAP = 6
 const CALLOUT_TEXT_FALLBACK_CHAR_WIDTH = 7
 const TARGET_POINTER_MARGIN = 2
 
@@ -107,6 +111,11 @@ type Question = CalloutBase & {
 
 type Annotation = SpeechBubble | Highlight | Question
 type Callout = SpeechBubble | Question
+
+const CALLOUT_ICON_URLS: Record<Callout['kind'], string> = {
+  speech: lightbulbIcon,
+  question: questionIcon
+}
 
 type SvgContext = {
   readonly svg: SVGSVGElement
@@ -436,13 +445,14 @@ export class PetAnnotationManager {
     let textMetrics: WrappedTextMetrics = { lineCount: 0, width: 0 }
     let widestOption = 0
     let text: d3.Selection<SVGTextElement, unknown, null, undefined> | undefined
+    const contentIconGap = CALLOUT_ICON_SIZE + CALLOUT_ICON_GAP
 
     if (!annotation.collapsed) {
       text = group.append('text')
         .attr('class', `${className}-text`)
         .attr('x', 0)
         .attr('y', 0)
-      textMetrics = wrapText(text, annotation.text, CALLOUT_MAX_CONTENT_WIDTH, lineHeight)
+      textMetrics = wrapText(text, annotation.text, CALLOUT_MAX_CONTENT_WIDTH - contentIconGap, lineHeight)
       widestOption = annotation.kind === 'question' && annotation.options.length > 0
         ? Math.max(...annotation.options.map(option => measureText(group, 'pet-question-option-text', option.label) + buttonPaddingX))
         : 0
@@ -450,7 +460,7 @@ export class PetAnnotationManager {
 
     const contentWidth = annotation.collapsed
       ? COLLAPSED_CALLOUT_SIZE
-      : Math.min(CALLOUT_MAX_CONTENT_WIDTH, Math.max(CALLOUT_MIN_WIDTH, textMetrics.width, widestOption))
+      : Math.min(CALLOUT_MAX_CONTENT_WIDTH, Math.max(CALLOUT_MIN_WIDTH, textMetrics.width, widestOption) + contentIconGap)
     const buttonBlockHeight = !annotation.collapsed && annotation.kind === 'question' && annotation.options.length > 0
       ? buttonGap + annotation.options.length * buttonHeight + (annotation.options.length - 1) * 4
       : 0
@@ -460,6 +470,16 @@ export class PetAnnotationManager {
       : textMetrics.lineCount * lineHeight + paddingY * 2 + buttonBlockHeight
     const position = calloutPosition(annotation, targetBox, rectWidth, rectHeight, visibleBounds)
     const calloutBox = { ...position, width: rectWidth, height: rectHeight }
+
+    group.append('image')
+      .attr('class', 'pet-callout-icon')
+      .attr('href', CALLOUT_ICON_URLS[annotation.kind])
+      .attr('x', annotation.collapsed ? position.x + 3 : position.x + paddingX)
+      .attr('y', annotation.collapsed ? position.y + 3 : position.y + paddingY)
+      .attr('width', CALLOUT_ICON_SIZE)
+      .attr('height', CALLOUT_ICON_SIZE)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .attr('aria-hidden', 'true')
 
     const pointer = group.append('path')
       .attr('class', `${className}-pointer`)
@@ -479,20 +499,20 @@ export class PetAnnotationManager {
 
     if (annotation.collapsed) {
       group.append('text')
-        .attr('class', `${className}-collapsed-text`)
-        .attr('x', position.x + rectWidth / 2)
+        .attr('class', `${className}-collapsed-text pet-callout-collapsed-marker`)
+        .attr('x', position.x + rectWidth - 8)
         .attr('y', position.y + rectHeight / 2 + 4)
         .attr('text-anchor', 'middle')
         .text('…')
     } else {
-      text?.attr('transform', `translate(${position.x + paddingX}, ${position.y + paddingY + 11})`)
+      text?.attr('transform', `translate(${position.x + paddingX + contentIconGap}, ${position.y + paddingY + 11})`)
       if (annotation.kind === 'question' && annotation.options.length > 0) {
         this.drawSvgQuestionButtons(
           group,
           annotation,
-          position.x + paddingX,
+          position.x + paddingX + contentIconGap,
           position.y + paddingY + textMetrics.lineCount * lineHeight + buttonGap,
-          contentWidth
+          contentWidth - contentIconGap
         )
       }
     }
@@ -592,16 +612,25 @@ export class PetAnnotationManager {
     callout.setAttribute('aria-expanded', String(!annotation.collapsed))
     callout.title = annotation.collapsed ? annotation.text : ''
 
+    const icon = document.createElement('img')
+    icon.className = 'pet-callout-icon'
+    icon.src = CALLOUT_ICON_URLS[annotation.kind]
+    icon.alt = ''
+    icon.setAttribute('aria-hidden', 'true')
+    callout.append(icon)
+
     if (annotation.collapsed) {
       const collapsedText = document.createElement('span')
-      collapsedText.className = `${className}-collapsed-text`
+      collapsedText.className = `${className}-collapsed-text pet-callout-collapsed-marker`
       collapsedText.textContent = '…'
       callout.append(collapsedText)
     } else {
+      const content = document.createElement('div')
+      content.className = 'pet-callout-content'
       const text = document.createElement('div')
       text.className = `${className}-text`
       text.textContent = annotation.text
-      callout.append(text)
+      content.append(text)
 
       if (annotation.kind === 'question') {
         const options = document.createElement('div')
@@ -619,8 +648,9 @@ export class PetAnnotationManager {
           })
           options.append(button)
         })
-        callout.append(options)
+        content.append(options)
       }
+      callout.append(content)
     }
 
     root.append(callout)

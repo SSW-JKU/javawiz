@@ -57,6 +57,11 @@ type FeatureWarning = {
   readonly warnings: string[]
 }
 
+type VisualizationExported = {
+  readonly kind: 'VisualizationExported'
+  readonly fileName: string
+}
+
 // Notification is already defined, that's why 'NotificationType' is used
 type NotificationType = ConnectionFailed
 | Connecting
@@ -72,6 +77,7 @@ type NotificationType = ConnectionFailed
 | InvalidFileName
 | FileReadError
 | FeatureWarning
+| VisualizationExported
 
 export type Notification = {
   readonly type: 'info' | 'success' | 'warning' | 'error'

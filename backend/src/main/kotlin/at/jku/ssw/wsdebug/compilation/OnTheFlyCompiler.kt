@@ -2,6 +2,7 @@
 
 package at.jku.ssw.wsdebug.compilation
 
+import at.jku.ssw.wsdebug.OperationIdAllocator
 import at.jku.ssw.wsdebug.communication.FilepathAndContent
 import at.jku.ssw.wsdebug.compilation.ast.AbstractSyntaxTree
 import at.jku.ssw.wsdebug.compilation.ast.CallFixup
@@ -118,7 +119,12 @@ private fun printInputDirectoryContents() {
     }
 }
 
-fun modifyAndComputeParseInfos(tree: JCTree.JCCompilationUnit, callFixup: CallFixup, timing: CompileTimingReport): ParseInfo? {
+fun modifyAndComputeParseInfos(
+    tree: JCTree.JCCompilationUnit,
+    callFixup: CallFixup,
+    timing: CompileTimingReport,
+    operationIdAllocator: OperationIdAllocator = OperationIdAllocator()
+): ParseInfo? {
     val label = tree.sourceFile.name.substringAfterLast('/')
     timing.openBlock("$label total")
     try {
@@ -140,24 +146,25 @@ fun modifyAndComputeParseInfos(tree: JCTree.JCCompilationUnit, callFixup: CallFi
         timing.add("generateArrayAccessInfo: ${timing.elapsed(t3)}ms (${arrayAccesses.size} accesses, ${indexWrappers.size} wrappers)")
 
         val t4 = timing.now()
-        val streamOps = generateStreamOps(tree)
-        timing.add("generateStreamOps: ${timing.elapsed(t4)}ms (${streamOps.size} stream ops)")
+        val streamOperationInstrumentationInfos = collectStreamOperationInstrumentationInfos(tree, operationIdAllocator)
+        timing.add("collectStreamOperationInstrumentationInfos: ${timing.elapsed(t4)}ms (${streamOperationInstrumentationInfos.size} stream ops)")
 
         val t5 = timing.now()
-        val modPoints = modificationPoints(conditions, indexWrappers, streamOps)
-        timing.add("modificationPoints: ${timing.elapsed(t5)}ms (${modPoints.size} points)")
+        val instrumentationInsertions = buildInstrumentationInsertions(conditions, indexWrappers, streamOperationInstrumentationInfos)
+        timing.add("buildInstrumentationInsertions: ${timing.elapsed(t5)}ms (${instrumentationInsertions.size} points)")
 
         val t6 = timing.now()
         val content = tree.sourceFile.getCharContent(true).toString()
         timing.add("readSourceContent: ${timing.elapsed(t6)}ms (${content.lines().size} lines)")
 
         val t7 = timing.now()
-        val modified = applyModifications(content, modPoints)
-        timing.add("applyModifications: ${timing.elapsed(t7)}ms (${content.lines().size} -> ${modified.lines().size} lines)")
+        val modified = applySourceInsertions(content, instrumentationInsertions)
+        timing.add("applySourceInsertions: ${timing.elapsed(t7)}ms (${content.lines().size} -> ${modified.lines().size} lines)")
 
         val t8 = timing.now()
         val featureWarnings = generateWarnings(tree)
         timing.add("generateWarnings: ${timing.elapsed(t8)}ms (${featureWarnings.size} warnings)")
+        val unsupportedFeatures = detectUnsupportedFeatures(tree)
 
         val parseInfo = ParseInfo(
             tree.sourceFile.name,
@@ -170,7 +177,8 @@ fun modifyAndComputeParseInfos(tree: JCTree.JCCompilationUnit, callFixup: CallFi
             typeNames,
             findMainClass(tree, packageDot),
             methodLines(ast),
-            featureWarnings
+            featureWarnings,
+            unsupportedFeatures
         )
         timing.closeBlock()
         return parseInfo
@@ -240,7 +248,8 @@ data class ParseInfo(
     val typeNames: List<String>,
     val mainClass: String?,
     val methodLines: Set<Int>,
-    val featureWarnings: Set<String>
+    val featureWarnings: Set<String>,
+    val unsupportedFeatures: Set<UnsupportedFeature>
 )
 
 fun getTypeNames(packageDot: String, tree: JCTree.JCClassDecl): List<String> {

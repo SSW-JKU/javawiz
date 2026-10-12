@@ -7,7 +7,7 @@ import kill from 'tree-kill'
 import { checkJavaRuntime, JavaRuntimeCompatibilityError } from './JavaRuntime'
 
 const ASSETS_PATH_SEGMENTS = ['out', 'assets', 'backend', 'libs']
-const BACKEND_JAR = 'backend-2.2.0.jar'
+const BACKEND_JAR = 'backend-2.3.0.jar'
 
 export class Backend {
   private static running = false

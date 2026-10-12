@@ -35,7 +35,9 @@ tasks.named("npm_run_compile") {
     outputs.file(layout.buildDirectory.file("typescript/tsconfig.tsbuildinfo"))
 }
 
-task copyBackendToVscExtension(type: Copy) {
+// Each destination contains only generated assets; Sync removes renamed JARs and stale
+// frontend bundles during incremental builds as well as clean release builds.
+task copyBackendToVscExtension(type: Sync) {
     dependsOn(':backend:build')
     from(rootDir.toPath().resolve('backend/build/')) {
         include 'libs/**/*'
@@ -50,7 +52,7 @@ task copyBackendToVscExtension(type: Copy) {
     }
 }
 
-task copyFrontendToVscExtension(type: Copy) {
+task copyFrontendToVscExtension(type: Sync) {
     dependsOn(':frontend:build')
     from(rootDir.toPath().resolve('frontend/dist/'))
 

@@ -113,11 +113,18 @@ export interface HeapString extends IHeapItem {
 export interface HeapObject extends IHeapItem {
   readonly kind: 'HeapObject'
   readonly fields: Var[]
-  /** True if this object's fields were collected for specialised visualisations only and must not be shown in the Memory View. */
-  readonly detailedFieldsOnly?: boolean
 }
 
 export type HeapItem = HeapArray | HeapString | HeapObject
+
+interface IProcessedHeapItem {
+  readonly loadedClass: LoadedClass | undefined
+}
+
+export type ProcessedHeapArray = HeapArray & IProcessedHeapItem
+export type ProcessedHeapString = HeapString & IProcessedHeapItem
+export type ProcessedHeapObject = HeapObject & IProcessedHeapItem
+export type ProcessedHeapItem = ProcessedHeapArray | ProcessedHeapString | ProcessedHeapObject
 
 export interface StackFrame {
   readonly kind: 'StackFrame'
@@ -139,7 +146,9 @@ export interface LoadedClass {
   readonly kind: 'LoadedClass'
   readonly class: string
   readonly staticFields: StaticVar[]
-  readonly detailedFieldsOnly?: boolean
+  readonly isHeapTraversalStop: boolean
+  readonly isJavaDataStructure: boolean
+  readonly hasCollectedFields: boolean
 }
 
 export type LatestMethod =
@@ -184,7 +193,7 @@ export interface TraceState {
   readonly inputBufferInfo: InputBufferInfo // info on how far the input buffer was read
   readonly stepProcessingTime : number // time passed between receiving the step requesst and building the trace state
   readonly timeSinceLastStep : number, // milliseconds since last step was processed
-  readonly streamVizInfo: StreamVizInfo // info for stream visualization
+  readonly streamVisualizationData: MarbleDiagramDataCollection // info for stream visualization
 }
 
 export interface ProcessedTraceState {
@@ -192,47 +201,56 @@ export interface ProcessedTraceState {
   readonly stateIndex: number, // the original index within the trace
   readonly localUri: string,
   readonly line: number,
-  readonly heapBeforeExecution: HeapItem[],
+  readonly heapBeforeExecution: ProcessedHeapItem[],
   readonly stackBeforeExecution: StackFrame[],
   readonly loadedClassesBeforeExecution: LoadedClass[],
-  readonly heapAfterExecution: HeapItem[],
+  readonly heapAfterExecution: ProcessedHeapItem[],
   readonly stackAfterExecution: StackFrame[],
   readonly loadedClassesAfterExecution: LoadedClass[],
 }
 
-export interface StreamVizInfo {
-  readonly kind: 'StreamVizInfo',
-  readonly marbles: StreamMarble[],
-  readonly links: StreamLink[],
-  readonly operationLines: Map<number, StreamOperationLine>,
-  readonly lastX: number,
-  readonly lastOpId: number
+export interface MarbleDiagramDataCollection {
+  readonly kind: 'MarbleDiagramDataCollection',
+  readonly streams: MarbleDiagramData[],
 }
 
-interface StreamMarble {
-  readonly kind: 'StreamMarble',
+export interface MarbleDiagramData {
+  readonly kind: 'MarbleDiagramData',
   readonly id: number,
-  readonly elemId: string,
+  readonly parentStreamId: number | null,
+  readonly marbles: MarbleDiagramMarble[],
+  readonly links: MarbleDiagramLink[],
+  readonly operationLanes: Readonly<Record<string, MarbleDiagramLane>>,
+  readonly layoutCursorX: number,
+  readonly previousOperationId: number
+}
+
+export interface MarbleDiagramMarble {
+  readonly kind: 'MarbleDiagramMarble',
+  readonly playbackStep: number,
+  readonly marbleKey: string,
   readonly x: number,
   readonly y: number,
-  readonly valuetype: string,
+  readonly type: string | null,
   readonly label: string,
   readonly operationId: number,
-  readonly type: string,
+  readonly operation: string,
   readonly color: string,
-  readonly direction: string
+  readonly eventKind: 'START' | 'IN' | 'OUT' | 'END' | 'REPLAY_LAST_TERMINAL'
 }
 
-interface StreamLink {
-  readonly kind: 'StreamLink',
+export interface MarbleDiagramLink {
+  readonly kind: 'MarbleDiagramLink',
   readonly source: string,
   readonly target: string,
-  readonly visibleAt: number
+  readonly visibleFromStep: number
 }
 
-interface StreamOperationLine {
-  readonly kind: 'StreamOperationLine',
-  readonly type: string,
+export interface MarbleDiagramLane {
+  readonly kind: 'MarbleDiagramLane',
+  readonly operation: string,
+  readonly type: string | null,
+  readonly parameter: string | null,
   readonly y: number
 }
 

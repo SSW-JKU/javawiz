@@ -91,7 +91,7 @@ export function calculateDeskTestLine (
   })
 
   const statics = [...(previous?.statics ?? [])]
-  state.loadedClassesAfterExecution.filter(c => !c.detailedFieldsOnly).flatMap(c => c.staticFields)
+  state.loadedClassesAfterExecution.filter(c => !c.isHeapTraversalStop).flatMap(c => c.staticFields)
     .forEach(field => {
       if (!statics.some(s => s.class === field.class && s.name === field.name)) {
         statics.push(toDeskTestStatic(field))
@@ -108,7 +108,7 @@ export function calculateDeskTestLine (
 
   const currentStatics = new Map<string, DeskTestVal>()
   state.loadedClassesAfterExecution
-    .filter(c => !c.detailedFieldsOnly)
+    .filter(c => !c.isHeapTraversalStop)
     .flatMap(c => c.staticFields)
     .filter(f => f.changed)
     .forEach(field => {
@@ -168,7 +168,7 @@ function getHoverInfos (state: ProcessedTraceState): HoverInfo[] { // only highl
     return hoverInfos
   }
   for (const clazz of state.loadedClassesAfterExecution) {
-    if (clazz.detailedFieldsOnly) continue
+    if (clazz.isHeapTraversalStop) continue
     for (const staticField of clazz.staticFields) {
       if (!staticField.changed) continue
       let reference = -1

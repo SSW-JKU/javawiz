@@ -16,7 +16,7 @@ interface VirtualMachine {
         /**
          * Default patterns for classes that are excluded from stepping and instrumentation,
          * and whose fields are not collected ([INTERNAL_CLASS_PATTERNS] is used as the default
-         * for both [excludeFromSteppingPatterns] and [excludeFieldsPatterns] in [RequestHandling]).
+         * for both [excludeFromSteppingPatterns] and [heapTraversalStopPatterns] in [RequestHandling]).
          */
         val INTERNAL_CLASS_PATTERNS: List<String> = listOf(
             "java.*",
@@ -181,26 +181,39 @@ interface VirtualMachine {
     }
 
     /**
-     * Adds faked objects to the given trace state using the previous trace state.
+     * Keeps heap objects visible for one extra step after a method returns.
      *
-     * Fakes objects are objects that are currently not referenced from a variable but should be included in the trace, for example to show them on the memory view.
-     * Our use case for this is when we step out of constructors: The constructor just created the object (which was referenced by `this` while we were in the constructor), but
-     * when we step out of the constructor, this object is not yet referenced from another variable (since the assignment to the variable just happens on the next step).
-     * In this case, we want to fake the object in the trace after stepping out of the constructor, so that it is visible in the memory view and can be inspected by the user,
-     * even before being assigned to the variable.
+     * The returned object briefly has no variable pointing to it: the method's variables are already gone,
+     * but the caller has not stored the result yet. We copy the previous heap into this gap and mark its objects
+     * as `faked`, which tells the frontend to show them temporarily.
      *
-     * @param traceState The trace state the faked objects should be added to.
+     * Strings need their internal array to come along with them, but we do not want to force-show these backing arrays.
+     * The backing arrays are not marked as `faked`, which would show them in every memory view.
+     * The detailed memory view can still find it by following the String's reference.
+     *
+     * @param traceState the state to which the previous heap objects are added
      */
     fun addFakeObjects(traceState: TraceState) {
         val previousTraceState = getPreviousTraceState()
 
         val previousMostInnerFrame = previousTraceState.stack.first()
 
-        if (traceState.stack.size < previousTraceState.stack.size && !previousMostInnerFrame.method.contains("lambda$")) { // only fake heap objects if we did not leave a lambda function
-            val existingIds = traceState.heap.map { it.id }.toSet() + // do not fake existing objects ...
-                    previousTraceState.heap.filterIsInstance<HeapString>().map { (it.charArr.value as ReferenceVal).reference } // ... nor previous string arrays
-            val fakes = previousTraceState.heap.filter { it.id !in existingIds }.map { it.copyAsFaked() }
-            traceState.heap += fakes
+        // A smaller stack means that a method has just returned. Lambda returns do not create this gap.
+        if (traceState.stack.size < previousTraceState.stack.size && !previousMostInnerFrame.method.contains("lambda$")) {
+            val existingIds = traceState.heap.map { it.id }.toSet()
+            val previousStringArrayIds = previousTraceState.heap
+                .filterIsInstance<HeapString>()
+                .map { (it.charArr.value as ReferenceVal).reference }
+                .toSet()
+            val retainedHeapItems = previousTraceState.heap
+                .filter { it.id !in existingIds }
+                .map { previousItem ->
+                    // Force-show regular objects on every view by marking them as faked.
+                    // Also record String backing arrays, but do not mark them as `faked` -> no force show, but
+                    // displayable in "Data Structure Details" view.
+                    if (previousItem.id in previousStringArrayIds) previousItem else previousItem.copyAsFaked()
+                }
+            traceState.heap += retainedHeapItems
         }
     }
 }

@@ -11,19 +11,26 @@
           <input v-model="showArrayInitialization" type="checkbox"> Show Array Init Steps
         </label>
         <div class="dropdown">
-          <button
-            type="button"
-            class="dropdown-btn"
-            aria-controls="history-method-filters"
-            :aria-expanded="isDropdownOpen"
-            @click="toggleDropdown">
-            Filter
-            <span class="arrow" :class="{ 'arrow-up': isDropdownOpen }" />
-          </button>
-          <div v-if="isDropdownOpen" id="history-method-filters" class="dropdown-content">
-            <div v-for="filter in methodFilters" :key="filter.key">
+          <div class="dropdown-trigger">
+            <button
+              type="button"
+              class="dropdown-btn"
+              aria-controls="history-shown-method-filters"
+              :aria-expanded="isDropdownOpen"
+              @click="toggleDropdown">
+              Shown Methods
+              <span class="arrow" :class="{ 'arrow-up': isDropdownOpen }" />
+            </button>
+            <span
+              class="shown-method-filter-info"
+              role="img"
+              aria-label="Shows or hides history entries happening inside individual methods."
+              title="Shows or hides history entries happening inside individual methods.">ⓘ</span>
+          </div>
+          <div v-if="isDropdownOpen" id="history-shown-method-filters" class="dropdown-content">
+            <div v-for="shownMethodFilter in shownMethodFilters" :key="shownMethodFilter.key">
               <label>
-                <input v-model="filter.checked" type="checkbox"> {{ filter.label }}
+                <input v-model="shownMethodFilter.shown" type="checkbox"> {{ shownMethodFilter.label }}
               </label>
             </div>
           </div>
@@ -111,13 +118,13 @@ import infoIcon from '@/assets/icons/info.png';
 import { useOverlayStore } from '@/store/OverlayStore';
 import {
   buildFilteredHistoryStates,
-  buildMethodFilters,
+  buildShownMethodFilters,
   createHistoryLookup,
   findHighlightedHistoryEntries,
-  methodKey,
+  shownMethodFilterKey,
   parseDslFilter
 } from './historyFiltering';
-import type { FilteredHistoryEntry, HistoryEntryIcon, MethodFilter } from './historyFiltering';
+import type { FilteredHistoryEntry, HistoryEntryIcon, ShownMethodFilter } from './historyFiltering';
 import { createHistoryFormatter } from './historyFormatting';
 
 const historyEntryIcons = {
@@ -130,9 +137,9 @@ const historyEntryIcons = {
   'static-initializer': staticInitIcon
 } satisfies Record<HistoryEntryIcon, string>;
 
-const methodFilters = ref<MethodFilter[]>([]);
-const methodEnabledByKey = computed(() => new Map(
-  methodFilters.value.map(filter => [filter.key, filter.checked])
+const shownMethodFilters = ref<ShownMethodFilter[]>([]);
+const shownMethodFilterByKey = computed(() => new Map(
+  shownMethodFilters.value.map(shownMethodFilter => [shownMethodFilter.key, shownMethodFilter.shown])
 ));
 const isDropdownOpen = ref(false);
 
@@ -158,7 +165,7 @@ const filteredHistoryStates = computed(() => {
     trace,
     showFieldAssignments: showFieldAssignments.value,
     showArrayInitialization: showArrayInitialization.value,
-    isMethodEnabled,
+    isShownMethod,
     formatter,
     lookup: historyLookup
   });
@@ -250,7 +257,7 @@ watch(() => generalStore.debugger.fullTrace, () => {
 
 watch(() => generalStore.asts, (asts) => {
   if (!asts) return;
-  methodFilters.value = buildMethodFilters(asts, methodFilters.value);
+  shownMethodFilters.value = buildShownMethodFilters(asts, shownMethodFilters.value);
 }, { immediate: true });
 
 /**
@@ -259,11 +266,11 @@ watch(() => generalStore.asts, (asts) => {
  * Methods absent from the controls remain enabled.
  *
  * @param className - Class that declares the method.
- * @param methodName - Name of the method.
+ * @param methodSignature - Complete runtime display signature of the method.
  * @returns `true` when the method's history entries should be displayed.
  */
-function isMethodEnabled (className: string, methodName: string): boolean {
-  return methodEnabledByKey.value.get(methodKey(className, methodName)) ?? true;
+function isShownMethod (className: string, methodSignature: string): boolean {
+  return shownMethodFilterByKey.value.get(shownMethodFilterKey(className, methodSignature)) ?? true;
 }
 
 /**
@@ -494,23 +501,39 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
   position: relative;
 }
 
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.shown-method-filter-info {
+  color: #555;
+  font-size: 14px;
+  line-height: 1;
+  cursor: help;
+}
+
 .dropdown-content {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   background-color: #f9f9f9;
+  width: max-content;
   min-width: 200px;
+  max-width: calc(100vw - 32px);
   box-shadow: 0 8px 16px rgb(0 0 0 / 20%);
   padding: 12px 16px;
   z-index: var(--visualization-buttons);
   max-height: 300px;
-  overflow-y: auto;
+  overflow: auto;
   border: 1px solid #ccc;
 }
 
 .dropdown-content label {
   display: block;
   margin-bottom: 5px;
+  white-space: nowrap;
   cursor: pointer;
 }
 

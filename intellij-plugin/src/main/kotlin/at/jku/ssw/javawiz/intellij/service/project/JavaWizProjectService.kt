@@ -303,6 +303,8 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   }
 
   private fun collectJavaFiles(root: VirtualFile, file: VirtualFile, projectFiles: MutableMap<String, VirtualFile>) {
+    if (isHiddenFileOrDirectory(file.name)) return
+
     if (file.isDirectory) {
       @Suppress("UnsafeVfsRecursion")
       file.children.forEach { collectJavaFiles(root, it, projectFiles) }

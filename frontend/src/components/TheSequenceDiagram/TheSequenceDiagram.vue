@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { select } from 'd3-selection'
 import { drawLifeLines, drawArrows, drawBoxes } from '@/components/TheSequenceDiagram/drawing'
 import { zoom, zoomIdentity } from 'd3-zoom'
@@ -50,12 +50,14 @@ import { Box, Elements, LifeLine } from './types'
 import { HoverInfo } from '@/hover/types'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { ProcessedTraceState } from '@/dto/TraceState'
-import { fromProcessedTraceState } from '@/components/TheHeapVisualization/mapping'
+import { HeapVizTraceState } from '@/components/TheHeapVisualization/Types/HeapVizTraceState'
+import { linkHeapItemsToLoadedClasses } from '@/debugger/processedTraceState'
 
-const svg = ref(select('#sequence-diagram-svg'))
-const resizeObserver = ref<ResizeObserver>()
+// Track handle replacement without deep-proxying imperative browser and D3 objects.
+const svg = shallowRef(select('#sequence-diagram-svg'))
+const resizeObserver = shallowRef<ResizeObserver>()
 let transform: any = zoomIdentity // holds the current zoom-state
-const zoomCall = ref(zoom().on('zoom', (event) => {
+const zoomCall = shallowRef(zoom().on('zoom', (event) => {
   transform = event.transform
   select('#sequence-diagram').attr('transform', event.transform)
 }))
@@ -81,18 +83,18 @@ const currentHeapVizTraceState = computed(() => {
    *  (because we want to display static fields, args etc. _before_ the first step)
   */
   if (generalStore.currentTraceData?.processedTraceState) {
-    return fromProcessedTraceState(generalStore.currentTraceData?.processedTraceState)
+    return new HeapVizTraceState(generalStore.currentTraceData?.processedTraceState)
   }
   const first = generalStore.currentTraceData!.firstTraceState
   const processedState: ProcessedTraceState = {
     kind: 'ProcessedTraceState',
     localUri: first.sourceFileUri,
     line: first.line,
-    heapBeforeExecution: first.heap,
+    heapBeforeExecution: linkHeapItemsToLoadedClasses(first.heap, first.loadedClasses),
     stackBeforeExecution: first.stack,
     loadedClassesBeforeExecution: first.loadedClasses,
     stateIndex: 0,
-    heapAfterExecution: first.heap,
+    heapAfterExecution: linkHeapItemsToLoadedClasses(first.heap, first.loadedClasses),
     stackAfterExecution: first.stack,
     loadedClassesAfterExecution: first.loadedClasses
   }
@@ -104,7 +106,7 @@ const currentHeapVizTraceState = computed(() => {
     sf.changed = true
   })
 
-  return fromProcessedTraceState(processedState)
+  return new HeapVizTraceState(processedState)
 })
 
 function getPreviousTimeIndex (previousStateIndex: number) {
@@ -343,10 +345,7 @@ onMounted(() => {
   redraw(hoveredInfos.value)
 })
 onUnmounted(() => {
-  const div = document.getElementById(HTML.ids.parentDiv)
-  if (div) {
-    resizeObserver.value?.unobserve(div)
-  }
+  resizeObserver.value?.disconnect()
   HoverSynchronizer.removeOnHover(onHover)
 })
 

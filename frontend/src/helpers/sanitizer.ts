@@ -85,8 +85,7 @@ function sanitizeTraceState (traceState: TraceState): void {
     .forEach(heapItem => {
       switch (heapItem.kind) {
         case 'HeapString': {
-          heapItem.string = sanitizeStringValue(heapItem.string)
-          heapItem.vizString = generateVizString(heapItem.string)
+          heapItem.vizString = generateVizString(sanitizeStringValue(heapItem.string))
           break
         }
         case 'HeapObject': {

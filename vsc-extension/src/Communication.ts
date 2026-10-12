@@ -94,16 +94,16 @@ export class Communication {
         return defaultResponse
       case 'getFileContents': {
         const excludeFromSteppingPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.excludeFromSteppingPatterns')
-        const excludeFieldsPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.excludeFieldsPatterns')
-        const detailedFieldsPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.detailedFieldsPatterns')
+        const heapTraversalStopPatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.heapTraversalStopPatterns')
+        const dataStructurePatterns = vscode.workspace.getConfiguration().get<string[]>('javawiz.dataStructurePatterns')
         return {
           message: message, 
           result: 'SUCCESS', 
           data: { 
             fileContents: await getAllFilesWithContents(),
             excludeFromSteppingPatterns,
-            excludeFieldsPatterns,
-            detailedFieldsPatterns,
+            heapTraversalStopPatterns,
+            dataStructurePatterns,
             openEditorLocalUri: Extension.openTextDocumentLocalUri
           } 
         }

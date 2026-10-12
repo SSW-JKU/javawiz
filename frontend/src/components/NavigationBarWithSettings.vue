@@ -4,29 +4,54 @@
       <div class="settings" :class="{invisible: !settingsVisible}">
         <slot />
       </div>
-      <button v-if="zoomIn" class="float-button" @click="_e => zoomIn()">
-        ➕
-      </button>
-      <button v-if="zoomOut" class="float-button" @click="_e => zoomOut()">
-        ➖
-      </button>
-      <button v-if="zoomReset" class="float-button" @click="_e => zoomReset()">
-        🏠
-      </button>
-      <button v-if="hasDefaultSlot" class="float-button" @click="settingsVisible = !settingsVisible">
-        ⚙
-      </button>
+      <IconWithTooltip
+        v-if="zoomIn"
+        class="navigation-icon"
+        :tooltip="{ text: 'Zoom in', placement: 'right' }"
+        @action="() => zoomIn?.()">
+        <template #icon>
+          <span class="navigation-glyph">➕</span>
+        </template>
+      </IconWithTooltip>
+      <IconWithTooltip
+        v-if="zoomOut"
+        class="navigation-icon"
+        :tooltip="{ text: 'Zoom out', placement: 'right' }"
+        @action="() => zoomOut?.()">
+        <template #icon>
+          <span class="navigation-glyph">➖</span>
+        </template>
+      </IconWithTooltip>
+      <IconWithTooltip
+        v-if="zoomReset"
+        class="navigation-icon"
+        :tooltip="{ text: 'Reset zoom', placement: 'right' }"
+        @action="() => zoomReset?.()">
+        <template #icon>
+          <span class="navigation-glyph">🏠</span>
+        </template>
+      </IconWithTooltip>
+      <IconWithTooltip
+        v-if="hasDefaultSlot"
+        class="navigation-icon"
+        :tooltip="{ text: 'Settings', placement: 'right' }"
+        @action="() => { settingsVisible = !settingsVisible }">
+        <template #icon>
+          <span class="navigation-glyph">⚙</span>
+        </template>
+      </IconWithTooltip>
       <div class="export-control">
-        <button
-          class="float-button"
-          title="Export visualization"
-          aria-label="Export visualization"
-          :disabled="exporting"
+        <IconWithTooltip
+          class="navigation-icon"
+          :enabled="!exporting"
+          :tooltip="{ text: 'Export visualization', placement: 'right' }"
           aria-haspopup="menu"
           :aria-expanded="exportMenuVisible"
-          @click="toggleExportMenu">
-          💾
-        </button>
+          @action="toggleExportMenu">
+          <template #icon>
+            <span class="navigation-glyph">💾</span>
+          </template>
+        </IconWithTooltip>
         <div v-if="exportMenuVisible" class="export-menu" role="menu">
           <button
             v-for="format in exportFormats"
@@ -39,9 +64,14 @@
         </div>
       </div>
     </template>
-    <button class="float-button" title="Close" @click="_e => removePane()">
-      ❌
-    </button>
+    <IconWithTooltip
+      class="navigation-icon"
+      :tooltip="{ text: 'Close', placement: 'right' }"
+      @action="removePane">
+      <template #icon>
+        <span class="navigation-glyph">❌</span>
+      </template>
+    </IconWithTooltip>
   </div>
 </template>
 
@@ -49,16 +79,20 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, useSlots } from 'vue'
 import { useVisualizationStore } from '@/store/VisualizationStore'
+import { useGeneralStore } from '@/store/GeneralStore'
 import {
   exportVisualization,
   type VisualizationExportFormat
 } from '@/helpers/visualizationExport'
+import { createVisualizationExportFileName } from '@/helpers/visualizationFileName'
+import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
 
 const settingsVisible= ref(false)
 const exportMenuVisible = ref(false)
 const exporting = ref(false)
 const navigationBar = ref<HTMLElement | null>(null)
 const visualizationStore = useVisualizationStore()
+const generalStore = useGeneralStore()
 
 /**
  * This component uses absolute positioning and must be placed directly inside
@@ -89,10 +123,7 @@ const hasDefaultSlot = computed(() => {
 
 function fileName () {
   const visualizationName = visualizationStore.visualizationsById[vizId]?.shortName ?? 'visualization'
-  const slug = visualizationName.toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-  return `javawiz-${slug}`
+  return createVisualizationExportFileName(visualizationName)
 }
 
 function toggleExportMenu () {
@@ -110,7 +141,8 @@ async function exportAs (format: VisualizationExportFormat) {
   exportMenuVisible.value = false
   exporting.value = true
   try {
-    await exportVisualization(target, format, fileName())
+    const downloadedFileName = await exportVisualization(target, format, fileName())
+    generalStore.notifications.show({ kind: 'VisualizationExported', fileName: downloadedFileName })
   } catch (error) {
     console.error(`Could not export ${fileName()} as ${format}.`, error)
     window.alert(`The visualization could not be exported as ${format.toUpperCase()}.`)
@@ -156,12 +188,20 @@ function removePane () {
   z-index: var(--visualization-buttons);
 }
 
-.float-button {
-  font-size: 16px;
-  padding: 0px;
+.navigation-icon {
   width: 25px;
   height: 25px;
-  z-index: var(--visualization-buttons);
+  margin: 0;
+}
+
+.navigation-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 .export-control {

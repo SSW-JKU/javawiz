@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.2.0"
+version = "2.3.0"
 
 fun htmlEscape(value: String): String =
     value
@@ -28,7 +28,7 @@ fun renderIntellijChangeNotes(): String {
         <p>
             <a href="https://github.com/SSW-JKU/javawiz/releases">GitHub releases</a>
             &middot;
-            <a href="https://javawiz.net/">JavaWiz website</a>
+            <a href="https://javawiz.net/changelog.html">Full changelog</a>
         </p>
     """.trimIndent()
 
@@ -48,8 +48,16 @@ fun renderIntellijChangeNotes(): String {
             }
         }
 
-        notesFile.forEachLine { rawLine ->
+        // Marketplace descriptors cap change-notes at 65,535 characters. Include the
+        // newest release here and link to the complete history instead of growing forever.
+        var releaseStarted = false
+        for (rawLine in notesFile.readLines()) {
             val line = rawLine.trim()
+            if (versionLine.matches(line)) {
+                if (releaseStarted) break
+                releaseStarted = true
+            }
+            if (!releaseStarted) continue
             when {
                 line.isEmpty() || line == "# CHANGELOG.md" -> closeList()
 
@@ -182,7 +190,7 @@ intellijPlatform {
     }
 
     publishing {
-        token.set(providers.environmentVariable("PUBLISH_TOKEN"))
+        token.set(providers.environmentVariable("INTELLIJ_PUBLISH_TOKEN"))
     }
 
     pluginVerification {
@@ -196,7 +204,9 @@ intellijPlatform {
 // Build-time resource injection (mirrors vsc-extension/build.gradle)
 // ---------------------------------------------------------------------------
 
-val copyBackendToIntellijPlugin by tasks.registering(Copy::class) {
+// These directories contain only generated assets. Sync removes old versioned JARs and
+// hashed frontend files, which Copy retains even after the root clean task.
+val copyBackendToIntellijPlugin by tasks.registering(Sync::class) {
     // Use :backend:assemble instead of :backend:build to avoid running backend tests during runIde.
     // assemble produces the JAR and runtime libs without invoking check/test.
     // Tests still run when buildPlugin or :backend:build is invoked directly.
@@ -211,7 +221,7 @@ val copyBackendToIntellijPlugin by tasks.registering(Copy::class) {
     }
 }
 
-val copyFrontendToIntellijPlugin by tasks.registering(Copy::class) {
+val copyFrontendToIntellijPlugin by tasks.registering(Sync::class) {
     dependsOn(":frontend:build")
     from("${rootDir}/frontend/dist/")
     into("${projectDir}/src/main/resources/Frontend")
@@ -236,6 +246,9 @@ tasks {
     }
 
     test {
+        // Model-level tests need no display. Force headless AWT even on desktop Linux:
+        // otherwise Wayland starts a persistent keyboard timer that fails thread-leak checks.
+        systemProperty("java.awt.headless", "true")
         useJUnitPlatform()
     }
 
@@ -311,18 +324,25 @@ tasks {
         // plugin.xml contains `${placeholder}` entries whose values live in config.properties.
         // `fileContents` tells Gradle that the properties file is an input to task configuration,
         // so changing it invalidates the configuration cache. Java Properties uses generic key
-        // and value types; the final conversion produces the String-keyed map expected by expand.
+        // and value types; convert both to strings for literal placeholder substitution.
         val propertiesMap = providers.fileContents(
             layout.projectDirectory.file("src/main/resources/Config/config.properties")
         ).asText.map { contents ->
             Properties().apply {
                 contents.reader().use { load(it) }
-            }.map { it.key.toString() to it.value }.toMap()
+            }.map { it.key.toString() to it.value.toString() }.toMap()
         }.get()
 
         // Apply that map only to the generated plugin.xml copy. Source resources are unchanged.
         filesMatching("**/plugin.xml") {
-            expand(propertiesMap)
+            // expand() compiles the entire descriptor as one Groovy template. A growing
+            // changelog can exceed the JVM's 65,535-byte string constant limit. Filtering
+            // lines substitutes our simple placeholders without compiling release notes.
+            filter { line ->
+                Regex("""\$\{([^}]+)}""").replace(line) { match ->
+                    propertiesMap[match.groupValues[1]] ?: match.value
+                }
+            }
         }
     }
 

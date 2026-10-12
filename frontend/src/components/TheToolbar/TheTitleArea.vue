@@ -3,7 +3,7 @@
     <img class="wizard-icon" src="../../assets/icons/wizard-hat.svg" alt="JavaWiz title icon">
 
     <span class="javawiz-title">
-      JavaWiz <span class="version">&nbsp;V{{ package_.version }} </span>
+      JavaWiz <a class="version" href="https://javawiz.net/changelog.html" target="_blank" rel="noopener noreferrer">&nbsp;V{{ package_.version }} </a>
     </span>
 
     <div class="dev-container" @click="showAbout">
@@ -54,7 +54,13 @@ function showAbout () {
 }
 
 .version {
+  color: inherit;
   font-size: 0.65rem;
+  text-decoration: none;
+}
+
+.version:hover {
+  font-size: 0.75rem;
 }
 
 .dev-container {

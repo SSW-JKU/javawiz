@@ -1,12 +1,57 @@
+<!--
+Usage examples:
+
+  Use the default image content:
+  <IconWithTooltip
+    :icon="helpIcon"
+    :tooltip="{ text: 'Help' }"
+    @action="showHelp" />
+
+  Replace the default image with custom content through the named slot:
+  <IconWithTooltip
+    :tooltip="{ text: 'Settings' }"
+    @action="openSettings">
+    <template #icon>
+      <span class="navigation-glyph">⚙</span>
+    </template>
+  </IconWithTooltip>
+
+  Add extra content to the tooltip through the default slot:
+  <IconWithTooltip
+    :icon="helpIcon"
+    :tooltip="{ text: 'Help' }">
+    Press F1 for more information.
+  </IconWithTooltip>
+
+  Both slots can be used together:
+  <IconWithTooltip :tooltip="{ text: 'Settings' }">
+    <template #icon>
+      <span class="navigation-glyph">⚙</span>
+    </template>
+    Opens the settings panel.
+  </IconWithTooltip>
+-->
 <template>
   <!-- relative position needed to be able to place the tooltip absolutely relative to the icon */ -->
   <div class="icon-container" :data-pet-target="petTarget">
-    <a @click="() => {if (enabled) { emit('action') }}">
-      <img
-        class="toolbar-icon"
-        :src="icon"
-        alt="Toolbar icon"
-        :style="{filter: filterVal}">
+    <a
+      role="button"
+      tabindex="0"
+      :aria-label="tooltip?.text"
+      :aria-disabled="!enabled"
+      :aria-haspopup="ariaHaspopup"
+      :aria-expanded="ariaExpanded"
+      @click="() => {if (enabled) { emit('action') }}"
+      @keydown.enter.prevent="() => {if (enabled) { emit('action') }}"
+      @keydown.space.prevent="() => {if (enabled) { emit('action') }}">
+      <slot name="icon">
+        <img
+          v-if="icon"
+          class="toolbar-icon"
+          :src="icon"
+          alt="Toolbar icon"
+          :style="{filter: filterVal}">
+      </slot>
     </a>
     <div v-if="tooltip" :class="`tt ${cssClass}`">
       <div v-if="tooltip.text">
@@ -33,7 +78,9 @@
 import { computed } from 'vue'
 
 /**
- * Component for icons with Tooltip. When the icon is clicked, the given action is executed.
+ * Component for clickable icons or custom icon content with a tooltip. When the
+ * content is clicked, the given action is executed. Image callers use `icon`;
+ * controls that need custom content can provide the named `icon` slot.
  */
 
 type Props= {
@@ -41,7 +88,12 @@ type Props= {
      * The function which is executed when the icon is clicked.
      */
   enabled?: boolean
-  icon: string
+  /** Describes a popup controlled by the clickable content, when applicable. */
+  ariaHaspopup?: 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'
+  /** Exposes whether the controlled popup is currently expanded. */
+  ariaExpanded?: boolean
+  /** Image URL for the default icon content. Omit this when using the named `icon` slot. */
+  icon?: string
   semitransparent?: boolean
   /**
      *  Contains the tooltip text, its placement ('above' (or 'up' or 'north'), 'right' (or 'east'),
@@ -68,7 +120,9 @@ type Props= {
 
 const {
   enabled = true,
-  icon,
+  ariaHaspopup = undefined,
+  ariaExpanded = undefined,
+  icon = undefined,
   semitransparent = false,
   tooltip = null,
   shortcut = undefined,

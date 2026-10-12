@@ -58,7 +58,7 @@ import {
 } from '@/components/TheSequenceDiagram/hover'
 import { HoverInfo } from '@/hover/types'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
-import { HeapVizTraceState } from '@/components/TheHeapVisualization/types'
+import { HeapVizTraceState } from '../TheHeapVisualization/Types/HeapVizTraceState'
 
 /**
  * Draws lifelines for static classes and objects

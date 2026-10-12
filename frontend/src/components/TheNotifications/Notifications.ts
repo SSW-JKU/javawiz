@@ -89,6 +89,9 @@ export class Notifications {
       case 'FeatureWarning':
         this.addNotification('warning', 0, `The following features and packages are only partially supported: ${notification.warnings.join(', ')}.`, NotificationGroups.debug)
         break
+      case 'VisualizationExported':
+        this.addNotification('success', 5, `Visualization downloaded as ${notification.fileName}. Check your browser's download location.`, filesGroup)
+        break
     }
   }
 

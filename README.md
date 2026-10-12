@@ -8,7 +8,7 @@
 [![Backend CI](https://img.shields.io/badge/Backend%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/backend-tests.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE.txt)
 
-[🌐 Visit javawiz.net](https://javawiz.net/) · [📋 View the changelog](https://javawiz.net/changelog.html)
+[🌐 Visit javawiz.net](https://javawiz.net/) · [📰 Read the news](https://javawiz.net/news.html) · [📋 View the changelog](https://javawiz.net/changelog.html)
 
 JavaWiz helps programming beginners understand what their Java programs are doing. Step through code line by line and watch control flow, memory, variable histories, arrays, linked lists, binary trees, method calls, streams, input, and the complete execution history evolve in synchronized visualization panels.
 
@@ -183,3 +183,32 @@ Backend tests also run automatically on Windows and Linux for pushed commits, ta
 ## Icons
 
 Icons taken from [Flaticon](https://www.flaticon.com/) and others; for detailed attribution, [see the icon sources](https://github.com/SSW-JKU/javawiz/blob/main/frontend/src/assets/sources.txt).
+
+## Website news
+
+News articles live in `docs/news/`, one Markdown file per article. Use a stable lowercase,
+hyphen-separated filename, for example `2026-09-13-welcome-to-javawiz-news.md`:
+
+```markdown
+Title: Welcome to JavaWiz News
+Date: 2026-09-13
+
+Write the article content here. The first three sentences become the preview.
+Use normal Markdown for links, lists, emphasis, tables, and fenced code blocks.
+```
+
+Dates must use `YYYY-MM-DD`. All articles are published when the site is released;
+future dates do not schedule publication. Articles are listed by publication date, with filenames
+in descending order breaking same-date ties. Keep filenames stable because they form article links.
+Write a short prose introduction with ordinary English sentence punctuation. The preview handles
+common abbreviations, URLs, and version numbers; unusual abbreviations may need rephrasing.
+Links and images are relative to `docs/news.html`, not the Markdown source directory.
+Articles are trusted repository content: raw HTML is supported and must be reviewed like website code.
+
+After installing `requirements-release.txt`, run `python generate_news.py` from the repository
+root to refresh `docs/news.html` and the marked News section in `docs/index.html`.
+`prepublish.py` runs the same generator automatically before building a release.
+Edit `docs/news-template.html` for the archive layout and `docs/news.js` for its controls;
+do not manually edit generated article HTML. Include regenerated pages with article changes.
+The homepage shows the three latest articles; the archive contains all articles.
+Verify changes with `python -m unittest test_generate_news.py test_release_scripts.py`.

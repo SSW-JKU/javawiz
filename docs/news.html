@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News - JavaWiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="news.js" defer></script>
+  <style>
+    [hidden] { display: none !important; }
+    [data-news] { scroll-margin-top: 1rem; overflow-wrap: anywhere; }
+    .news-content > * + * { margin-top: 1rem; }
+    .news-content { line-height: 1.75; }
+    .news-content a { color: #2563eb; text-decoration: underline; }
+    .news-content ul { list-style: disc; padding-left: 1.5rem; }
+    .news-content ol { list-style: decimal; padding-left: 1.5rem; }
+    .news-content h1, .news-content h2, .news-content h3 { font-weight: 700; font-size: 1.25rem; }
+    .news-content pre { overflow-x: auto; padding: 1rem; background: #f3f4f6; }
+    .news-content blockquote { border-left: 3px solid #93c5fd; padding-left: 1rem; }
+    .news-content table { display: block; overflow-x: auto; }
+    .news-content th, .news-content td { border: 1px solid #d1d5db; padding: .5rem; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+    <nav class="container mx-auto px-4 py-6 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3 font-bold text-xl"><img src="img/wizard-hat.svg" alt="" class="h-10" />JavaWiz</a>
+      <a href="index.html" class="underline">Home</a>
+    </nav>
+  </header>
+  <main class="max-w-4xl mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">News</h1>
+    <p class="text-gray-600 mb-8">Updates and stories from JavaWiz.</p>
+    <noscript><p class="mb-6">Enable JavaScript to expand articles.</p></noscript>
+    <div class="space-y-6">
+      <article id="2026-10-12-javawiz-2-3-0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.3.0: Clearer views, easier exploration</h2>
+          <time datetime="2026-10-12" class="block text-sm text-gray-500 mb-4">2026-10-12</time>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.3.0 is here, bringing clearer visualizations and practical improvements for learning, teaching, and exploring Java. Whether you’re following your first program or explaining a complex example to a class, this release makes it easier to see what your code is doing. The Memory View gives you more control over how much detail you see, including separate options for looking inside Java’s built-in data structures. …</p>
+          <div id="2026-10-12-javawiz-2-3-0-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.3.0 is here, bringing clearer visualizations and practical improvements for learning, teaching, and exploring Java. Whether you’re following your first program or explaining a complex example to a class, this release makes it easier to see what your code is doing.</p>
+<p>The Memory View gives you more control over how much detail you see, including separate options for looking inside Java’s built-in data structures. A new "Show Memory" mode displays clear size breakdowns and heap object size calculations, helping you explore how objects, arrays, and strings use space. Fixes to connecting arrows, expansion controls, and change highlighting also make the diagrams easier to follow.</p>
+<p>StreamViz follows more complete stream operations, even when your code spreads them across variables and methods. Results remain visible for empty streams and single-element calculations, while corrected labels, numbers, and connections make it easier to follow each value’s journey. If you use an unsupported parallel stream, JavaWiz now explains the limitation more clearly.</p>
+<p>Following changes over time is easier, too: the experimental History View offers separate filters for methods that share a name, clearer help for finding array changes, and fewer distracting entries from Java’s internal workings.</p>
+<p>Small interface improvements help you find your way around: visualization buttons now explain their actions when you hover over them, and teaching annotations use lightbulb and question-mark icons. Exported images get filenames containing the date and time, with a notification telling you which file to look for.</p>
+<p>Opening projects is more reliable because both IDE integrations skip hidden files that can interfere with loading Java sources. Across the visualizations and editor, fixes also improve how views initialize, update, and close. Behind the scenes, broader checks and maintenance of the release tools support these improvements and future updates.</p></div>
+          <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-10-12-javawiz-2-3-0-content" aria-label="Read more: JavaWiz 2.3.0: Clearer views, easier exploration" data-toggle>Read more</button>
+        </article>
+<article id="2026-09-13-welcome-to-javawiz-news" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome to JavaWiz News</h2>
+          <time datetime="2026-09-13" class="block text-sm text-gray-500 mb-4">2026-09-13</time>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz now has a News section on javawiz.net. You can find the latest articles on our homepage. Open the News page to browse the full archive. …</p>
+          <div id="2026-09-13-welcome-to-javawiz-news-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz now has a News section on javawiz.net. You can find the latest articles on our homepage. Open the News page to browse the full archive.</p>
+<p>Use <strong>Read more</strong> to expand an article and <strong>Read less</strong> to return to its preview. The homepage's <strong>See all</strong> link takes you to the full news archive.</p>
+<p>For detailed release changes, visit the <a href="changelog.html">changelog</a>.</p></div>
+          <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-09-13-welcome-to-javawiz-news-content" aria-label="Read more: Welcome to JavaWiz News" data-toggle>Read more</button>
+        </article>
+    </div>
+  </main>
+  <footer class="text-center px-4 py-8 text-gray-600"><a href="index.html" class="text-blue-600 underline">Back to JavaWiz</a></footer>
+</body>
+</html>

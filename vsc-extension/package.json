@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -132,7 +132,7 @@
           ],
           "description": "Glob patterns for classes that JavaWiz will not step into and will not instrument (no condition or array-access tracking). Changing this configuration might break functionality."
         },
-        "javawiz.excludeFieldsPatterns": {
+        "javawiz.heapTraversalStopPatterns": {
           "type": "array",
           "default": [
             "java.*",
@@ -148,15 +148,15 @@
             "Out",
             "Rand"
           ],
-          "description": "Glob patterns for classes whose fields JavaWiz will not collect. Classes matching detailedFieldsPatterns take precedence over this setting. Changing this configuration might break functionality."
+          "description": "Glob patterns for classes at which JavaWiz stops ordinary heap traversal. Classes matching dataStructurePatterns take precedence so specialized visualizations can inspect them. Changing this configuration might break functionality."
         },
-        "javawiz.detailedFieldsPatterns": {
+        "javawiz.dataStructurePatterns": {
           "type": "array",
           "default": [
             "java.util.*",
             "java.util.concurrent.*"
           ],
-          "description": "Glob patterns for classes whose fields are collected (for specialised visualisations such as the List or Tree view) but are hidden in the Memory View. Takes precedence over excludeFieldsPatterns."
+          "description": "Glob patterns for Java data structures whose fields are collected for specialized visualizations despite matching heapTraversalStopPatterns."
         }
       }
     }
@@ -164,8 +164,8 @@
   "scripts": {
     "compile": "tsc -p ./",
     "lint": "eslint",
-    "test": "npm run compile && node --test out/vsc-extension/src/JavaRuntime.test.js",
-    "watch": "cd .. && gradlew.bat clean && gradlew.bat build -PexcludeTests && cd vsc-extension && tsc -watch -p ./"
+    "test": "npm run compile && node --test out/vsc-extension/src/HiddenPath.test.js out/vsc-extension/src/JavaRuntime.test.js",
+    "watch": "node watch.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

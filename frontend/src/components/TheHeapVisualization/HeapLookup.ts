@@ -13,8 +13,10 @@
  *     corners and centre in *viewport* coordinates (getBoundingClientRect).
  */
 
-import type { HeapVizHeapArrayElementVar, HeapVizHeapItem, HeapVizVar } from './types'
 import type { HeapArrayElementVar, HeapItem, TraceState, Var } from '@/dto/TraceState'
+import type { HeapVizHeapArrayElementVar } from './Types/HeapVizHeapArrayElementVar'
+import type { IHeapVizHeapItem } from './Types/HeapVizHeapItem'
+import type { HeapVizVar } from './Types/HeapVizVar'
 import { heapArrayElementIdentifier, heapItemIdentifier, rawVarIdentifier } from './identifiers'
 
 export interface Point {
@@ -30,7 +32,7 @@ export interface BoundingBoxCorners {
   readonly center: Point
 }
 
-export type HeapLookupRecord = HeapVizVar | HeapVizHeapArrayElementVar | HeapVizHeapItem | Var | HeapArrayElementVar | HeapItem
+export type HeapLookupRecord = HeapVizVar | HeapVizHeapArrayElementVar | IHeapVizHeapItem | Var | HeapArrayElementVar | HeapItem
 export type HeapLookupTarget = string | HeapLookupRecord
 
 /** Matches one  key="value"  token inside a title string. */
@@ -59,7 +61,7 @@ function isInjectedTitle (content: string): boolean {
 
 const XLINK_NS = 'http://www.w3.org/1999/xlink'
 
-function hasHeapVizIdentifier (target: HeapLookupRecord): target is HeapVizVar | HeapVizHeapArrayElementVar | HeapVizHeapItem {
+function hasHeapVizIdentifier (target: HeapLookupRecord): target is HeapVizVar | HeapVizHeapArrayElementVar | IHeapVizHeapItem {
   return 'identifier' in target
 }
 
@@ -146,13 +148,10 @@ function unionBoundingRect (elements: Element[]): DOMRect | null {
  * installing any click/hover listeners, so that IDs are present when needed.
  */
 export function processInjectedTitles (root: Element): void {
-  console.group('[HeapLookup] processInjectedTitles')
-
   // Case 1: <title> child elements (node/graph-level).
   // We write title="id=&quot;foo&quot;" on the DOT node; Graphviz emits a
   // <title>id="foo"</title> child.  Apply all encoded attributes to the parent
   // element and remove the <title>.
-  let case1Count = 0
   root.querySelectorAll('title').forEach((titleEl) => {
     const content = titleEl.textContent ?? ''
     if (!isInjectedTitle(content)) return
@@ -160,24 +159,18 @@ export function processInjectedTitles (root: Element): void {
     const parent = titleEl.parentElement
     if (!parent) return
 
-    const attrs: Record<string, string> = {}
     ATTR_TOKEN.lastIndex = 0
     let match: RegExpExecArray | null
     while ((match = ATTR_TOKEN.exec(content)) !== null) {
-      attrs[match[1]] = decodeHtmlEntities(match[2])
-      parent.setAttribute(match[1], attrs[match[1]])
+      parent.setAttribute(match[1], decodeHtmlEntities(match[2]))
     }
     titleEl.remove()
-    console.log(`  [Case 1] <title> → applied to <${parent.tagName}${parent.id ? ` id="${parent.id}"` : ''}>:`, attrs)
-    case1Count++
   })
-  console.log(`  [Case 1] ${case1Count} injected <title> element(s) processed`)
 
   // Case 2: xlink:title attributes on <a> elements (cell-level).
   // Graphviz wraps every cell in an <a> and sets xlink:title="id=&quot;foo&quot;".
   // We parse all encoded attributes, hoist ALL of them to the parent <g>, then
   // unwrap the <a> by moving its children up in its place.
-  let case2Count = 0
   root.querySelectorAll('a').forEach((aEl) => {
     const content = aEl.getAttributeNS(XLINK_NS, 'title') ?? ''
     if (!isInjectedTitle(content)) return
@@ -200,32 +193,14 @@ export function processInjectedTitles (root: Element): void {
         parent.insertBefore(aEl.firstChild, aEl)
       }
       aEl.remove()
-      console.log(
-        '  [Case 2] <a> unwrapped into parent',
-        parent,
-        ' — hoisted attrs:',
-        attrs
-      )
-      case2Count++
     }
   })
-  console.log(`  [Case 2] ${case2Count} <a> element(s) unwrapped`)
 
   // Final pass: remove all remaining Graphviz auto-generated <title> elements
   // (node, edge, cluster names) so browsers don't show unwanted hover tooltips.
-  let strippedCount = 0
   root.querySelectorAll('title').forEach((titleEl) => {
-    console.log('  [Strip]  removing auto-generated <title>',
-      titleEl.textContent,
-      'within element',
-      titleEl.parentElement
-    )
     titleEl.remove()
-    strippedCount++
   })
-  console.log(`  [Strip]  ${strippedCount} auto-generated <title> element(s) removed`)
-
-  console.groupEnd()
 }
 
 /**

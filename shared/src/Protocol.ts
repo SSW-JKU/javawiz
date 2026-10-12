@@ -72,9 +72,9 @@ export interface GetFileContentsResponseData {
 	}[]
 	/** Patterns for classes excluded from stepping and instrumentation. */
 	readonly excludeFromSteppingPatterns: string[] | undefined
-	/** Patterns for classes whose fields are not collected. */
-	readonly excludeFieldsPatterns: string[] | undefined
-	/** Patterns for classes whose fields are collected but only shown in specialised visualisations, not in the Memory View. */
-	readonly detailedFieldsPatterns: string[] | undefined
+	/** Patterns for classes at which ordinary heap traversal stops. */
+	readonly heapTraversalStopPatterns: string[] | undefined
+	/** Patterns for Java data structures whose fields are collected despite being heap-traversal stops. */
+	readonly dataStructurePatterns: string[] | undefined
 	readonly openEditorLocalUri: string | undefined
 }

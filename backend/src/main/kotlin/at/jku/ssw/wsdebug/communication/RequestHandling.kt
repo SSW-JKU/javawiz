@@ -3,6 +3,7 @@
 package at.jku.ssw.wsdebug.communication
 
 import at.jku.ssw.wsdebug.asStringWithStackTrace
+import at.jku.ssw.wsdebug.OperationIdAllocator
 import at.jku.ssw.wsdebug.compilation.*
 import at.jku.ssw.wsdebug.compilation.ast.CallFixup
 import at.jku.ssw.wsdebug.debugger.Debugger
@@ -99,8 +100,8 @@ private fun handleCompileRequest(request: Compile): Response {
 
         val tRequestSetup = timing.now()
         val excludeFromSteppingPatterns = (request.excludeFromSteppingPatterns ?: INTERNAL_CLASS_PATTERNS) + "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS"
-        val excludeFieldsPatterns = (request.excludeFieldsPatterns ?: INTERNAL_CLASS_PATTERNS) + "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS"
-        val detailedFieldsPatterns = request.detailedFieldsPatterns ?: DATA_STRUCTURE_CLASSES
+        val heapTraversalStopPatterns = (request.heapTraversalStopPatterns ?: INTERNAL_CLASS_PATTERNS) + "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS"
+        val dataStructurePatterns = request.dataStructurePatterns ?: DATA_STRUCTURE_CLASSES
         val additionalSourcePaths = if (request.vscExtensionActive) {
             listOf(JAVAWIZ_PATH)
         } else {
@@ -169,11 +170,17 @@ private fun handleCompileRequest(request: Compile): Response {
         timing.add("collect unchanged internal files: ${timing.elapsed(tUnchangedFiles)}ms (${unmodifiedInternalSources.size} files)")
 
         val callFixup = CallFixup()
+        val operationIdAllocator = OperationIdAllocator()
         timing.openBlock("instrumentation")
-        val parseInfos = compilationUnits.mapNotNull { modifyAndComputeParseInfos(it, callFixup, timing) }
+        val parseInfos = compilationUnits.mapNotNull { modifyAndComputeParseInfos(it, callFixup, timing, operationIdAllocator) }
         val totalConditions = parseInfos.sumOf { it.conditions.size }
         val totalArrayAccesses = parseInfos.sumOf { it.arrayAccesses.size }
         timing.closeBlock("(${compilationUnits.size} user + ${internalCompilationUnits.size} internal files) | $totalConditions conditions, $totalArrayAccesses array accesses")
+
+        val unsupportedFeatures = parseInfos.flatMap { it.unsupportedFeatures }.toSet()
+        if (unsupportedFeatures.isNotEmpty()) {
+            return CompileFailResponse(request, unsupportedFeatures.joinToString("\n") { it.diagnostic })
+        }
 
         val tCallFixup = timing.now()
         callFixup.resolve(task.types)
@@ -251,8 +258,8 @@ private fun handleCompileRequest(request: Compile): Response {
                 Paths.get(COMPILATION_OUTPUT_DIR).toAbsolutePath().toString(),
                 parseInfos,
                 excludeFromSteppingPatterns,
-                excludeFieldsPatterns,
-                detailedFieldsPatterns,
+                heapTraversalStopPatterns,
+                dataStructurePatterns,
             )
         )
         timing.add("JDI launch: ${timing.elapsed(tJdiLaunch)}ms")

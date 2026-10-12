@@ -2,6 +2,88 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.3.0] (released on 2026-10-12)
+* JW-40: Make build and release scripts OS-independent
+* JW-217: Add titles (tooltips) to visualization buttons (zoom in, zoom out, etc.)
+* JW-236: NavigationBarWithSettings should use IconWithTooltip, not normal buttons
+* JW-520: Review the JW-290 Composition API migration for remaining regressions
+* JW-521: Audit Vue watchers for missing immediate initialization
+* JW-522: Audit Vue Composition API ref and reactivity correctness
+* JW-534: Move the "Select at least one list class" text in the list view inward
+* JW-540: Release scripts can only work with semantic version numbers (1.2.3), not version names (e.g., "Backlog")
+* JW-547: Modularize the MemoryView to support different specialized memory views (beginner, detailed, data structure focus, memory consumption, final fields, ...)
+* JW-548: Classify loaded classes for heap traversal and data structure views
+* JW-549: Split data structure detail visibility settings
+* JW-550: Redraw Memory View when visibility settings change
+* JW-551: Make Memory View renderer state chart-specific
+* JW-552: Normalize optional Memory View DOT columns
+* JW-553: Reconnect large Memory View expansion to visibility store
+* JW-554: Fix detailed string backing-field ports and edges
+* JW-555: Preserve new-frame change highlighting
+* JW-556: Prevent Memory View from duplicate renders
+* JW-557: Make Memory View DOM listeners instance-safe
+* JW-558: Correct Memory View memory consumption estimates
+* JW-559: Clean up Memory View DOT and source hygiene
+* JW-560: Cleanup Memory View improvements
+* JW-561: Merge Memory View changes into main branch
+* JW-562: Add file path popup to image export
+* JW-564: Add date and time to image export file name
+* JW-565: StreamViz image export does not contain links between marbles
+* JW-566: Broken maximum width calculation in StreamViz when flatmap is used
+* JW-567: Parent-Child Relationship can break on flatMap in StreamViz
+* JW-568: Add "News" section to website
+* JW-569: Enable website updates without full version release
+* JW-570: Update Gradle daemon JVM version to Java 25
+* JW-571: Update website integration label
+* JW-572: Desk Test only shows a single line
+* JW-573: StreamViz sometimes visualizes integer as float
+* JW-574: reduce is (sometimes) not working in StreamViz
+* JW-578: Add separate skills for website deployment and product publishing
+* JW-579: History View can silently hide arrays
+* JW-581: Remove console noise
+* JW-584: History View: overloaded methods share filters
+* JW-585: Properties.serialVersionUID writing is shown in History View even though it is not part of user code
+* JW-586: StreamViz: "Resume Animation from current step" can overlap Next-button
+* JW-587: Remove Serena MCP configuration and local project files
+* JW-589: Version in title bar should link to https://javawiz.net/changelog.html
+* JW-590: Refactor StreamOperationValue class
+* JW-591: Clarify stream event terminology and tracing API names
+* JW-592: Clarify stream instrumentation descriptor and insertion names
+* JW-593: Clarify StreamOperationTracer state and identity names
+* JW-594: Clarify stream payload and terminal-result names
+* JW-595: Clarify StreamViz visualization model and payload names
+* JW-596: Clarify StreamViz renderer and playback names
+* JW-597: Clarify StreamViz layout algorithm names
+* JW-599: Choose dynamic tests only when they are the best verification
+* JW-600: Replace StreamViz frontend any types with payload-specific types
+* JW-601: Align stream event, element, marble, and node terminology
+* JW-602: Add jw-plan and jw-implement skills for separate planning and implementation
+* JW-603: StreamViz instrumentation rejects reduce on a stored stream variable
+* JW-604: StreamViz instrumentation inserts invalid statements into for-loop initializers
+* JW-605: Visualize sequential stream pipelines executed in methods
+* JW-606: StreamViz omits reduce results when no accumulator invocation occurs
+* JW-607: Parallel streams fail with an uninformative backend error
+* JW-611: Ignore hidden files and directories when loading Java sources
+* JW-612: Document backend marble diagram generation architecture
+* JW-613: Separate stream execution tracing from marble diagram generation
+* JW-614: Add hover effect to version number
+* JW-615: Clarify repository finalization and push rules
+* JW-616: StreamViz: Visualize empty optionals
+* JW-617: StreamViz: Source names do not always correspond to source code
+* JW-618: Rename the combined plan-and-implement skill to jw-plan-and-implement
+* JW-619: StreamViz: Preserve complete pipelines across variable and method boundaries
+* JW-620: Add icons to PET annotations
+* JW-621: Golden-test all stream instrumentation source rewrites
+* JW-622: Restructure JavaWiz skill organization
+* JW-623: Clarify optional VSCE_PAT release instruction
+* JW-624: HeapView: Fix "Show Memory" bugs
+* JW-625: HeapView: "Show Data Structure Fields" mode shows broken links to non-visualized objects
+* JW-626: Move common HeapView node rendering into HeapVizHeapItem
+* JW-627: Add jw-review skill for auditing completed implementations
+* JW-630: Add JavaWiz 2.3.0 release news article
+* JW-632: Avoid template size limit when packaging IntelliJ release notes
+* JW-633: Remove stale bundled assets when rebuilding IDE integrations
+
 [2.2.0] (released on 2026-08-21)
 * JW-541: IntelliJ plugin 2.1.3 cannot load JBCefBrowser on IntelliJ IDEA 2026.2.1
 * JW-542: Raise minimum IntelliJ version to 2026.2.1 due to JCEF dependency change
@@ -461,9 +543,25 @@ All notable changes to this project will be documented in this file.
 * JW-98: Certain steps sometimes not correctly resumed after being suspended by input
 
 [1.3.0] (released on 2023-07-04)
+* JW-15: Rework/rethink isInputExpected
+* JW-19: Current date is shortly visible when starting the frontend in the extension
+* JW-31: Implicit toString() (probably in combination with a string concat) can show Java-internal stack frames + Out.print(Object) can show "Out-internal" stack frames
+* JW-34: Special characters are not displayed correctly in outputs
 * JW-43: Trace array access in the backend for visualization
+* JW-44: Array visualization
+* JW-48: processedTrace and deskTestLines should be updated incrementally instead of fully when new trace states are added
+* JW-49: Step buttons should be disabled while vm.currentlyTalking is true
+* JW-52: Make sure that RUN_TO_LINE feature does not only take class name into account but also package name
 * JW-53: When performing "Run in JavaWiz", WebView sometimes cannot be opened, especially after extension rebuilding and publishing.
+* JW-54: Input and output should also work for STEP_OVER and RUN_TO_LINE
+* JW-55: In a for-loop, sometimes the $JavaWiz-internal call is visible on the stack, even though a class filter is set in the debugger
+* JW-56: Remove exception line number adjustment code if not needed anymore.
+* JW-60: Runtime exception in backend when starting workspace
+* JW-61: Make Run-To-Line Input field execute on pressing ENTER
+* JW-62: Enable Debugger to handle multiple events per eventSet, as well as multiple eventSets in eventQueue
 * JW-63: Create typing for StepResult on frontend
+* JW-64: Reintroduce the user notification that the program is waiting for input
+* JW-65: Disable step buttons once we reach end of trace and isVMRunning-flag of last step result was false
 * JW-67: Fuzzy checking for class names in data structure visualizations
 * JW-68: Inconsistent handling of escape characters
 * JW-69: Enum.valueOf displayed in stack
@@ -472,7 +570,11 @@ All notable changes to this project will be documented in this file.
 * JW-72: Discuss Exception tracing/visualization
 * JW-74: .vscode folder that is created to store settings confuses users, need to get rid of it
 * JW-75: Strings too large in desktest
+* JW-76: NoSuchElementException on backend in recursive program
+* JW-78: More step features
 * JW-79: Opening Array visualization crashes frontend
+* JW-80: Update extension's README to include data structure visualizations
+* JW-85: Refactor DeskTest CSS
 * JW-95: RUN_TO_END prematurely kills VM if input is expected
 * JW-96: After input, just continue the previous step request (if existing) instead of performing a single STEP_INTO and then continuing
 * JW-97: Some backend unit tests are broken
@@ -481,13 +583,33 @@ All notable changes to this project will be documented in this file.
 * JW-17: Update icons in toolbar
 
 [1.2.0] (released on 2023-01-01)
+* JW-4: Multi-File support
 * JW-10: More step features: "Step into", "Step over", "Run to line X"
 * JW-39: Error messages can be hard to read -> Display error messages in console instead of in popups
+* JW-42: Having a text field selected in the DataStructureViz configuration pane, pressing the arrow keys also steps through trace states
 * JW-45: Multi-File Support: WebView loses focus after opening new editor
 * JW-46: Limiting float precision in visualization doesn't work in arrays
+* JW-51: Use JUnit Assertions in test cases
+
+[1.1.1] (released on 2022-12-02)
+* JW-41: Additional node is shown when fields of Node class are arranged in certain order
 
 [1.1.0] (released on 2022-12-01)
+* JW-2: Condition followed by Blockkommentar seems to break JavaWiz
+* JW-3: Mail Report: Broken Heap Vizualization
+* JW-5: Dynamic data structure visualization
+* JW-6: Do not show desk test by default
+* JW-7: Changes are not correctly detected in recursive calls
+* JW-8: Reduce amount of pop-up boxes in JavaWiz VSC extenstion
+* JW-14: Stop heap vis. from jiggling after spamming step button
 * JW-21: Make sure the $JavaWiz class is accessible everywhere
+* JW-23: Desk test should auto-scroll
+* JW-25: Display returned objects after return
+* JW-27: Do not enter default constructor
+* JW-29: Synchronize fonts between heapviz and data structure visualization
+* JW-30: Collapse objects if they have more than X fields
+* JW-32: Write " ... show X more fields ..." instead of "! show more" below collapsed large objects in HeapViz
+* JW-33: Instead of / Additionally to collapsing large heap objects in HeapViz, by default do not expand fields of large objects
 
 [1.0.1] (released on 2022-11-11)
 * JW-92: Tee debugger stdout & stderr into logging files

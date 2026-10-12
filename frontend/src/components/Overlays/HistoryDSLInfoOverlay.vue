@@ -63,12 +63,27 @@ const filterRows: FilterRow[] = [
   {
     title: 'Array element',
     example: 'numbers[3] = 7',
-    description: 'Finds writes of 7 to element 3 of an array referenced by numbers.'
+    description: 'Finds writes of 7 to element 3 of an array referenced by the local variable numbers.'
   },
   {
     title: 'Any array element',
     example: 'numbers[*] = 7',
-    description: 'Finds writes of 7 to any element of an array referenced by numbers.'
+    description: 'Finds writes of 7 to any element of an array referenced by the local variable numbers.'
+  },
+  {
+    title: 'Static array element',
+    example: 'MyClass.numbers[3] = 7',
+    description: 'Finds writes of 7 to element 3 of the static array field numbers declared by MyClass.'
+  },
+  {
+    title: 'Any static array element',
+    example: 'MyClass.numbers[*] = 7',
+    description: 'Finds writes of 7 to any element of the static array field numbers declared by MyClass.'
+  },
+  {
+    title: 'Static array value',
+    example: 'MyClass.numbers = *',
+    description: 'Finds assignments to the static array field numbers declared by MyClass, regardless of the assigned value.'
   },
   {
     title: 'Any value',
@@ -77,8 +92,8 @@ const filterRows: FilterRow[] = [
   },
   {
     title: 'Method call',
-    example: 'call sort',
-    description: 'Finds calls to a method named sort.'
+    example: 'call search',
+    description: 'Finds calls to every method named search, including all overloads regardless of their parameter list.'
   }
 ]
 

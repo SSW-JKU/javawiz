@@ -15,20 +15,24 @@
 </template>
 
 <script setup lang = "ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 const props= defineProps<{ show: boolean, title: string }>()
 const emit = defineEmits<{ closeDialog: [] }>()
 
 const dialog = ref<InstanceType<typeof HTMLDialogElement> | null>(null)
 
-watch(() => props.show, () => {
+/** Synchronizes the native dialog with the reactive visibility prop. */
+function syncDialogVisibility () {
   if (props.show) {
     dialog.value?.showModal()
   } else {
     dialog.value?.close()
   }
-})
+}
+
+watch(() => props.show, syncDialogVisibility)
+onMounted(syncDialogVisibility)
 </script>
 
 <style scoped>

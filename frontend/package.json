@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "lint": "eslint --cache --cache-strategy content --cache-location build/eslint/.eslintcache",
     "test:class-selection": "node --experimental-strip-types --test test/classSelection.test.ts test/dataStructureTypeSelection.test.ts",
-    "test:history": "node --experimental-strip-types --test test/HeapAliasIndex.test.ts test/historyFiltering.test.ts test/historyFormatting.test.ts"
+    "test:history": "node --experimental-strip-types --test test/HeapAliasIndex.test.ts test/historyFiltering.test.ts test/historyFormatting.test.ts",
+    "test:reactivity": "node --experimental-strip-types --test test/arrayReactivity.test.ts",
+    "test:tooltips": "node --experimental-strip-types --test test/iconWithTooltip.test.ts",
+    "test:memory-view": "node --experimental-strip-types --test --test-concurrency=1 test/memoryViewAllocation.test.ts test/memoryViewReconciliation.test.ts test/memoryViewDotRendering.test.ts test/memoryViewReachability.test.ts"
   },
   "type": "module",
   "dependencies": {

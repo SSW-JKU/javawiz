@@ -4,7 +4,7 @@ import {
 import {
   HeapArray, HeapArrayElementVar, HeapItem, HeapObject, HeapString, InputBufferInfo, LoadedClass,
   LocalVar, PrimitiveVal, ProcessedTraceState, ReferenceVal, StackFrame,
-  StaticVar, StreamVizInfo, TraceState, Val, Var
+  StaticVar, MarbleDiagramDataCollection, TraceState, Val, Var
 } from '@/dto/TraceState'
 import { ConsoleLine } from '@Shared/Protocol'
 import _ from 'lodash'
@@ -14,6 +14,7 @@ import { SequenceDiagramHistory } from '@/components/TheSequenceDiagram/Sequence
 import { Arrow, LifeLine, Box } from '@/components/TheSequenceDiagram/types'
 import { calculateDeskTestLine } from '@/components/TheDeskTest/line'
 import { TraceData } from './TraceData'
+import { linkHeapItemsToLoadedClasses } from './processedTraceState'
 import { PetAnnotation } from '@/dto/DebuggerProtocol'
 
 export class Trace {
@@ -52,7 +53,7 @@ export class Trace {
       arrows: this.getArrows(stateIndex),
       timeIdxStateIdxMap: this.getTimeIdxStateIdxMap(),
       visitedLines: this.getVisitedLines(),
-      streamVizInfo: this.getStreamVizInfo(stateIndex)
+      streamVisualizationData: this.getStreamVisualizationData(stateIndex)
     }
   }
 
@@ -88,12 +89,11 @@ export class Trace {
       sanitizer.sanitizeTraceState(state)
       this.trace.push(state)
     })
-    let currentDeskTestLine = this.deskTestLines.pop()
+    let currentDeskTestLine = this.deskTestLines.at(-1)
     const lastAlreadyProcessedIdx = this.processedTrace.at(-1)?.stateIndex ?? -1
     let currentIdx = lastAlreadyProcessedIdx + 1
     let current: TraceState | undefined = this.trace[currentIdx]
     while (current && currentIdx + 1 < this.trace.length) {
-      console.log('Process trace between states', currentIdx, 'and', currentIdx + 1)
       const nextIdx = currentIdx + 1
       const next = this.trace[nextIdx]
 
@@ -120,8 +120,8 @@ export class Trace {
     return this.trace[stateIndex].inputBufferInfo
   }
 
-  private getStreamVizInfo (stateIndex: number): StreamVizInfo {
-    return this.trace[stateIndex].streamVizInfo
+  private getStreamVisualizationData (stateIndex: number): MarbleDiagramDataCollection {
+    return this.trace[stateIndex].streamVisualizationData
   }
 
   end (lastStates: TraceState[]) {
@@ -273,10 +273,10 @@ export class Trace {
       localUri: current.sourceFileUri,
       stateIndex: index,
       line: current.line,
-      heapBeforeExecution: current.heap,
+      heapBeforeExecution: linkHeapItemsToLoadedClasses(current.heap, current.loadedClasses),
       stackBeforeExecution: current.stack,
       loadedClassesBeforeExecution: current.loadedClasses,
-      heapAfterExecution: next.heap,
+      heapAfterExecution: linkHeapItemsToLoadedClasses(next.heap, next.loadedClasses),
       stackAfterExecution: next.stack,
       loadedClassesAfterExecution: next.loadedClasses
     }

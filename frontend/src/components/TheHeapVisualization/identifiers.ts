@@ -82,3 +82,47 @@ export function stackFrameNumberForRawStackFrame (traceState: Pick<TraceState, '
   }
   return reversedStackFrameIndex
 }
+
+export const SVG_CELL_SUFFIXES = {
+  method: 'method',
+  header: 'header',
+  typeAndName: 'typeandname',
+  index: 'index',
+  pseudo: 'pseudo',
+  value: 'value',
+  moreLess: 'moreless',
+  empty: 'empty'
+} as const
+
+export type SvgCellSuffix = typeof SVG_CELL_SUFFIXES[keyof typeof SVG_CELL_SUFFIXES]
+
+/** Builds the unique DOM ID injected into one rendered Graphviz table cell. */
+export function svgCellIdentifier (recordIdentifier: string, suffix: SvgCellSuffix): string {
+  return `${recordIdentifier}:${suffix}`
+}
+
+/** Builds the method-header ID while preserving the frame identifier used by hover synchronization. */
+export function methodHeaderIdentifier (stackFrameNumber: number): string {
+  return svgCellIdentifier(`stackframe_${stackFrameNumber}`, SVG_CELL_SUFFIXES.method)
+}
+
+/** Removes only a known cell suffix, leaving field and array-element identifiers intact. */
+export function identifierFromSvgCellIdentifier (identifier: string): string {
+  const suffix = Object.values(SVG_CELL_SUFFIXES).find(candidate => identifier.endsWith(`:${candidate}`))
+  return suffix ? identifier.slice(0, -(suffix.length + 1)) : identifier
+}
+
+function escapeInjectedTitleAttributeValue (value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
+/** Encodes SVG attributes in a Graphviz title so HeapLookup can restore them after rendering. */
+export function injectedTitleAttributes (attributes: Record<string, string>): string {
+  return Object.entries(attributes)
+    .map(([name, value]) => `${name}=&quot;${escapeInjectedTitleAttributeValue(value)}&quot;`)
+    .join(' ')
+}

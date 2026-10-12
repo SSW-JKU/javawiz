@@ -9,6 +9,7 @@ import at.jku.ssw.wsdebug.compilation.instrumentation.VariableTarget
 import at.jku.ssw.wsdebug.debugger.MAX_STACK_DEPTH_EXCEEDED_MESSAGE
 import at.jku.ssw.wsdebug.debugger.recording.HeapObject
 import at.jku.ssw.wsdebug.debugger.recording.InputBufferInfo
+import at.jku.ssw.wsdebug.debugger.recording.MarbleDiagramData
 import at.jku.ssw.wsdebug.debugger.recording.TraceState
 import at.jku.ssw.wsdebug.debugger.vm.VirtualMachine.Companion.INTERNAL_CLASS_PATTERNS
 import at.jku.ssw.wsdebug.outerClassMatchesOuterClassPattern
@@ -17,13 +18,48 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.InputStreamReader
 import java.net.InetSocketAddress
 
 
 internal class DebugWebSocketServerTest {
+    private fun TraceState.latestTopLevelStreamData(): MarbleDiagramData =
+        streamVisualizationData.streams.lastOrNull { it.parentStreamId == null }
+            ?: error("trace state does not contain a top-level stream")
+
+    internal data class StoredStreamReduction(
+        val call: String,
+        val printedResult: String,
+        val visualizationResult: String
+    )
+
+    internal data class StoredStreamFixture(
+        val streamType: String,
+        val factoryExpression: String,
+        val sourceValues: List<String>,
+        val reductions: List<StoredStreamReduction>
+    )
+
+    /** Describes one reduce expression whose terminal result must reach StreamViz. */
+    internal data class ReduceCompletionCase(
+        val name: String,
+        val source: String,
+        val printedResult: String,
+        val visualizationResult: String,
+        val operationLanes: List<String>,
+        val expectedReduceMarbles: Int = 1
+    )
+
+    internal enum class ReceiverKind {
+        LOCAL_VARIABLE,
+        PARAMETER
+    }
+
     private lateinit var server: DebugWebSocketServer
 
     companion object {
@@ -37,6 +73,266 @@ internal class DebugWebSocketServerTest {
         const val INPUT = "$TEST_CASES/Input"
         const val INVIZ = "$TEST_CASES/InViz"
         const val STREAM_VISUALIZATION = "$TEST_CASES/StreamVisualization"
+
+        /** Exercises the same pipeline across source layouts and debugger navigation modes. */
+        @JvmStatic
+        fun sameLineStreamCases(): List<Arguments> = listOf(true, false).flatMap { compact ->
+            listOf(true, false).flatMap { sameLineBrace ->
+                listOf("run", "into", "over").flatMap { navigation ->
+                    listOf("reduce", "sum").map { terminal ->
+                        Arguments.of(compact, sameLineBrace, navigation, terminal)
+                    }
+                }
+            }
+        }
+
+        @JvmStatic
+        fun storedStreamReduceCases(): List<Arguments> = storedStreamFixtures.flatMap { fixture ->
+            fixture.reductions.flatMap { reduction ->
+                ReceiverKind.entries.map { receiver ->
+                    Arguments.of(fixture, reduction, receiver)
+                }
+            }
+        }
+
+        /** Supplies empty, filtered, singleton, and ordinary reduce cases for backend integration tests. */
+        @JvmStatic
+        fun streamValueExpressionCases(): List<Arguments> = listOf(
+            Arguments.of(
+                "for initializer",
+                """
+                    void main() {
+                        var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                        for (int n = names.stream().mapToInt(String::length).reduce(0, Math::max); n < 9; n++) {
+                            System.out.println(n);
+                        }
+                    }
+                """.trimIndent(),
+                "8\n"
+            ),
+            Arguments.of(
+                "conditional expression",
+                """
+                    void main() {
+                        var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                        int result = true ? names.stream().mapToInt(String::length).reduce(0, Math::max) : -1;
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                "8\n"
+            ),
+            Arguments.of(
+                "multiple declarators",
+                """
+                    void main() {
+                        var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                        int result = names.stream().mapToInt(String::length).reduce(0, Math::max), other = 1;
+                        System.out.println(result + other);
+                    }
+                """.trimIndent(),
+                "9\n"
+            ),
+            Arguments.of(
+                "nested ordinary method argument",
+                """
+                    void main() {
+                        var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                        System.out.println(Integer.toString(names.stream().mapToInt(String::length).reduce(0, Math::max)));
+                    }
+                """.trimIndent(),
+                "8\n"
+            )
+        )
+
+        private val storedStreamFixtures = listOf(
+            StoredStreamFixture(
+                streamType = "java.util.stream.Stream<Integer>",
+                factoryExpression = "java.util.stream.Stream.of(4, 8, 4)",
+                sourceValues = listOf("4", "8", "4"),
+                reductions = listOf(
+                    StoredStreamReduction("reduce(Math::max)", "Optional[8]", "8"),
+                    StoredStreamReduction("reduce(0, Math::max)", "8", "8"),
+                    StoredStreamReduction("reduce(0, Math::max, Math::max)", "8", "8")
+                )
+            ),
+            StoredStreamFixture(
+                streamType = "java.util.stream.IntStream",
+                factoryExpression = "java.util.stream.IntStream.of(4, 8, 4)",
+                sourceValues = listOf("4", "8", "4"),
+                reductions = listOf(
+                    StoredStreamReduction("reduce(Math::max)", "OptionalInt[8]", "8"),
+                    StoredStreamReduction("reduce(0, Math::max)", "8", "8")
+                )
+            ),
+            StoredStreamFixture(
+                streamType = "java.util.stream.LongStream",
+                factoryExpression = "java.util.stream.LongStream.of(4, 8, 4)",
+                sourceValues = listOf("4", "8", "4"),
+                reductions = listOf(
+                    StoredStreamReduction("reduce(Math::max)", "OptionalLong[8]", "8"),
+                    StoredStreamReduction("reduce(0, Math::max)", "8", "8")
+                )
+            ),
+            StoredStreamFixture(
+                streamType = "java.util.stream.DoubleStream",
+                factoryExpression = "java.util.stream.DoubleStream.of(4, 8, 4)",
+                sourceValues = listOf("4.0", "8.0", "4.0"),
+                reductions = listOf(
+                    StoredStreamReduction("reduce(Math::max)", "OptionalDouble[8.0]", "8.0"),
+                    StoredStreamReduction("reduce(0, Math::max)", "8.0", "8.0")
+                )
+            )
+        )
+
+        /** Supplies empty, filtered, singleton, and ordinary reduce cases for backend integration tests. */
+        @JvmStatic
+        fun reduceCompletionCases(): List<Arguments> = listOf(
+            ReduceCompletionCase(
+                name = "singleton object optional",
+                source = """
+                    void main() {
+                        var result = java.util.stream.Stream.of(8).reduce(Integer::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "Optional[8]\n",
+                visualizationResult = "8",
+                operationLanes = listOf("of", "reduce")
+            ),
+            ReduceCompletionCase(
+                name = "singleton primitive optional",
+                source = """
+                    void main() {
+                        var result = java.util.stream.Stream.of("Benjamin").mapToInt(String::length).reduce(Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "OptionalInt[8]\n",
+                visualizationResult = "8",
+                operationLanes = listOf("of", "mapToInt", "reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty object optional",
+                source = """
+                    void main() {
+                        var result = java.util.stream.Stream.<Integer>empty().reduce(Integer::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "Optional.empty\n",
+                visualizationResult = "Optional.empty",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty int optional",
+                source = """
+                    void main() {
+                        var result = java.util.stream.IntStream.empty().reduce(Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "OptionalInt.empty\n",
+                visualizationResult = "OptionalInt.empty",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty long optional",
+                source = """
+                    void main() {
+                        var result = java.util.stream.LongStream.empty().reduce(Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "OptionalLong.empty\n",
+                visualizationResult = "OptionalLong.empty",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty double optional",
+                source = """
+                    void main() {
+                        var result = java.util.stream.DoubleStream.empty().reduce(Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "OptionalDouble.empty\n",
+                visualizationResult = "OptionalDouble.empty",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty nonzero int identity",
+                source = """
+                    void main() {
+                        var result = java.util.stream.IntStream.empty().reduce(7, Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "7\n",
+                visualizationResult = "7",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty long identity",
+                source = """
+                    void main() {
+                        var result = java.util.stream.LongStream.empty().reduce(7L, Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "7\n",
+                visualizationResult = "7",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty double identity",
+                source = """
+                    void main() {
+                        var result = java.util.stream.DoubleStream.empty().reduce(7.5, Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "7.5\n",
+                visualizationResult = "7.5",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "empty three argument object reduction",
+                source = """
+                    void main() {
+                        var result = java.util.stream.Stream.<Integer>empty().reduce(5, Integer::max, Integer::sum);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "5\n",
+                visualizationResult = "5",
+                operationLanes = listOf("reduce")
+            ),
+            ReduceCompletionCase(
+                name = "all inputs filtered out",
+                source = """
+                    void main() {
+                        var result = java.util.stream.IntStream.of(1, 2).filter(value -> false).reduce(9, Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "9\n",
+                visualizationResult = "9",
+                operationLanes = listOf("of", "filter", "reduce")
+            ),
+            ReduceCompletionCase(
+                name = "normal multi element reduction",
+                source = """
+                    void main() {
+                        var result = java.util.stream.IntStream.of(4, 8, 4).reduce(0, Math::max);
+                        System.out.println(result);
+                    }
+                """.trimIndent(),
+                printedResult = "8\n",
+                visualizationResult = "8",
+                operationLanes = listOf("of", "reduce"),
+                expectedReduceMarbles = 3
+            )
+        ).map { Arguments.of(it.name, it) }
     }
 
     @BeforeEach
@@ -56,22 +352,32 @@ internal class DebugWebSocketServerTest {
 
     private fun requestCompile( // method for setting common default parameters
         classContents: List<FilepathAndContent>, vscExtensionActive: Boolean = false, internalClassPatterns: List<String>? = null,
-        openEditorLocalUri: String? = null
+        openEditorLocalUri: String? = null,
+        heapTraversalStopPatterns: List<String>? = internalClassPatterns,
+        dataStructurePatterns: List<String>? = emptyList()
     ): Response {
         return request(
-            // detailedFieldsPatterns defaults to emptyList() so tests preserve pre-split behaviour
-            // (no data-structure classes in relevantClasses, matching old internalClassPatterns = INTERNAL defaults).
-            Compile(classContents, vscExtensionActive, internalClassPatterns, internalClassPatterns, emptyList(), openEditorLocalUri)
+            // dataStructurePatterns defaults to emptyList() so tests preserve pre-split behavior.
+            Compile(classContents, vscExtensionActive, internalClassPatterns, heapTraversalStopPatterns, dataStructurePatterns, openEditorLocalUri)
         )
     }
 
     private fun fullTrace(
         classContents: List<FilepathAndContent>, vscExtensionActive: Boolean = false, checkAst: Boolean = true, internalClassPatterns: List<String>? = null,
         openEditorLocalUri: String? = null,
-        testFlags: TestFlags
+        testFlags: TestFlags,
+        heapTraversalStopPatterns: List<String>? = internalClassPatterns,
+        dataStructurePatterns: List<String>? = emptyList()
     ):
             List<TraceState> {
-        val response = requestCompile(classContents, vscExtensionActive, internalClassPatterns, openEditorLocalUri)
+        val response = requestCompile(
+            classContents,
+            vscExtensionActive,
+            internalClassPatterns,
+            openEditorLocalUri,
+            heapTraversalStopPatterns,
+            dataStructurePatterns
+        )
 
 
 
@@ -92,7 +398,9 @@ internal class DebugWebSocketServerTest {
         val result = request(
             RunToEnd()
         )
-        assert(result is StepResultResponse)
+        assert(result is StepResultResponse) {
+            (result as? ErrorResponse)?.error ?: result.toString()
+        }
 
         return firstStates + (result as StepResultResponse).data.traceStates
     }
@@ -1479,7 +1787,9 @@ internal class DebugWebSocketServerTest {
 
         (endResponse as StepResultResponse).data.traceStates.forEach { state ->
             state.loadedClasses.forEach { cls ->
-                assert(listOf("SomethIn", "NoTraceIn").contains(cls.`class`))
+                assert(listOf("SomethIn", "NoTraceIn").contains(cls.`class`)) {
+                    "unexpected loaded class ${cls.`class`}"
+                }
             }
         }
 
@@ -1605,6 +1915,62 @@ internal class DebugWebSocketServerTest {
 
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testLoadedClassClassificationControlsFieldCollection(testFlags: TestFlags) {
+        val source = """
+            class Ordinary { static int ordinaryStatic = 1; int value = 1; }
+            class Stopped { static int stoppedStatic = 2; int hidden = 2; }
+            class DataStructure { static int dataStructureStatic = 3; Ordinary child = new Ordinary(); }
+
+            public class Classification {
+                public static void main(String[] args) {
+                    Ordinary ordinary = new Ordinary();
+                    Stopped stopped = new Stopped();
+                    DataStructure dataStructure = new DataStructure();
+                    System.out.println(ordinary.value + stopped.hidden + dataStructure.child.value);
+                }
+            }
+        """.trimIndent()
+        val trace = fullTrace(
+            classContents = listOf(FilepathAndContent("Classification.java", source)),
+            vscExtensionActive = true,
+            checkAst = false,
+            internalClassPatterns = emptyList(),
+            testFlags = testFlags,
+            heapTraversalStopPatterns = listOf("Stopped", "DataStructure"),
+            dataStructurePatterns = listOf("DataStructure")
+        )
+        val state = trace.first { current ->
+            current.heap.filterIsInstance<HeapObject>().map { it.type }.containsAll(
+                listOf("Ordinary", "Stopped", "DataStructure")
+            )
+        }
+
+        val ordinaryClass = state.loadedClasses.single { it.`class` == "Ordinary" }
+        assertFalse(ordinaryClass.isHeapTraversalStop)
+        assertFalse(ordinaryClass.isJavaDataStructure)
+        assertTrue(ordinaryClass.hasCollectedFields)
+        assertEquals(listOf("ordinaryStatic"), ordinaryClass.staticFields.map { it.name })
+
+        val stoppedClass = state.loadedClasses.single { it.`class` == "Stopped" }
+        assertTrue(stoppedClass.isHeapTraversalStop)
+        assertFalse(stoppedClass.isJavaDataStructure)
+        assertFalse(stoppedClass.hasCollectedFields)
+        assertTrue(stoppedClass.staticFields.isEmpty())
+
+        val dataStructureClass = state.loadedClasses.single { it.`class` == "DataStructure" }
+        assertTrue(dataStructureClass.isHeapTraversalStop)
+        assertTrue(dataStructureClass.isJavaDataStructure)
+        assertTrue(dataStructureClass.hasCollectedFields)
+        assertEquals(listOf("dataStructureStatic"), dataStructureClass.staticFields.map { it.name })
+
+        val objects = state.heap.filterIsInstance<HeapObject>().associateBy { it.type }
+        assertEquals(listOf("value"), objects.getValue("Ordinary").fields.map { it.name })
+        assertTrue(objects.getValue("Stopped").fields.isEmpty())
+        assertEquals(listOf("child"), objects.getValue("DataStructure").fields.map { it.name })
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun testNoSpuriousInWarning(testFlags: TestFlags) {
         val uri = "$TEST_CASES/Warnings/NoSpuriousInWarning"
         val response = requestCompile(
@@ -1617,6 +1983,73 @@ internal class DebugWebSocketServerTest {
         assert(response is CompileSuccessResponse) { (response as CompileFailResponse).error }
         response as CompileSuccessResponse
         assert(response.data.featureWarnings.isEmpty())
+    }
+
+    @Test
+    fun testParallelStreamsAreRejectedBeforeLaunchingTheDebuggee() {
+        val parallelSources = listOf(
+            """
+                void main() {
+                    var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                    System.out.println(names.parallelStream().mapToInt(String::length).reduce(0, Math::max));
+                }
+            """.trimIndent(),
+            """
+                void main() {
+                    var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                    System.out.println(names.stream().parallel().mapToInt(String::length).reduce(0, Math::max));
+                }
+            """.trimIndent(),
+            """
+                void main() {
+                    System.out.println(java.util.stream.IntStream.range(1, 4).parallel().sum());
+                }
+            """.trimIndent(),
+            """
+                void main() {
+                    var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                    System.out.println(names.stream().parallel().sequential().count());
+                }
+            """.trimIndent()
+        )
+
+        parallelSources.forEach { source ->
+            val response = requestCompile(listOf(FilepathAndContent("Main.java", source)), vscExtensionActive = true)
+
+            assertTrue(response is CompileFailResponse)
+            assertTrue((response as CompileFailResponse).error.contains("Parallel stream execution is unsupported"))
+            assertTrue(response.error.contains("sequential stream"))
+        }
+
+        val sequentialResponse = requestCompile(
+            listOf(FilepathAndContent("Main.java", """
+                void main() {
+                    var names = java.util.List.of("Anne", "Benjamin", "Cici");
+                    System.out.println(names.stream().mapToInt(String::length).reduce(0, Math::max));
+                }
+            """.trimIndent())),
+            vscExtensionActive = true
+        )
+        assertTrue(sequentialResponse is CompileSuccessResponse) { (sequentialResponse as CompileFailResponse).error }
+    }
+
+    @Test
+    fun testUserDefinedParallelMethodsAreNotRejected() {
+        val source = """
+            class Main {
+                void parallel() { }
+                void parallelStream() { }
+                void main() {
+                    parallel();
+                    parallelStream();
+                    System.out.println(8);
+                }
+            }
+        """.trimIndent()
+
+        val response = requestCompile(listOf(FilepathAndContent("Main.java", source)), vscExtensionActive = true)
+
+        assertTrue(response is CompileSuccessResponse) { (response as CompileFailResponse).error }
     }
 
     @ParameterizedTest
@@ -1846,6 +2279,389 @@ internal class DebugWebSocketServerTest {
     }
 
     @ParameterizedTest
+    @MethodSource("storedStreamReduceCases")
+    fun testStoredStreamReduce(
+        fixture: StoredStreamFixture,
+        reduction: StoredStreamReduction,
+        receiver: ReceiverKind
+    ) {
+        val source = if (receiver == ReceiverKind.PARAMETER) {
+            """
+                public class Main {
+                    public static void main(String[] args) { main(${fixture.factoryExpression}); }
+                    static void main(${fixture.streamType} stream) {
+                        var result = ((stream))
+                            .${reduction.call};
+                        System.out.println(result);
+                    }
+                }
+            """.trimIndent().replace("\n", "\r\n")
+        } else {
+            """
+                void main() {
+                    var stream = ${fixture.factoryExpression};
+                    var result = stream.${reduction.call};
+                    System.out.println(result);
+                }
+            """.trimIndent()
+        }
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+        assertOutputEquals(trace, "${reduction.printedResult}\n")
+        assertErrorEquals(trace, "")
+        val visualization = trace.last { it.streamVisualizationData.streams.any { stream -> stream.parentStreamId == null && stream.marbles.isNotEmpty() } }
+            .latestTopLevelStreamData()
+        val sourceOperation = "of"
+        assertEquals(listOf(sourceOperation, "reduce"), visualization.operationLanes.values.map { it.operation })
+        assertEquals(fixture.sourceValues, visualization.marbles.filter { it.operation == sourceOperation }.map { it.label })
+        assertEquals(reduction.visualizationResult, visualization.marbles.last { it.operation == "reduce" }.label)
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testStoredStreamReduceSuccessivePipelines(testFlags: TestFlags) {
+        val source = """
+            void main() {
+                var first = java.util.stream.IntStream.of(4, 8, 4);
+                int maximum = first.reduce(0, Math::max);
+                System.out.println(maximum);
+                var second = java.util.stream.IntStream.of(10, 20, 30).map(value -> value + 1);
+                int sum = second.reduce(0, Integer::sum);
+                System.out.println(sum);
+            }
+        """.trimIndent()
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = testFlags)
+        assertOutputEquals(trace, "8\n63\n")
+        assertErrorEquals(trace, "")
+        val visualizations = trace.last().streamVisualizationData.streams.filter { it.marbles.isNotEmpty() }
+            .filter { it.parentStreamId == null }
+        assertEquals(2, visualizations.size)
+        assertEquals(listOf("of", "reduce"), visualizations[0].operationLanes.values.map { it.operation })
+        assertEquals(listOf("of", "map", "reduce"), visualizations[1].operationLanes.values.map { it.operation })
+        assertEquals(listOf(listOf("4", "8", "4"), listOf("10", "20", "30")),
+            visualizations.map { visualization -> visualization.marbles.filter { it.operation == "of" }.map { it.label } })
+        assertEquals(listOf("11", "21", "31"), visualizations[1].marbles.filter { it.operation == "map" }.map { it.label })
+        assertEquals(listOf("8", "63"), visualizations.map { it.marbles.last { marble -> marble.operation == "reduce" }.label })
+    }
+
+    @Test
+    fun testStoredIntermediateStreamPipelineVisualization() {
+        val source = """
+            import java.util.OptionalInt;
+            import java.util.stream.IntStream;
+            import java.util.stream.Stream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    Stream<String> names = Stream.of("Max", "Susi", "Maya");
+                    Stream<String> mnames = names.filter(x -> x.charAt(0) == 'M');
+                    IntStream nameLengths = mnames.mapToInt(x -> x.length());
+                    OptionalInt maximum = nameLengths.max();
+                    System.out.println(maximum);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "OptionalInt[4]\n")
+        val visualization = trace.last().latestTopLevelStreamData()
+        assertEquals(
+            listOf("of", "filter", "mapToInt", "max"),
+            visualization.operationLanes.values.map { it.operation }
+        )
+        assertEquals(listOf("Max", "Susi", "Maya"), visualization.marbles.filter { it.operation == "of" }.map { it.label })
+        assertEquals(listOf("3", "4"), visualization.marbles.filter { it.operation == "mapToInt" }.map { it.label })
+        assertEquals("4", visualization.marbles.last { it.operation == "max" }.label)
+    }
+
+    @Test
+    fun testReturnedStreamSourcePipelineVisualization() {
+        val source = """
+            import java.util.stream.Stream;
+
+            public class Main {
+                Stream<String> source() {
+                    return Stream.of("Max", "Susi", "Maya");
+                }
+
+                void main() {
+                    long count = source().filter(x -> x.charAt(0) == 'M').count();
+                    System.out.println(count);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "2\n")
+        val visualization = trace.last().latestTopLevelStreamData()
+        assertEquals(listOf("of", "filter", "count"), visualization.operationLanes.values.map { it.operation })
+        assertEquals(listOf("Max", "Susi", "Maya"), visualization.marbles.filter { it.operation == "of" }.map { it.label })
+        assertEquals(listOf("Max", "Susi", "Maya"), visualization.marbles.filter { it.operation == "filter" }.map { it.label })
+        assertTrue(visualization.marbles.any { it.operation == "count" })
+    }
+
+    @Test
+    fun testDirectStreamSourceParameterPipelineVisualization() {
+        val source = """
+            import java.util.stream.Stream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    consume(Stream.of("Max", "Susi", "Maya"));
+                }
+
+                static void consume(Stream<String> stream) {
+                    long count = stream.filter(x -> x.charAt(0) == 'M').count();
+                    System.out.println(count);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "2\n")
+        val visualization = trace.last { it.streamVisualizationData.streams.any { stream -> stream.parentStreamId == null && stream.marbles.isNotEmpty() } }
+            .latestTopLevelStreamData()
+        assertEquals(listOf("of", "filter", "count"), visualization.operationLanes.values.map { it.operation })
+        assertEquals(listOf("Max", "Susi", "Maya"), visualization.marbles.filter { it.operation == "of" }.map { it.label })
+        assertTrue(visualization.marbles.any { it.operation == "count" })
+    }
+
+    @Test
+    fun testEmptyTopLevelStreamCompletesWithoutStartEvent() {
+        val source = """
+            import java.util.stream.Stream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    long count = Stream.<String>empty().count();
+                    System.out.println(count);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "0\n")
+        val stream = trace.last().streamVisualizationData.streams.single { it.parentStreamId == null }
+        assertEquals(listOf("count"), stream.operationLanes.values.map { it.operation })
+        assertTrue(stream.marbles.any { it.operation == "count" && it.label == "0" })
+    }
+
+    @Test
+    fun testPrimitiveFlatMapCreatesChildExecutions() {
+        val source = """
+            import java.util.stream.IntStream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    int result = IntStream.of(1, 2)
+                            .flatMap(value -> IntStream.of(value, value + 10))
+                            .sum();
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "26\n")
+        val streams = trace.last().streamVisualizationData.streams
+        val parent = streams.single { it.parentStreamId == null }
+        val children = streams.filter { it.parentStreamId == parent.id }
+        assertEquals(2, children.size)
+        assertEquals(listOf("of", "flatMap", "sum"), parent.operationLanes.values.map { it.operation })
+        children.forEach { child ->
+            assertEquals(listOf("of"), child.operationLanes.values.map { it.operation })
+        }
+    }
+
+    @Test
+    fun testEmptyFlatMapChildrenRemainVisible() {
+        val source = """
+            import java.util.stream.Stream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    long result = Stream.of(1, 2).flatMap(value -> Stream.<String>empty()).count();
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "0\n")
+        val streams = trace.last().streamVisualizationData.streams
+        val parent = streams.single { it.parentStreamId == null }
+        val children = streams.filter { it.parentStreamId == parent.id }
+        assertEquals(2, children.size)
+        children.forEach { child ->
+            assertTrue(child.marbles.isEmpty())
+            assertTrue(child.operationLanes.isEmpty())
+        }
+    }
+
+    /**
+     * Documents the missing generalized child boundary for streams created by callbacks.
+     * This currently fails when enabled because the comparator stream is not reliably attached
+     * to the enclosing sorted execution; future work must propagate an explicit callback-child
+     * parent context and restore it when the callback's terminal operation completes.
+     */
+    @Disabled("Pending generalized callback-created stream execution nesting")
+    @Test
+    fun testStreamCreatedInsideSortedComparatorGetsChildExecution() {
+        val source = """
+            import java.util.stream.Stream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    String result = Stream.of("a", "bbb", "cc")
+                            .sorted((left, right) -> Stream.of(left, right).count() == 2 ? 0 : 1)
+                            .findFirst()
+                            .orElse("empty");
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "a\n")
+        val streams = trace.last().streamVisualizationData.streams
+        val parent = streams.single { it.operationLanes.values.any { lane -> lane.operation == "findFirst" } }
+        val child = streams.single { it.parentStreamId == parent.id }
+        assertTrue(child.operationLanes.values.any { it.operation == "count" })
+    }
+
+    /** Verifies that terminal reduce results survive when no accumulator callback runs. */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("reduceCompletionCases")
+    fun testReduceCompletionWithoutAccumulatorInvocation(context: String, testCase: ReduceCompletionCase) {
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", testCase.source)), checkAst = false, testFlags = TestFlags())
+        assertOutputEquals(trace, testCase.printedResult)
+        assertErrorEquals(trace, "")
+
+        val visualization = trace.last().latestTopLevelStreamData()
+        assertEquals(testCase.operationLanes, visualization.operationLanes.values.map { it.operation }, context)
+        val reduceMarbles = visualization.marbles.filter { it.operation == "reduce" }
+        assertEquals(testCase.expectedReduceMarbles, reduceMarbles.size, context)
+        assertEquals(testCase.visualizationResult, reduceMarbles.last().label, context)
+        if (context == "all inputs filtered out" || context.startsWith("empty ")) {
+            assertTrue(visualization.links.none { link -> link.target == reduceMarbles.single().marbleKey }, context)
+        }
+    }
+
+    /** Constructor instrumentation is retained, while static-initializer events before main are ignored. */
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testConstructorStreamsAreCapturedOnlyAfterMain(testFlags: TestFlags) {
+        val source = """
+            public class Main {
+                static final Holder BEFORE_MAIN = new Holder();
+
+                public static void main(String[] args) {
+                    new Holder();
+                }
+
+                static class Holder {
+                    Holder() {
+                        java.util.stream.IntStream.of(1, 2).forEach(value -> { });
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = testFlags)
+        val streams = trace.last().streamVisualizationData.streams.filter { it.parentStreamId == null && it.marbles.isNotEmpty() }
+
+        assertEquals(1, streams.size)
+        assertEquals(listOf("of", "forEach"), streams.single().operationLanes.values.map { it.operation })
+        assertEquals(listOf("1", "2"), streams.single().marbles.filter { it.operation == "of" }.map { it.label })
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("streamValueExpressionCases")
+    fun testValueReturningStreamInExpressionContexts(context: String, source: String, expectedOutput: String) {
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+        assertOutputEquals(trace, expectedOutput)
+        assertErrorEquals(trace, "")
+        val visualization = trace.last { it.streamVisualizationData.streams.any { stream -> stream.parentStreamId == null && stream.marbles.isNotEmpty() } }
+            .latestTopLevelStreamData()
+        assertEquals(listOf("stream", "mapToInt", "reduce"), visualization.operationLanes.values.map { it.operation }, context)
+        assertEquals("8", visualization.marbles.last { it.operation == "reduce" }.label, context)
+    }
+
+    /** A rebuilt diagram must reach the client even when main returns on the pipeline's line. */
+    @ParameterizedTest
+    @MethodSource("sameLineStreamCases")
+    fun testSameLineStreamCompletion(compact: Boolean, sameLineBrace: Boolean, navigation: String, terminal: String) {
+        val opening = if (compact) "void main() {" else "public class Main { public static void main(String[] args) {"
+        val closing = if (compact) "}" else "} }"
+        val terminalCall = if (terminal == "reduce") "reduce(0, Math::max)" else "sum()"
+        val source = opening + "\n" +
+                "var names = java.util.List.of(\"Anne\", \"Benjamin\", \"Cici\");\n" +
+                "int result = names.stream().mapToInt(String::length).$terminalCall;" +
+                (if (sameLineBrace) " " else "\n") + closing
+        val compiled = requestCompile(listOf(FilepathAndContent("Main.java", source)))
+        assertTrue(compiled is CompileSuccessResponse) { compiled.toString() }
+        val initialStates = (compiled as CompileSuccessResponse).data.firstStepResult.traceStates
+        val trace = initialStates.toMutableList()
+        var running = true
+        var requests = 0
+        while (running && requests++ < 100) {
+            val command = when (navigation) {
+                "run" -> RunToEnd()
+                "into" -> StepInto()
+                else -> StepOver(1)
+            }
+            val response = request(command)
+            assertTrue(response is StepResultResponse) { response.toString() }
+            val result = (response as StepResultResponse).data
+            assertFalse(result.isWaitingForInput)
+            trace.addAll(result.traceStates)
+            running = result.isVMRunning
+        }
+        assertFalse(running, "debuggee must terminate within the step bound")
+        val visualization = trace.last().latestTopLevelStreamData()
+        assertEquals(9, visualization.marbles.size)
+        assertEquals(setOf("stream", "mapToInt", terminal), visualization.operationLanes.values.map { it.operation }.toSet())
+        assertEquals(if (terminal == "reduce") "8" else "16", visualization.marbles.last { it.operation == terminal }.label)
+        assertEquals(
+            at.jku.ssw.wsdebug.debugger.recording.PrimitiveVal(if (terminal == "reduce") "8" else "16"),
+            trace.last().stack.first().localVariables.single { it.name == "result" }.value,
+            "the final diagram must accompany the live completed user frame"
+        )
+        assertEquals(1, trace.count { it.streamVisualizationData.streams.any { stream -> stream.marbles.isNotEmpty() } }, "do not duplicate the final snapshot")
+        assertTrue(initialStates.all { it.streamVisualizationData.streams.all { stream -> stream.marbles.isEmpty() } }, "earlier snapshots must remain unchanged")
+    }
+
+    /** Other main overloads and recursive entries must not consume the entry invocation's exit capture. */
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testSameLineStreamAfterOtherMainInvocations(testFlags: TestFlags) {
+        val source = """
+            public class Main {
+                static boolean entered;
+                public static void main(String[] args) {
+                    if (!entered) {
+                        entered = true;
+                        main(args);
+                        main(1);
+                        entered = false;
+                    }
+                    int result = java.util.stream.IntStream.of(4, 8, entered ? 9 : 10).reduce(0, Math::max); }
+                static void main(int ignored) { }
+            }
+        """.trimIndent()
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = testFlags)
+        assertEquals("10", trace.last().latestTopLevelStreamData().marbles.last { it.operation == "reduce" }.label)
+        assertEquals("([Ljava/lang/String;)V", trace.last().stack.first().signature)
+        assertEquals(1, trace.last().stack.count { it.method == "main" })
+    }
+
+    @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun testMultipleStreamVisualizationStatements(testFlags: TestFlags) {
         val trace = callRunToEndAndCompareTestcaseMetadataFiles(
@@ -1855,31 +2671,131 @@ internal class DebugWebSocketServerTest {
             testFlags = testFlags
         )
 
-        val streamVisualizations = trace
-            .map { it.streamVizInfo }
-            .filter { it.operationLines.isNotEmpty() }
+        val streamVisualizations = trace.last().streamVisualizationData.streams
+            .filter { it.parentStreamId == null }
 
+        assertEquals(6, streamVisualizations.size)
         assertTrue(streamVisualizations.isNotEmpty()) { "trace should contain stream visualization info" }
         streamVisualizations.forEach { visualization ->
             assertTrue(visualization.marbles.isNotEmpty()) { "stream visualization should contain marbles" }
-            assertTrue(visualization.operationLines.isNotEmpty()) { "stream visualization should contain operation lines" }
+            assertTrue(visualization.operationLanes.isNotEmpty()) { "stream visualization should contain operation lines" }
         }
 
-        val operationTypes = streamVisualizations.map { visualization ->
-            visualization.operationLines.values.map { it.type }
+        val operationNames = streamVisualizations.map { visualization ->
+            visualization.operationLanes.values.map { it.operation }
         }.distinct()
 
         assertEquals(
             listOf(
-                listOf("stream", "distinct", "limit", "forEach"),
-                listOf("stream", "limit", "distinct", "forEach"),
+                listOf("generate", "distinct", "limit", "forEach"),
+                listOf("generate", "limit", "distinct", "forEach"),
                 listOf("stream", "filter", "map", "forEach"),
                 listOf("stream", "flatMap", "distinct", "count"),
                 listOf("stream", "filter", "toList"),
                 listOf("stream", "collect")
             ),
-            operationTypes
+            operationNames
         )
+
+        val flatMapStream = streamVisualizations.single { stream ->
+            stream.operationLanes.values.any { it.operation == "flatMap" }
+        }
+        val childStreams = trace.last().streamVisualizationData.streams.filter { it.parentStreamId != null }
+        assertEquals(4, childStreams.size)
+        assertEquals(setOf(flatMapStream.id), childStreams.map { it.parentStreamId }.toSet())
+        childStreams.forEach { child ->
+            assertEquals(listOf("chars", "mapToObj"), child.operationLanes.values.map { it.operation })
+            assertTrue(child.marbles.none { marble -> marble.operation in setOf("flatMap", "distinct", "count") })
+        }
+        assertTrue(flatMapStream.operationLanes.values.none { it.operation == "mapToObj" })
+    }
+
+    @Test
+    fun testFullStreamExamplesRuntimeVisualizations() {
+        val trace = fullTrace(
+            listOf(
+                FilepathAndContent("Main.java", "public class Main { public static void main(String[] args) { StreamExamples.main(args); } }") ,
+                createFilePathAndContent("$STREAM_VISUALIZATION/StreamExamples", "StreamExamples.java")
+            ),
+            vscExtensionActive = true,
+            checkAst = false,
+            testFlags = TestFlags()
+        )
+
+        val streams = trace.last().streamVisualizationData.streams
+        val topLevelStreams = streams.filter { it.parentStreamId == null }
+        val childStreams = streams.filter { it.parentStreamId != null }
+
+        assertEquals(9, topLevelStreams.size)
+        assertEquals(5, childStreams.size)
+        assertEquals(14, streams.size)
+        assertTrue(topLevelStreams.all { it.marbles.isNotEmpty() && it.operationLanes.isNotEmpty() })
+
+        val flatMapParents = topLevelStreams.filter { stream ->
+            stream.operationLanes.values.any { it.operation == "flatMap" }
+        }
+        assertEquals(2, flatMapParents.size)
+        assertEquals(listOf(2, 3), flatMapParents.map { parent ->
+            val children = childStreams.filter { it.parentStreamId == parent.id }
+            children.forEach { child ->
+                assertEquals(listOf("chars", "mapToObj"), child.operationLanes.values.map { it.operation })
+                assertTrue(child.marbles.isNotEmpty())
+            }
+            children.size
+        })
+
+        assertEquals(3, topLevelStreams.count { it.operationLanes.values.any { lane -> lane.operation == "count" } })
+        assertEquals(6, topLevelStreams.count { it.operationLanes.values.any { lane -> lane.operation == "findFirst" } })
+        assertTrue(topLevelStreams.any { stream -> stream.marbles.any { it.operation == "count" && it.label == "8" } })
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testStreamPipelinesInStaticInstanceAndSeparateFileHelpers(testFlags: TestFlags) {
+        val main = FilepathAndContent(
+            "Main.java",
+            """
+                import java.util.List;
+
+                public class Main {
+                    void main() {
+                        var names = List.of("Anne", "Benjamin", "Cici");
+                        System.out.println(staticMaximum(names));
+                        System.out.println(instanceMaximum(names));
+                        System.out.println(Helper.maximum(names));
+                    }
+
+                    static int staticMaximum(List<String> names) {
+                        return names.stream().mapToInt(String::length).reduce(0, Math::max);
+                    }
+
+                    int instanceMaximum(List<String> names) {
+                        return names.stream().mapToInt(String::length).reduce(0, Math::max);
+                    }
+                }
+            """.trimIndent()
+        )
+        val helper = FilepathAndContent(
+            "Helper.java",
+            """
+                import java.util.List;
+
+                public class Helper {
+                    static int maximum(List<String> names) {
+                        return names.stream().mapToInt(String::length).reduce(0, Math::max);
+                    }
+                }
+            """.trimIndent()
+        )
+
+        val trace = fullTrace(listOf(main, helper), checkAst = false, testFlags = testFlags)
+        assertOutputEquals(trace, "8\n8\n8\n")
+        val streams = trace.last().streamVisualizationData.streams.filter { it.parentStreamId == null }
+        assertEquals(3, streams.size)
+        streams.forEach { stream ->
+            assertEquals(listOf("stream", "mapToInt", "reduce"), stream.operationLanes.values.map { it.operation })
+            assertEquals("8", stream.marbles.last { it.operation == "reduce" }.label)
+        }
     }
 
     @ParameterizedTest
@@ -1919,7 +2835,7 @@ internal class DebugWebSocketServerTest {
         )
 
         assertOutputEquals(trace, "Optional[Ben]\n")
-        assertTrue(trace.none { it.streamVizInfo.operationLines.isNotEmpty() }) {
+        assertTrue(trace.none { it.streamVisualizationData.streams.any { stream -> stream.operationLanes.isNotEmpty() } }) {
             "field declaration stream operations should not emit stream visualization info"
         }
     }

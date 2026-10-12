@@ -15,6 +15,7 @@ import com.sun.jdi.*
 import com.sun.jdi.event.*
 import com.sun.jdi.request.ClassPrepareRequest
 import com.sun.jdi.request.MethodEntryRequest
+import com.sun.jdi.request.MethodExitRequest
 import com.sun.jdi.request.StepRequest
 import java.io.BufferedWriter
 import java.io.InputStreamReader
@@ -24,16 +25,13 @@ class JDIVirtualMachine(
     override val cp: String,
     override val parseInfos: List<ParseInfo>,
     val excludeFromSteppingPatterns: List<String>,
-    val excludeFieldsPatterns: List<String>,
-    val detailedFieldsPatterns: List<String>
+    val heapTraversalStopPatterns: List<String>,
+    val dataStructurePatterns: List<String>
 ) : VirtualMachine {
 
     private lateinit var nativeVM: com.sun.jdi.VirtualMachine
 
-    private val relevantClasses: MutableSet<ReferenceType> = linkedSetOf()
-
-    /** Classes whose fields are collected but shown only in specialised visualisations, not in the Memory View. */
-    private val detailedFieldsClasses: MutableSet<ReferenceType> = linkedSetOf()
+    private val loadedClassClassifications: MutableMap<ReferenceType, LoadedClassClassification> = linkedMapOf()
 
     private lateinit var debuggeeInput: BufferedWriter
     private lateinit var debuggeeOutput: InputStreamReader
@@ -54,6 +52,11 @@ class JDIVirtualMachine(
     private val inputBufferTracer: InputBufferTracer = InputBufferTracer()
 
     private var isRunning = false
+
+    private var mainExitRequest: MethodExitRequest? = null
+    private var entryMainMethod: Method? = null
+    private var entryMainDepth = 0
+    private var hasEnteredMainMethod = false
 
     // map to speed up lookup during debugging
     private val parseInfoByTypeNames = generateParseInfoByTypeNames()
@@ -104,14 +107,30 @@ class JDIVirtualMachine(
         try {
             val eventSet: EventSet = nativeVM.eventQueue().remove(1000) ?: return StepResult(isWaitingForInput = true)
 
-            if (eventSet.size > 1 && eventSet.any { it !is VMDeathEvent }) {
+            latestSingleStepStartTime = System.currentTimeMillis()
+            // The last stream operation can finish after the last source-line step. Before main
+            // returns, send any StreamViz data missing from the previous trace state to the frontend.
+            val mainExits = eventSet.filterIsInstance<MethodExitEvent>().filter { it.request() == mainExitRequest }
+            val entryExit = mainExits.firstOrNull {
+                it.method() == entryMainMethod && it.thread().frameCount() == entryMainDepth
+            }
+            if (entryExit != null) {
+                mainExitRequest?.disable()
+                if (streamOperationTracer.streamVisualizationData != prevTraceState.streamVisualizationData) {
+                    return StepResult(generateTraceState(uri(entryExit), entryExit))
+                }
+            }
+            // JDI can report a method return and a source-line step in the same event set.
+            // If no new trace state was needed above, still process that source-line step.
+            val remainingEvents = eventSet.filter { it !in mainExits }
+            val event = remainingEvents.firstOrNull() ?: return null
+
+            if (remainingEvents.size > 1 && remainingEvents.any { it !is VMDeathEvent }) {
                 // see JW-62
                 // https://docs.oracle.com/javase/8/docs/jdk/api/jpda/jdi/com/sun/jdi/event/EventSet.html
-                println("WARNING: EVENT SET CONTAINS ${eventSet.size} EVENTS! CURRENT DEBUGGER IMPLEMENTATION IS NOT ABLE TO HANDLE MULTIPLE EVENTS IN A SINGLE SET!")
+                println("WARNING: EVENT SET CONTAINS ${remainingEvents.size} EVENTS! CURRENT DEBUGGER IMPLEMENTATION IS NOT ABLE TO HANDLE MULTIPLE EVENTS IN A SINGLE SET!")
             }
-            val event = eventSet.eventIterator().nextEvent()
 
-            latestSingleStepStartTime = System.currentTimeMillis()
             println("[step timing - ${event.javaClass.simpleName}] started processing ${event.javaClass.simpleName}")
 
             if (event is LocatableEvent && event.thread().frameCount() > MAX_STACK_DEPTH) {
@@ -147,11 +166,14 @@ class JDIVirtualMachine(
     // main() method entered: disable the entry request, install a step request, and record the first trace state.
     private fun handleMethodEntryEvent(event: MethodEntryEvent): StepResult? {
         if (event.location().method().name() != "main") {
-            // Ignore static constructor calls that are executed before the main method.
             return null
         }
+        // Constructor instrumentation is retained, but stream hooks before this event belong to
+        // VM setup rather than the user's execution and must not enter the first diagram.
+        hasEnteredMainMethod = true
         event.request().disable()
         installStepRequest(event.thread())
+        installMainMethodExitRequest(event)
         return StepResult(generateTraceState(uri(event), event))
     }
 
@@ -192,10 +214,11 @@ class JDIVirtualMachine(
         if (clazz.name().split(".").last() == IN_CLASS_NAME && clazz is ClassType) {
             inputBufferTracer.inClass = clazz
         }
-        val isExcludedFromFields = clazz.name().outerClassMatchesOuterClassPattern(excludeFieldsPatterns)
-        val isDetailedFields = clazz.name().outerClassMatchesOuterClassPattern(detailedFieldsPatterns)
-        if (!isExcludedFromFields || isDetailedFields) relevantClasses.add(clazz)
-        if (isDetailedFields) detailedFieldsClasses.add(clazz)
+        loadedClassClassifications[clazz] = classifyLoadedClass(
+            clazz.name(),
+            heapTraversalStopPatterns,
+            dataStructurePatterns
+        )
         return null
     }
 
@@ -252,14 +275,13 @@ class JDIVirtualMachine(
             conditionTracer.collectConditionValuesForStepEvent(event.thread().frameCount()),
             // create copy of conditions so that we serialize the current state of evaluated
             arrayAccessTracer.collectAccessValuesForStepEvent(event.thread().frameCount()),
-            streamOperationTracer.visualizationObjects,
+            streamOperationTracer.streamVisualizationData,
             streamToString(debuggeeOutput),
             streamToString(debuggeeError),
             inputSinceLastStep,
-            relevantClasses,
+            loadedClassClassifications,
             inputBufferInfo,
             excludeFromSteppingPatterns,
-            detailedFieldsClasses,
             latestSingleStepStartTime,
             stepProcessingTime,
             traceStateDiffTime
@@ -298,6 +320,31 @@ class JDIVirtualMachine(
         val javaWizFrame = event.thread().frame(0)
 
         when (javaWizFrame.location().method().name()) {
+            "endNestedFlatmapStream" -> {
+                if (!hasEnteredMainMethod) return
+                val executionId = readJavaWizStaticInt(javaWizFrame, "exhaustedChildExecutionId")
+                if (executionId != 0) streamOperationTracer.endNestedFlatmapStream(executionId)
+            }
+
+            "completeStreamVisualization" -> {
+                if (!hasEnteredMainMethod) return
+                val executionId = readJavaWizStaticInt(javaWizFrame, "completedStreamExecutionId")
+                val operationId = readJavaWizStaticInt(javaWizFrame, "completedOperationId")
+                val operationName = readJavaWizStaticString(javaWizFrame, "completedOperationName")
+                val operationParameter = readJavaWizStaticString(javaWizFrame, "completedOperationParameter")
+                val resultText = readJavaWizStaticString(javaWizFrame, "completedResultText")
+                if (executionId != 0) {
+                    streamOperationTracer.completeStreamVisualization(
+                        executionId,
+                        operationName,
+                        operationId,
+                        operationParameter,
+                        resultText,
+                        null
+                    )
+                }
+            }
+
             "recordCondition" -> {
                 val conditionId = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("conditionId")!!) as IntegerValue).value()
                 val conditionValue = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("value")!!) as BooleanValue).value()
@@ -327,23 +374,32 @@ class JDIVirtualMachine(
             }
 
             "traceStream" -> {
-                val direction = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("direction")!!) as StringReference).value()
-                val elemUntyped = javaWizFrame.getValue(javaWizFrame.visibleVariableByName("elem")!!)
-                var valuetype = elemUntyped.type().name()
-                var isMap = false
-                var value = when (elemUntyped) {
-                    is StringReference -> elemUntyped.value()
-                    is IntegerValue -> elemUntyped.value()
-                    is DoubleValue -> elemUntyped.value()
-                    is FloatValue -> elemUntyped.value()
-                    is LongValue -> elemUntyped.value()
-                    is BooleanValue -> elemUntyped.value()
-                    is CharValue -> elemUntyped.value()
-                    is ByteValue -> elemUntyped.value()
-                    is ShortValue -> elemUntyped.value()
-                    is ArrayReference -> elemUntyped.values
+                if (!hasEnteredMainMethod) return
+                val rawEventKind = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("eventKind")!!) as StringReference).value()
+                val eventKind = when (rawEventKind) {
+                    "START" -> StreamEventKind.START
+                    "IN" -> StreamEventKind.IN
+                    "OUT" -> StreamEventKind.OUT
+                    "END" -> StreamEventKind.END
+                    "COMPLETION" -> StreamEventKind.COMPLETION
+                    "REPLAY_LAST_TERMINAL" -> StreamEventKind.REPLAY_LAST_TERMINAL
+                    else -> error("unknown event kind for stream event: $rawEventKind")
+                }
+                val rawElement = javaWizFrame.getValue(javaWizFrame.visibleVariableByName("element")!!)
+                var elementType = rawElement.type().name()
+                var observedValue = when (rawElement) {
+                    is StringReference -> rawElement.value()
+                    is IntegerValue -> rawElement.value()
+                    is DoubleValue -> rawElement.value()
+                    is FloatValue -> rawElement.value()
+                    is LongValue -> rawElement.value()
+                    is BooleanValue -> rawElement.value()
+                    is CharValue -> rawElement.value()
+                    is ByteValue -> rawElement.value()
+                    is ShortValue -> rawElement.value()
+                    is ArrayReference -> rawElement.values
                     is ObjectReference -> {
-                        val primitiveTypeName = when (valuetype) {
+                        val primitiveTypeName = when (elementType) {
                             "java.lang.Integer" -> "int"
                             "java.lang.Double" -> "double"
                             "java.lang.Float" -> "float"
@@ -356,9 +412,9 @@ class JDIVirtualMachine(
                         }
 
                         if (primitiveTypeName != null) {
-                            valuetype = primitiveTypeName
-                            val valueField = elemUntyped.referenceType().fieldByName("value")
-                            val fieldValue = elemUntyped.getValue(valueField!!)
+                            elementType = primitiveTypeName
+                            val valueField = rawElement.referenceType().fieldByName("value")
+                            val fieldValue = rawElement.getValue(valueField!!)
                             when (fieldValue) {
                                 is IntegerValue -> fieldValue.value()
                                 is DoubleValue -> fieldValue.value()
@@ -368,57 +424,64 @@ class JDIVirtualMachine(
                                 is CharValue -> fieldValue.value()
                                 is ByteValue -> fieldValue.value()
                                 is ShortValue -> fieldValue.value()
-                                else -> error("unknown value type for wrapper $valuetype: ${fieldValue?.type()?.name()}")
+                                else -> error("unknown value type for wrapper $elementType: ${fieldValue?.type()?.name()}")
                             }
                         } else {
-                            valuetype = valuetype.drop(valuetype.lastIndexOf('$') + 1)
-                            elemUntyped.uniqueID()
+                            elementType = elementType.drop(elementType.lastIndexOf('$') + 1)
+                            rawElement.uniqueID()
                         }
                     }
 
-                    else -> error("unknown stream element type: ${elemUntyped.type().name()}")
+                    else -> error("unknown stream element type: ${rawElement.type().name()}")
                 }
-                val operationName = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("name")!!) as StringReference).value()
-                val operationId = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("id")!!) as IntegerValue).value()
-                val streamId = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("streamId")!!) as IntegerValue).value()
-                val param = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("param")!!) as StringReference).value()
-                if (valuetype.contains("Map") && elemUntyped is ObjectReference) {
-                    isMap = true
+                val operationName = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("operationName")!!) as StringReference).value()
+                val operationId = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("operationId")!!) as IntegerValue).value()
+                val streamId = javaWizFrame.visibleVariables()
+                    .firstOrNull { it.name() == "streamId" }
+                    ?.let { javaWizFrame.getValue(it) as? IntegerValue }
+                    ?.value()
+                    ?: readJavaWizStaticInt(javaWizFrame, "activeStreamExecutionId")
+                val operationParameter = (javaWizFrame.getValue(javaWizFrame.visibleVariableByName("operationParameter")!!) as StringReference).value()
+                val terminalResultText = javaWizFrame.visibleVariables()
+                    .firstOrNull { it.name() == "terminalResultText" }
+                    ?.let { javaWizFrame.getValue(it) as? StringReference }
+                    ?.value()
+                if (elementType.contains("Map") && rawElement is ObjectReference) {
                     val previouslyEnabledEventRequests = nativeVM.getEnabledRequests()
                     previouslyEnabledEventRequests.forEach { it.disable() }
 
                     try {
                         val thread = event.thread()
-                        val mapRef = elemUntyped
+                        val mapRef = rawElement
 
-                        fun formatElement(elem: Value?): String {
-                            return when (elem) {
-                                is StringReference -> elem.toString().replace("\"", "")
-                                is ObjectReference -> "${elem.uniqueID()}"
-                                else -> elem?.toString() ?: "null"
+                        fun formatElementValue(element: Value?): String {
+                            return when (element) {
+                                is StringReference -> element.toString().replace("\"", "")
+                                is ObjectReference -> "${element.uniqueID()}"
+                                else -> element?.toString() ?: "null"
                             }
                         }
 
-                        fun formatValue(v: Value?): String {
-                            if (v == null) return "null"
-                            if (v is ArrayReference) {
-                                return "${v.uniqueID()}"
+                        fun formatRuntimeValue(runtimeValue: Value?): String {
+                            if (runtimeValue == null) return "null"
+                            if (runtimeValue is ArrayReference) {
+                                return "${runtimeValue.uniqueID()}"
                             }
-                            if (v is ObjectReference) {
-                                val type = v.referenceType()
-                                val isList = (type as? ClassType)?.allInterfaces()?.any { it.name() == "java.util.List" } == true
+                            if (runtimeValue is ObjectReference) {
+                                val referenceType = runtimeValue.referenceType()
+                                val isList = (referenceType as? ClassType)?.allInterfaces()?.any { it.name() == "java.util.List" } == true
                                 if (isList) {
-                                    val toArrayMethod = type.methodsByName("toArray").find { it.argumentTypeNames().isEmpty() }
+                                    val toArrayMethod = referenceType.methodsByName("toArray").find { it.argumentTypeNames().isEmpty() }
                                     if (toArrayMethod != null) {
-                                        val listAsArray = v.invokeMethod(thread, toArrayMethod, emptyList(), ObjectReference.INVOKE_SINGLE_THREADED) as? ArrayReference
+                                        val listAsArray = runtimeValue.invokeMethod(thread, toArrayMethod, emptyList(), ObjectReference.INVOKE_SINGLE_THREADED) as? ArrayReference
                                         if (listAsArray != null) {
-                                            return listAsArray.values.joinToString(prefix = "[", postfix = "]", transform = ::formatElement)
+                                            return listAsArray.values.joinToString(prefix = "[", postfix = "]", transform = ::formatElementValue)
                                         }
                                     }
                                 }
-                                return formatElement(v)
+                                return formatElementValue(runtimeValue)
                             }
-                            return v.toString()
+                            return runtimeValue.toString()
                         }
 
                         val entrySetMethod = mapRef.referenceType().methodsByName("entrySet").firstOrNull()
@@ -438,7 +501,7 @@ class JDIVirtualMachine(
                                         val getValueMethod = entryType.methodsByName("getValue").first()
                                         val keyRef = entryValue.invokeMethod(thread, getKeyMethod, emptyList(), ObjectReference.INVOKE_SINGLE_THREADED)
                                         val valueRef = entryValue.invokeMethod(thread, getValueMethod, emptyList(), ObjectReference.INVOKE_SINGLE_THREADED)
-                                        val keyStr = when (keyRef) {
+                                        val formattedKey = when (keyRef) {
                                             is StringReference -> "\"${keyRef.value()}\""
                                             is ObjectReference -> {
                                                 val toStringMethod = keyRef.referenceType().methodsByName("toString").find { it.argumentTypeNames().isEmpty() }
@@ -452,27 +515,27 @@ class JDIVirtualMachine(
 
                                             else -> keyRef?.toString() ?: "null"
                                         }
-                                        val valStr = formatValue(valueRef)
+                                        val formattedValue = formatRuntimeValue(valueRef)
                                         if (index > 0) mapBuilder.append("; ")
-                                        mapBuilder.append("$keyStr=$valStr")
+                                        mapBuilder.append("$formattedKey=$formattedValue")
                                     }
                                 }
-                                value = mapBuilder.toString()
+                                observedValue = mapBuilder.toString()
                             }
                         }
                     } catch (e: Exception) {
-                        value = "Map(Error: ${e.message})"
+                        observedValue = "Map(Error: ${e.message})"
                     } finally {
                         previouslyEnabledEventRequests.forEach { it.enable() }
                     }
                 }
-                when (direction) {
-                    "START" -> streamOperationTracer.traceStartStream(operationName, operationId, value, valuetype, streamId)
-                    "IN" -> streamOperationTracer.traceInStream(operationName, operationId, value, valuetype, streamId, param)
-                    "OUT" -> streamOperationTracer.traceOutStream(operationName, operationId, value, valuetype, streamId, param)
-                    "END" -> streamOperationTracer.traceEndStream(operationName, operationId, streamId, param, value.toString())
-                    "NOP" -> streamOperationTracer.traceNOPEndStream(operationId)
-                    else -> error("unknown direction for stream element")
+                when (eventKind) {
+                    StreamEventKind.START -> streamOperationTracer.recordStreamStart(operationName, operationId, observedValue, elementType, streamId)
+                    StreamEventKind.IN -> streamOperationTracer.recordElementInput(operationName, operationId, observedValue, elementType, streamId, operationParameter)
+                    StreamEventKind.OUT -> streamOperationTracer.recordElementOutput(operationName, operationId, observedValue, elementType, streamId, operationParameter)
+                    StreamEventKind.END -> streamOperationTracer.recordTerminalResult(operationName, operationId, streamId, operationParameter, observedValue.toString())
+                    StreamEventKind.COMPLETION -> streamOperationTracer.recordTerminalCompletion(operationName, operationId, streamId, operationParameter, terminalResultText ?: observedValue.toString(), elementType)
+                    StreamEventKind.REPLAY_LAST_TERMINAL -> streamOperationTracer.replayLastTerminalEvent(operationId, streamId)
                 }
             }
 
@@ -480,13 +543,26 @@ class JDIVirtualMachine(
                 // Already handled in traceStream, as traceStream is called from within traceParam
             }
 
-            "collectAndTransformStreamOperationValues" -> {
-                streamOperationTracer.collectAndTransformStreamOperationValues()
+            "rebuildStreamVisualization" -> {
+                if (!hasEnteredMainMethod) return
+                streamOperationTracer.rebuildStreamVisualization()
             }
 
             // This would fire for lambdas within the JavaWiz class
             //else -> error("unknown method type in class $JAVAWIZ_CLASS: ${javaWizFrame.location().method().name()}")
         }
+    }
+
+    private fun readJavaWizStaticInt(frame: com.sun.jdi.StackFrame, fieldName: String): Int {
+        val type = frame.location().declaringType() as? ClassType ?: return 0
+        val field = type.fieldByName(fieldName) ?: return 0
+        return (type.getValue(field) as? IntegerValue)?.value() ?: 0
+    }
+
+    private fun readJavaWizStaticString(frame: com.sun.jdi.StackFrame, fieldName: String): String {
+        val type = frame.location().declaringType() as? ClassType ?: return ""
+        val field = type.fieldByName(fieldName) ?: return ""
+        return (type.getValue(field) as? StringReference)?.value() ?: ""
     }
 
     private fun launchVM() {
@@ -526,6 +602,24 @@ class JDIVirtualMachine(
         methodEntryRequest.enable()
     }
 
+    /**
+     * Requests notification when the main method that started the program returns, while JDI
+     * can still read its local variables. If main's closing brace shares the last stream
+     * statement's line, there may be no source-line step at which to send its StreamViz results.
+     *
+     * JDI filters this request by class and thread, not by individual method call. Save the
+     * method and stack depth so handleSingleStep can ignore other methods and recursive calls.
+     */
+    private fun installMainMethodExitRequest(event: MethodEntryEvent) {
+        entryMainMethod = event.method()
+        entryMainDepth = event.thread().frameCount()
+        mainExitRequest = nativeVM.eventRequestManager().createMethodExitRequest().apply {
+            addClassFilter(event.method().declaringType())
+            addThreadFilter(event.thread())
+            enable()
+        }
+    }
+
     private fun installMethodExitRequest() {
         val request = nativeVM.eventRequestManager().createMethodExitRequest()
         request.addClassFilter("$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS")
@@ -536,13 +630,13 @@ class JDIVirtualMachine(
         val classPrepareRequest: ClassPrepareRequest = nativeVM.eventRequestManager().createClassPrepareRequest()
         classPrepareRequest.enable()
 
-        // Check for already-loaded classes that match detailedFieldsPatterns (standard-library classes loaded by
+        // Check for already-loaded classes that match dataStructurePatterns (standard-library classes loaded by
         // the bootstrap class loader do not fire ClassPrepareEvents, so we must check for them eagerly).
         for (clazz in nativeVM.allClasses()) {
-            if (clazz.name().outerClassMatchesOuterClassPattern(detailedFieldsPatterns)) {
-                println("Found already loaded detailed-fields class: ${clazz.name()} -> mark as relevant")
-                relevantClasses.add(clazz)
-                detailedFieldsClasses.add(clazz)
+            val classification = classifyLoadedClass(clazz.name(), heapTraversalStopPatterns, dataStructurePatterns)
+            if (classification.isJavaDataStructure) {
+                println("Found already loaded data-structure class: ${clazz.name()} -> collect fields")
+                loadedClassClassifications[clazz] = classification
             }
         }
     }

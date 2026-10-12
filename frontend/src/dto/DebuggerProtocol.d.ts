@@ -23,10 +23,10 @@ export namespace DebuggerProtocol {
     readonly openEditorLocalUri?: string
     /** Patterns for classes excluded from stepping and instrumentation. If absent, the backend uses its built-in defaults. */
     readonly excludeFromSteppingPatterns: string[] | undefined
-    /** Patterns for classes whose fields are not collected. If absent, the backend uses its built-in defaults. */
-    readonly excludeFieldsPatterns: string[] | undefined
-    /** Patterns for classes whose fields are collected but only shown in specialised visualisations, not in the Memory View. If absent, the backend uses its built-in defaults. */
-    readonly detailedFieldsPatterns: string[] | undefined
+    /** Patterns for classes at which ordinary heap traversal stops. If absent, the backend uses its built-in defaults. */
+    readonly heapTraversalStopPatterns: string[] | undefined
+    /** Patterns for Java data structures whose fields are collected despite being heap-traversal stops. If absent, the backend uses its built-in defaults. */
+    readonly dataStructurePatterns: string[] | undefined
   }
 
   export type StepIntoRequest = {

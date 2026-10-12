@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   buildFilteredHistoryStates,
-  buildMethodFilters,
+  buildShownMethodFilters,
   createHistoryLookup,
   findHighlightedHistoryEntries,
   getDisplayClassName,
@@ -118,10 +118,48 @@ test('matches exact and wildcard array targets without treating other target tex
   assert.equal(matchesAssignmentDslFilter(parseDslFilter('Person.* = *'), 'Person.name', '"Ada"'), false)
 })
 
-test('matches method names only for call filters', () => {
-  assert.equal(matchesCallDslFilter(parseDslFilter('call sort'), 'sort'), true)
-  assert.equal(matchesCallDslFilter(parseDslFilter('call sort'), 'sorted'), false)
-  assert.equal(matchesCallDslFilter(parseDslFilter('sort = *'), 'sort'), false)
+test('matches all overloaded calls by method name', () => {
+  const searchFilter = parseDslFilter('call search')
+
+  assert.equal(matchesCallDslFilter(searchFilter, 'search'), true)
+  assert.equal(matchesCallDslFilter(searchFilter, 'searched'), false)
+  assert.equal(matchesCallDslFilter(parseDslFilter('search = *'), 'search'), false)
+})
+
+test('highlights every overload when searching for a method name', () => {
+  const initialState = processedState([])
+  const callState = (stateIndex: number, displaySignature: string): ProcessedTraceState => {
+    const stackFrame: StackFrame = {
+      ...frame([]),
+      method: 'search',
+      displaySignature
+    }
+    return {
+      ...processedState([stackFrame]),
+      stateIndex,
+      stackBeforeExecution: [],
+      stackAfterExecution: [stackFrame]
+    }
+  }
+  const states = buildFilteredHistoryStates({
+    trace: [
+      initialState,
+      callState(1, 'void search (String value)'),
+      callState(2, 'void search (int value)')
+    ],
+    showFieldAssignments: true,
+    showArrayInitialization: false,
+    isShownMethod: () => true,
+    formatter: {
+      formatValue,
+      formatCall: traceIndex => traceIndex === 1 ? 'search(String)' : 'search(int)'
+    },
+    lookup: createHistoryLookup()
+  })
+
+  const highlightedEntries = findHighlightedHistoryEntries(states, parseDslFilter('call search'))
+
+  assert.deepEqual([...highlightedEntries].map(entry => entry.text), ['search(String)', 'search(int)'])
 })
 
 test('builds simple and fully qualified class lookup names', () => {
@@ -132,29 +170,35 @@ test('builds simple and fully qualified class lookup names', () => {
   )
 })
 
-test('deduplicates overloaded method filters and preserves checked states', () => {
+test('deduplicates duplicate signatures and preserves overloaded shown states', () => {
   const asts = [{
     file: {
       classes: [
         {
           name: 'Second',
-          methods: [{ name: 'run' }]
+          methods: [{ name: 'run', signature: 'void run ()' }]
         },
         {
           name: 'First',
-          methods: [{ name: 'sort' }, { name: 'sort' }, { name: '<init>' }]
+          methods: [
+            { name: 'sort', signature: 'void sort (int value)' },
+            { name: 'sort', signature: 'void sort (long value)' },
+            { name: 'sort', signature: 'void sort (int value)' },
+            { name: '<init>', signature: 'First First ()' }
+          ]
         }
       ]
     }
   }] as unknown as AbstractSyntaxTree[]
 
-  assert.deepEqual(buildMethodFilters(asts, [{
-    key: 'First.sort',
-    checked: false,
-    label: 'First.sort'
+  assert.deepEqual(buildShownMethodFilters(asts, [{
+    key: 'First.void sort (long value)',
+    shown: false,
+    label: 'First.void sort (long value)'
   }]), [
-    { key: 'First.sort', checked: false, label: 'First.sort' },
-    { key: 'Second.run', checked: true, label: 'Second.run' }
+    { key: 'First.void sort (int value)', shown: true, label: 'First.void sort (int value)' },
+    { key: 'First.void sort (long value)', shown: false, label: 'First.void sort (long value)' },
+    { key: 'Second.void run ()', shown: true, label: 'Second.void run ()' }
   ])
 })
 
@@ -169,7 +213,7 @@ test('pre-filters local entries and builds a highlight-entry set', () => {
     trace: [state],
     showFieldAssignments: true,
     showArrayInitialization: false,
-    isMethodEnabled: () => true,
+    isShownMethod: () => true,
     formatter,
     lookup: createHistoryLookup()
   })
@@ -183,7 +227,7 @@ test('pre-filters local entries and builds a highlight-entry set', () => {
     trace: [state],
     showFieldAssignments: true,
     showArrayInitialization: false,
-    isMethodEnabled: () => false,
+    isShownMethod: () => false,
     formatter,
     lookup: createHistoryLookup()
   })
@@ -247,7 +291,7 @@ test('pre-filters heap entries using field and array-visibility controls', () =>
     trace: [state],
     showFieldAssignments: false,
     showArrayInitialization: false,
-    isMethodEnabled: () => true,
+    isShownMethod: () => true,
     formatter,
     lookup: createHistoryLookup()
   })
@@ -273,7 +317,7 @@ test('builds and highlights call entries while respecting method and synthetic-o
     trace: [initialState, callState],
     showFieldAssignments: true,
     showArrayInitialization: false,
-    isMethodEnabled: () => true,
+    isShownMethod: () => true,
     formatter: {
       formatValue,
       formatCall: () => 'Call: Example.sort()'
@@ -289,7 +333,7 @@ test('builds and highlights call entries while respecting method and synthetic-o
 
   assert.deepEqual(buildFilteredHistoryStates({
     ...options,
-    isMethodEnabled: () => false
+    isShownMethod: () => false
   }), [])
 
   const syntheticReceiver = {
@@ -314,6 +358,40 @@ test('builds and highlights call entries while respecting method and synthetic-o
       }
     ]
   }), [])
+})
+
+test('filters overloaded runtime methods independently by display signature', () => {
+  const initialState = processedState([])
+  const intCallFrame: StackFrame = {
+    ...frame([]),
+    method: 'sort',
+    displaySignature: 'void sort (int value)'
+  }
+  const longCallFrame: StackFrame = {
+    ...frame([]),
+    method: 'sort',
+    displaySignature: 'void sort (long value)'
+  }
+  const callState = (stateIndex: number, stackFrame: StackFrame): ProcessedTraceState => ({
+    ...processedState([stackFrame]),
+    stateIndex,
+    stackBeforeExecution: [],
+    stackAfterExecution: [stackFrame]
+  })
+
+  const states = buildFilteredHistoryStates({
+    trace: [initialState, callState(1, intCallFrame), callState(2, longCallFrame)],
+    showFieldAssignments: true,
+    showArrayInitialization: false,
+    isShownMethod: (_className, methodSignature) => methodSignature === 'void sort (int value)',
+    formatter: {
+      formatValue,
+      formatCall: () => 'Call: Example.sort()'
+    },
+    lookup: createHistoryLookup()
+  })
+
+  assert.deepEqual(states.map(state => state.state.stateIndex), [1])
 })
 
 test('suppresses unchanged static values and renders actual static changes', () => {
@@ -346,7 +424,7 @@ test('suppresses unchanged static values and renders actual static changes', () 
     trace: [unchangedState],
     showFieldAssignments: true,
     showArrayInitialization: false,
-    isMethodEnabled: () => true,
+    isShownMethod: () => true,
     formatter,
     lookup: createHistoryLookup()
   }
@@ -369,6 +447,10 @@ test('suppresses unchanged static values and renders actual static changes', () 
     trace: [changedState]
   })
   assert.deepEqual(states[0].entries.map(entry => entry.text), ['Counter.count = 2'])
+  assert.equal(
+    findHighlightedHistoryEntries(states, parseDslFilter('Counter.count = *')).has(states[0].entries[0]),
+    true
+  )
 
   const previousObject = {
     kind: 'HeapObject' as const,
@@ -415,6 +497,56 @@ test('suppresses unchanged static values and renders actual static changes', () 
   assert.equal(changedReferenceEntries[0].entries.length, 1)
 })
 
+test('hides static fields from heap-traversal-stop classes', () => {
+  const state = {
+    ...processedState([frame([])]),
+    loadedClassesBeforeExecution: [],
+    loadedClassesAfterExecution: [
+      {
+        kind: 'LoadedClass' as const,
+        class: 'java.util.Properties',
+        staticFields: [{
+          kind: 'Var' as const,
+          name: 'serialVersionUID',
+          type: 'long',
+          value: primitive('1'),
+          changed: true,
+          class: 'java.util.Properties'
+        }],
+        isHeapTraversalStop: true,
+        isJavaDataStructure: true,
+        hasCollectedFields: true
+      },
+      {
+        kind: 'LoadedClass' as const,
+        class: 'example.Counter',
+        staticFields: [{
+          kind: 'Var' as const,
+          name: 'count',
+          type: 'int',
+          value: primitive('2'),
+          changed: true,
+          class: 'example.Counter'
+        }],
+        isHeapTraversalStop: false,
+        isJavaDataStructure: false,
+        hasCollectedFields: true
+      }
+    ]
+  }
+
+  const states = buildFilteredHistoryStates({
+    trace: [state],
+    showFieldAssignments: true,
+    showArrayInitialization: false,
+    isShownMethod: () => true,
+    formatter,
+    lookup: createHistoryLookup()
+  })
+
+  assert.deepEqual(states[0].entries.map(entry => entry.text), ['Counter.count = 2'])
+})
+
 test('uses static-field aliases for arrays and applies the initialization toggle', () => {
   const heapArray = {
     kind: 'HeapArray' as const,
@@ -449,7 +581,7 @@ test('uses static-field aliases for arrays and applies the initialization toggle
     trace: [state],
     showFieldAssignments: false,
     showArrayInitialization: false,
-    isMethodEnabled: () => true,
+    isShownMethod: () => true,
     formatter,
     lookup: createHistoryLookup()
   }
@@ -464,6 +596,181 @@ test('uses static-field aliases for arrays and applies the initialization toggle
   assert.equal(
     findHighlightedHistoryEntries(states, parseDslFilter('Holder.items[2] = *')).has(states[0].entries[0]),
     true
+  )
+  assert.equal(
+    findHighlightedHistoryEntries(states, parseDslFilter('Holder.items[*] = *')).has(states[0].entries[0]),
+    true
+  )
+})
+
+test('matches static array aliases when a shorter local alias is displayed', () => {
+  const arrayBefore = {
+    kind: 'HeapArray' as const,
+    id: 5,
+    type: 'int[]',
+    faked: false,
+    elements: [{
+      kind: 'HeapArrayElementVar' as const,
+      arrayId: 5,
+      type: 'int',
+      value: primitive('0'),
+      index: 2,
+      changed: false
+    }]
+  }
+  const arrayAfter = {
+    ...arrayBefore,
+    elements: [{
+      ...arrayBefore.elements[0],
+      value: primitive('9'),
+      changed: true
+    }]
+  }
+  const state = {
+    ...processedState(
+      [frame([local('alias', reference(5), false)])],
+      [arrayBefore],
+      [arrayAfter]
+    ),
+    loadedClassesAfterExecution: [{
+      kind: 'LoadedClass' as const,
+      class: 'example.Holder',
+      staticFields: [{
+        kind: 'Var' as const,
+        name: 'items',
+        type: 'int[]',
+        value: reference(5),
+        changed: false,
+        class: 'example.Holder'
+      }],
+      isHeapTraversalStop: false,
+      isJavaDataStructure: false,
+      hasCollectedFields: true
+    }]
+  }
+  const states = buildFilteredHistoryStates({
+    trace: [state],
+    showFieldAssignments: false,
+    showArrayInitialization: false,
+    isShownMethod: () => true,
+    formatter,
+    lookup: createHistoryLookup()
+  })
+
+  assert.deepEqual(states[0].entries.map(entry => entry.text), ['alias[2] = 9'])
+  assert.equal(
+    findHighlightedHistoryEntries(states, parseDslFilter('Holder.items[2] = *')).has(states[0].entries[0]),
+    true
+  )
+})
+
+test('matches nested array and method-parameter aliases', () => {
+  const objectBefore = {
+    kind: 'HeapObject' as const,
+    id: 6,
+    type: 'example.Holder',
+    faked: false,
+    fields: [{
+      kind: 'Var' as const,
+      name: 'items',
+      type: 'int[]',
+      value: reference(7),
+      changed: false,
+      class: 'example.Holder'
+    }]
+  }
+  const arrayBefore = {
+    kind: 'HeapArray' as const,
+    id: 7,
+    type: 'int[]',
+    faked: false,
+    elements: [{
+      kind: 'HeapArrayElementVar' as const,
+      arrayId: 7,
+      type: 'int',
+      value: primitive('0'),
+      index: 1,
+      changed: false
+    }]
+  }
+  const arrayAfter = {
+    ...arrayBefore,
+    elements: [{
+      ...arrayBefore.elements[0],
+      value: primitive('4'),
+      changed: true
+    }]
+  }
+  const parameterFrame = frame([local('itemsParameter', reference(7), false)])
+  const callerFrame = frame([local('holder', reference(6), false)])
+  const state = processedState(
+    [parameterFrame, callerFrame],
+    [objectBefore, arrayBefore],
+    [{
+      ...objectBefore,
+      fields: [{
+        ...objectBefore.fields[0],
+        value: reference(7)
+      }]
+    }, arrayAfter]
+  )
+  const states = buildFilteredHistoryStates({
+    trace: [state],
+    showFieldAssignments: false,
+    showArrayInitialization: false,
+    isShownMethod: () => true,
+    formatter,
+    lookup: createHistoryLookup()
+  })
+
+  assert.deepEqual(states[0].entries.map(entry => entry.text), ['holder.items[1] = 4'])
+  assert.equal(
+    findHighlightedHistoryEntries(states, parseDslFilter('holder.items[1] = *')).has(states[0].entries[0]),
+    true
+  )
+  assert.equal(
+    findHighlightedHistoryEntries(states, parseDslFilter('itemsParameter[1] = *')).has(states[0].entries[0]),
+    true
+  )
+})
+
+test('keeps changed arrays visible when no source alias can be resolved', () => {
+  const arrayBefore = {
+    kind: 'HeapArray' as const,
+    id: 8,
+    type: 'int[]',
+    faked: false,
+    elements: [{
+      kind: 'HeapArrayElementVar' as const,
+      arrayId: 8,
+      type: 'int',
+      value: primitive('0'),
+      index: 0,
+      changed: false
+    }]
+  }
+  const arrayAfter = {
+    ...arrayBefore,
+    elements: [{
+      ...arrayBefore.elements[0],
+      value: primitive('1'),
+      changed: true
+    }]
+  }
+  const state = processedState([], [arrayBefore], [arrayAfter])
+  const states = buildFilteredHistoryStates({
+    trace: [state],
+    showFieldAssignments: false,
+    showArrayInitialization: false,
+    isShownMethod: () => true,
+    formatter,
+    lookup: createHistoryLookup()
+  })
+
+  assert.deepEqual(states[0].entries.map(entry => entry.text), ['Unknown[0] = 1'])
+  assert.equal(
+    findHighlightedHistoryEntries(states, parseDslFilter('Unknown[0] = *')).has(states[0].entries[0]),
+    false
   )
 })
 

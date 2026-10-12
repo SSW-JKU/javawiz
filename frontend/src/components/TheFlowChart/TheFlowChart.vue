@@ -248,15 +248,20 @@ function createFunctionSelect (options: string[]): Promise<number> {
   showFunctionSelectOverlay.value = true
 
   return new Promise((resolve, _reject) => {
-    const stopWatch = watch(selectedFunctionIdx, newValue => {
-      stopWatch() // disable watcher callback
+    let stopSelectionWatch = () => {}
+    let stopVisibilityWatch = () => {}
+    // Selection and cancellation settle the same promise, so neither one-shot watcher may outlive it.
+    const finishSelection = (selectedIndex: number) => {
+      stopSelectionWatch()
+      stopVisibilityWatch()
       showFunctionSelectOverlay.value = false
-      resolve(newValue)
-    })
-    const stopWatch2 = watch(showFunctionSelectOverlay, newValue => {
-      stopWatch2()
+      resolve(selectedIndex)
+    }
+
+    stopSelectionWatch = watch(selectedFunctionIdx, finishSelection)
+    stopVisibilityWatch = watch(showFunctionSelectOverlay, newValue => {
       if (!newValue) {
-        resolve(-1)
+        finishSelection(-1)
       }
     })
   })

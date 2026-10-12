@@ -77,14 +77,14 @@ export interface HistoryDatasetOptions {
   trace: readonly ProcessedTraceState[]
   showFieldAssignments: boolean
   showArrayInitialization: boolean
-  isMethodEnabled: (className: string, methodName: string) => boolean
+  isShownMethod: (className: string, methodSignature: string) => boolean
   formatter: HistoryFormatter
   lookup: HistoryLookup
 }
 
-export interface MethodFilter {
+export interface ShownMethodFilter {
   key: string
-  checked: boolean
+  shown: boolean
   label: string
 }
 
@@ -251,40 +251,40 @@ export function getStaticFieldTargets (className: string, fieldName: string): st
 }
 
 /**
- * Builds the deduplicated method-filter controls represented by the current
+ * Builds the deduplicated shown-method filter controls represented by the current
  * source ASTs.
  *
- * Existing checked states are retained so recompilation does not reset the
- * user's method visibility choices. Overloaded methods share one filter because
- * runtime matching is based on class and method name rather than signature.
+ * Existing shown states are retained so recompilation does not reset the
+ * user's method visibility choices. Overloaded methods receive separate filters
+ * because the complete method signature is part of the runtime identity.
  *
  * @param asts - Source ASTs used to discover class and method names.
- * @param existingFilters - Current controls whose checked state should be retained.
- * @returns Alphabetically sorted class-qualified method filters.
+ * @param existingShownMethodFilters - Current controls whose shown state should be retained.
+ * @returns Alphabetically sorted class-qualified shown-method filters.
  */
-export function buildMethodFilters (
+export function buildShownMethodFilters (
   asts: readonly AbstractSyntaxTree[],
-  existingFilters: readonly MethodFilter[]
-): MethodFilter[] {
-  const checkedByKey = new Map(existingFilters.map(filter => [filter.key, filter.checked]))
-  const filtersByKey = new Map<string, MethodFilter>()
+  existingShownMethodFilters: readonly ShownMethodFilter[]
+): ShownMethodFilter[] {
+  const shownMethodByKey = new Map(existingShownMethodFilters.map(shownMethodFilter => [shownMethodFilter.key, shownMethodFilter.shown]))
+  const shownMethodFiltersByKey = new Map<string, ShownMethodFilter>()
 
   for (const ast of asts) {
     for (const sourceClass of ast.file.classes) {
       for (const method of sourceClass.methods) {
         if (method.name === '<init>') continue
 
-        const key = methodKey(sourceClass.name, method.name)
-        filtersByKey.set(key, {
+        const key = shownMethodFilterKey(sourceClass.name, method.signature)
+        shownMethodFiltersByKey.set(key, {
           key,
-          checked: checkedByKey.get(key) ?? true,
+          shown: shownMethodByKey.get(key) ?? true,
           label: key
         })
       }
     }
   }
 
-  return [...filtersByKey.values()]
+  return [...shownMethodFiltersByKey.values()]
     .sort((first, second) => first.label.localeCompare(second.label))
 }
 
@@ -292,11 +292,11 @@ export function buildMethodFilters (
  * Builds the stable identity used by method-filter controls and runtime lookup.
  *
  * @param className - Class that declares the method.
- * @param methodName - Name of the method.
- * @returns Class-qualified method name.
+ * @param methodSignature - Complete source or runtime display signature.
+ * @returns Class-qualified method signature.
  */
-export function methodKey (className: string, methodName: string): string {
-  return `${className}.${methodName}`
+export function shownMethodFilterKey (className: string, methodSignature: string): string {
+  return `${className}.${methodSignature}`
 }
 
 /**
@@ -327,8 +327,8 @@ function buildEntriesForState (
   traceIndex: number
 ): FilteredHistoryEntry[] {
   const methodCall = isMethodCall(options.trace, traceIndex)
-  const topFrameEnabled = isTopStackFrameEnabled(state.stackAfterExecution, options.isMethodEnabled)
-  if (!topFrameEnabled) return []
+  const topFrameShown = isTopStackFrameShown(state.stackAfterExecution, options.isShownMethod)
+  if (!topFrameShown) return []
 
   return [
     ...buildCallEntries(options, state, traceIndex, methodCall),
@@ -383,7 +383,7 @@ function buildLocalEntries (
   if (methodCall) return []
 
   return state.stackAfterExecution.flatMap((stackFrame, stackIndex) => {
-    if (!options.isMethodEnabled(stackFrame.class, stackFrame.method)) return []
+    if (!options.isShownMethod(stackFrame.class, stackFrame.displaySignature)) return []
 
     return stackFrame.localVariables.flatMap((localVariable, localIndex) => {
       if (!localVariable.changed) return []
@@ -419,31 +419,33 @@ function buildStaticFieldEntries (
 ): FilteredHistoryEntry[] {
   if (!options.showFieldAssignments) return []
 
-  return state.loadedClassesAfterExecution.flatMap((loadedClass, loadedClassIndex) =>
-    loadedClass.staticFields.flatMap((staticField, staticFieldIndex) => {
-      if (!staticField.changed ||
-        isStrangeStaticChange(staticField, loadedClass.class, state)) {
-        return []
-      }
-
-      const value = options.formatter.formatValue(
-        staticField.value,
-        state.heapAfterExecution,
-        staticField.type,
-        traceIndex
-      )
-      return [createEntry(
-        `state:${state.stateIndex}:static:${loadedClassIndex}:${staticFieldIndex}:${staticField.name}`,
-        'static-field',
-        `${getDisplayClassName(loadedClass.class)}.${staticField.name} = ${value}`,
-        {
-          kind: 'assignment',
-          names: getStaticFieldTargets(loadedClass.class, staticField.name),
-          value
+  return state.loadedClassesAfterExecution
+    .filter(loadedClass => !loadedClass.isHeapTraversalStop)
+    .flatMap((loadedClass, loadedClassIndex) =>
+      loadedClass.staticFields.flatMap((staticField, staticFieldIndex) => {
+        if (!staticField.changed ||
+          isStrangeStaticChange(staticField, loadedClass.class, state)) {
+          return []
         }
-      )]
-    })
-  )
+
+        const value = options.formatter.formatValue(
+          staticField.value,
+          state.heapAfterExecution,
+          staticField.type,
+          traceIndex
+        )
+        return [createEntry(
+          `state:${state.stateIndex}:static:${loadedClassIndex}:${staticFieldIndex}:${staticField.name}`,
+          'static-field',
+          `${getDisplayClassName(loadedClass.class)}.${staticField.name} = ${value}`,
+          {
+            kind: 'assignment',
+            names: getStaticFieldTargets(loadedClass.class, staticField.name),
+            value
+          }
+        )]
+      })
+    )
 }
 
 /**
@@ -640,19 +642,19 @@ function isMethodCall (trace: readonly ProcessedTraceState[], traceIndex: number
 }
 
 /**
- * Checks whether the top stack frame is enabled by the method filters.
+ * Checks whether the top stack frame is shown by the shown-method filters.
  *
  * @param stack - Post-execution call stack to inspect.
- * @param isMethodEnabled - Method-filter lookup callback.
- * @returns `true` for an empty stack or an enabled top frame.
+ * @param isShownMethod - Shown-method filter lookup callback using class and signature.
+ * @returns `true` for an empty stack or a shown top frame.
  */
-function isTopStackFrameEnabled (
+function isTopStackFrameShown (
   stack: readonly StackFrame[],
-  isMethodEnabled: HistoryDatasetOptions['isMethodEnabled']
+  isShownMethod: HistoryDatasetOptions['isShownMethod']
 ): boolean {
   if (stack.length === 0) return true
   const frame = stack[0]
-  return isMethodEnabled(frame.class, frame.method)
+  return isShownMethod(frame.class, frame.displaySignature)
 }
 
 /**

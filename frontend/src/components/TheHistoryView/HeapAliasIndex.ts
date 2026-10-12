@@ -76,7 +76,7 @@ export function buildHeapAliasIndex (
     enqueueRoot(thisReference.reference, 'this')
   }
 
-  for (const loadedClass of loadedClasses.filter(x => !x.detailedFieldsOnly)) {
+  for (const loadedClass of loadedClasses.filter(x => !x.isHeapTraversalStop)) {
     const simpleClassName = loadedClass.class.split('.').at(-1) ?? loadedClass.class
     const classNames = simpleClassName === loadedClass.class
       ? [loadedClass.class]

@@ -44,3 +44,7 @@ Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>
 Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>
 
 info: <a href="https://www.flaticon.com/free-icons/info" title="info icons">Info icons created by Freepik - Flaticon</a>
+
+question mark: <a href="https://www.flaticon.com/free-icons/question" title="question icons">Question icons created by Dave Gandy - Flaticon</a>
+
+light bulb: <a href="https://www.flaticon.com/free-icons/idea" title="idea icons">Idea icons created by Good Ware - Flaticon</a>

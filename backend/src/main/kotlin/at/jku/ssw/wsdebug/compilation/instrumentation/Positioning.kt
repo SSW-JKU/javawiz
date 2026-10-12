@@ -25,11 +25,11 @@ data class Positioning(val lineMap: LineMap, val endPositionTable: EndPosTable) 
         return lineMap.getLineNumber(TreeInfo.getEndPos(element, endPositionTable).toLong()).toInt()
     }
 
-    fun getBeginLineStreamOp(element: JCTree): Int {
+    fun getStreamOperationStartLine(element: JCTree): Int {
         return lineMap.getLineNumber(element.pos.toLong()).toInt() - 1
     }
 
-    fun getBeginColumnStreamOp(element: JCTree): Int {
+    fun getStreamOperationStartColumn(element: JCTree): Int {
         return lineMap.getColumnNumber(element.pos.toLong()).toInt() - 1
     }
 }

@@ -13,5 +13,5 @@ data class TraceState(
     val inputBufferInfo: InputBufferInfo, // info on how far the buffer in the modified In.java class has read
     val stepProcessingTime : Long, // time passed between receiving the step requesst and building the trace state
     val timeSinceLastStep : Long, // milliseconds since last step was processed
-    val streamVizInfo: StreamVisualizationInfo // stream tracer values, i.e., the operations on streams that have been executed
+    val streamVisualizationData: MarbleDiagramDataCollection // runtime stream executions projected into marble-diagram data
 ) : Recordable

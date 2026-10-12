@@ -85,22 +85,22 @@ function isInputFieldOrEditorFocused () {
 
 async function startCompilation () {
   let excludeFromSteppingPatterns
-  let excludeFieldsPatterns
-  let detailedFieldsPatterns
+  let heapTraversalStopPatterns
+  let dataStructurePatterns
   const classContents = Array.from(generalStore.fileManager.fileContents, ([localUri, content]) => ({ localUri, content }))
 
   if (generalStore.vscExtensionMode) {
     // extension version
     const contents = await ExtensionCommunication.sendGetFileContents()
     excludeFromSteppingPatterns = contents.excludeFromSteppingPatterns
-    excludeFieldsPatterns = contents.excludeFieldsPatterns
-    detailedFieldsPatterns = contents.detailedFieldsPatterns
+    heapTraversalStopPatterns = contents.heapTraversalStopPatterns
+    dataStructurePatterns = contents.dataStructurePatterns
     generalStore.openEditorLocalUri = contents.openEditorLocalUri
 
     shared.logDebug(`file contents: ${contents}`)
   }
 
-  generalStore.debugger.startCompilation(classContents, excludeFromSteppingPatterns, excludeFieldsPatterns, detailedFieldsPatterns)
+  generalStore.debugger.startCompilation(classContents, excludeFromSteppingPatterns, heapTraversalStopPatterns, dataStructurePatterns)
 }
 
 function handleKeyboardInput (event: KeyboardEvent) {
