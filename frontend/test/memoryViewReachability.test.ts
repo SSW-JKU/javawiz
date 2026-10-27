@@ -25,16 +25,22 @@ function memoryViewStoreMocks (): Plugin {
   }
 }
 
-test('detailed String fields keep their backing arrays reachable', async () => {
-  const vite = await createServer({
-    plugins: [memoryViewStoreMocks()],
-    server: { middlewareMode: true, hmr: false },
-    appType: 'custom'
+for (const [name, assertion] of [
+  ['detailed String fields keep their backing arrays reachable', 'runMemoryViewReachabilityAssertions'],
+  ['entry parameter defaults preserve identity and user choices', 'runEntryParameterStateAssertions'],
+  ['entry parameter collapse controls heap reachability and DOT edges', 'runEntryParameterReachabilityAssertions']
+]) {
+  test(name, async () => {
+    const vite = await createServer({
+      plugins: [memoryViewStoreMocks()],
+      server: { middlewareMode: true, hmr: false },
+      appType: 'custom'
+    })
+    try {
+      const module = await vite.ssrLoadModule('/test/memoryViewReachability.testSupport.ts')
+      await module[assertion](assert)
+    } finally {
+      await vite.close()
+    }
   })
-  try {
-    const module = await vite.ssrLoadModule('/test/memoryViewReachability.testSupport.ts')
-    await module.runMemoryViewReachabilityAssertions(assert)
-  } finally {
-    await vite.close()
-  }
-})
+}

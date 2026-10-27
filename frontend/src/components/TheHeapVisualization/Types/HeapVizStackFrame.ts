@@ -34,6 +34,16 @@ export class HeapVizStackFrame extends HeapVizElement<StackFrame> {
     this.signature = model.signature;
     this.genericSignature = model.genericSignature;
     this.localVariables = model.localVariables?.map(v => new HeapVizVar(v, stackLocalIdentifier(stackFrameNr, v), renderContext));
+    if (stackFrameNr === 0 && model.method === 'main' && model.signature === '([Ljava/lang/String;)V' && !model.this) {
+      // The JVM descriptor identifies main(String[]); the backend's display signature
+      // supplies its parameter name, so unrelated locals named args stay expanded.
+      const parameterName = /^void main \(String\[\] ([^\s()]+)\)$/.exec(model.displaySignature)?.[1]
+      const parameter = this.localVariables.find(v => v.name === parameterName && v.varType === 'java.lang.String[]')
+      if (parameter && !this.heapVizMetaStore.isIdentifierInMap(parameter.identifier)) {
+        // Initialize once: reconstructing frames while stepping must preserve user choices.
+        this.heapVizMetaStore.setExpandedIdentifier({ identifier: parameter.identifier, e: false })
+      }
+    }
     this.displayText = model.displayText;
     this.internal = model.internal;
 

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.3.1] (released on 2026-10-27)
+* JW-260: collapse args in heap by default
+* JW-539: Rename PUBLISH_TOKEN environment variable to INTELLIJ_PUBLISH_TOKEN
+* JW-629: Configure Chrome DevTools MCP to launch installed Chromium
+* JW-634: Install missing GitHub CLI automatically before publishing
+* JW-635: Write publishing and website news instructions in plain language
+* JW-636: Install missing release prerequisites automatically
+* JW-638: JDK 27: Class com.sun.tools.javac.tree.JCTree$JCCompilationUnit does not have member field 'com.sun.tools.javac.tree.EndPosTable endPositions'
+* JW-639: Bug Report: Problems with combination "IntelliJ Plugin + Java 27"
+* JW-642: Bug report: JavaWiz fails with missing javac endPositions field
+
 [2.3.0] (released on 2026-10-12)
 * JW-40: Make build and release scripts OS-independent
 * JW-217: Add titles (tooltips) to visualization buttons (zoom in, zoom out, etc.)
@@ -81,6 +92,7 @@ All notable changes to this project will be documented in this file.
 * JW-626: Move common HeapView node rendering into HeapVizHeapItem
 * JW-627: Add jw-review skill for auditing completed implementations
 * JW-630: Add JavaWiz 2.3.0 release news article
+* JW-631: Release JavaWiz 2.3.0 from Ubuntu
 * JW-632: Avoid template size limit when packaging IntelliJ release notes
 * JW-633: Remove stale bundled assets when rebuilding IDE integrations
 

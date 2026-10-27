@@ -4,8 +4,8 @@ package at.jku.ssw.wsdebug.compilation.instrumentation
 import com.sun.tools.javac.tree.JCTree
 import com.sun.tools.javac.tree.TreeScanner
 
-fun generateConditions(tree: JCTree.JCCompilationUnit): List<Condition> {
-    val visitor = ConditionVisitor(Positioning(tree))
+fun generateConditions(tree: JCTree.JCCompilationUnit, positioning: Positioning): List<Condition> {
+    val visitor = ConditionVisitor(positioning)
     tree.accept(visitor)
     return visitor.getConditions()
 }

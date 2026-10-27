@@ -172,7 +172,10 @@ private fun handleCompileRequest(request: Compile): Response {
         val callFixup = CallFixup()
         val operationIdAllocator = OperationIdAllocator()
         timing.openBlock("instrumentation")
-        val parseInfos = compilationUnits.mapNotNull { modifyAndComputeParseInfos(it, callFixup, timing, operationIdAllocator) }
+        val sourcePositions = treesInstance.sourcePositions
+        val parseInfos = compilationUnits.mapNotNull {
+            modifyAndComputeParseInfos(it, callFixup, timing, sourcePositions, operationIdAllocator)
+        }
         val totalConditions = parseInfos.sumOf { it.conditions.size }
         val totalArrayAccesses = parseInfos.sumOf { it.arrayAccesses.size }
         timing.closeBlock("(${compilationUnits.size} user + ${internalCompilationUnits.size} internal files) | $totalConditions conditions, $totalArrayAccesses array accesses")

@@ -1,28 +1,33 @@
 @file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")
 package at.jku.ssw.wsdebug.compilation.instrumentation
 
-import com.sun.source.tree.LineMap
-import com.sun.tools.javac.tree.EndPosTable
+import com.sun.source.tree.CompilationUnitTree
+import com.sun.source.util.SourcePositions
 import com.sun.tools.javac.tree.JCTree
-import com.sun.tools.javac.tree.TreeInfo
 
-data class Positioning(val lineMap: LineMap, val endPositionTable: EndPosTable) {
-    constructor(tree: JCTree.JCCompilationUnit) : this(tree.lineMap, tree.endPositions) {
-    }
+/**
+ * Converts source offsets to line/column coordinates for one parsed compilation unit.
+ * Source ranges are one-based with exclusive ends; stream anchors are zero-based.
+ * Supply positions from the task that parsed the unit: `Positioning(unit, Trees.instance(task).sourcePositions)`.
+ * The public compiler API hides javac's changing end-position storage, allowing the same build to run on JDK 25–27.
+ */
+class Positioning(private val tree: CompilationUnitTree, private val sourcePositions: SourcePositions) {
+    private val lineMap = tree.lineMap
+
     fun getBeginLine(element: JCTree): Int {
-        return lineMap.getLineNumber(TreeInfo.getStartPos(element).toLong()).toInt()
+        return lineMap.getLineNumber(sourcePositions.getStartPosition(tree, element)).toInt()
     }
 
     fun getBeginColumn(element: JCTree): Int {
-        return lineMap.getColumnNumber(TreeInfo.getStartPos(element).toLong()).toInt()
+        return lineMap.getColumnNumber(sourcePositions.getStartPosition(tree, element)).toInt()
     }
 
     fun getEndColumn(element: JCTree): Int {
-        return lineMap.getColumnNumber(TreeInfo.getEndPos(element, endPositionTable).toLong()).toInt()
+        return lineMap.getColumnNumber(sourcePositions.getEndPosition(tree, element)).toInt()
     }
 
     fun getEndLine(element: JCTree): Int {
-        return lineMap.getLineNumber(TreeInfo.getEndPos(element, endPositionTable).toLong()).toInt()
+        return lineMap.getLineNumber(sourcePositions.getEndPosition(tree, element)).toInt()
     }
 
     fun getStreamOperationStartLine(element: JCTree): Int {

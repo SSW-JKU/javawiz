@@ -38,12 +38,13 @@ jobs:
           # The build does not need Git credentials after checkout.
           persist-credentials: false
 
-      # JavaWiz supports JDK 25 and 26, so both must be available to the Gradle test tasks.
+      # Test JDK 25–27, keeping 25 last so it remains the build toolchain.
       - name: Set up JDKs
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
+            27
             26
             25
 

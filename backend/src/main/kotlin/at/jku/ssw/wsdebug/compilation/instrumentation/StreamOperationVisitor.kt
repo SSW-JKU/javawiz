@@ -10,10 +10,11 @@ import com.sun.tools.javac.tree.TreeScanner
 /** Collects independent stream-operation instrumentation sites in source order. */
 fun collectStreamOperationInstrumentationInfos(
     tree: JCTree.JCCompilationUnit,
+    positioning: Positioning,
     operationIdAllocator: OperationIdAllocator = OperationIdAllocator()
 ): List<StreamOperationInstrumentationInfo> {
     // 1. Attribute the complete compilation unit before inspecting stream types and positions.
-    val visitor = StreamOperationVisitor(Positioning(tree), operationIdAllocator)
+    val visitor = StreamOperationVisitor(positioning, operationIdAllocator)
     // 2. Visit every method invocation, including invocations nested in lambdas and callbacks.
     tree.accept(visitor)
     // 3. Return independent operation records; runtime executions are created later by START events.

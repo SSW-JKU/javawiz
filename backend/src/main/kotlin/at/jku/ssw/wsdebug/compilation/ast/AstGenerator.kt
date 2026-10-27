@@ -9,8 +9,8 @@ import com.sun.tools.javac.tree.JCTree
 
 val CONSTRUCTOR_NAME = "<init>"
 
-fun generateAst(tree: JCTree.JCCompilationUnit, callFixup: CallFixup): AbstractSyntaxTree {
-    val astFile = AstGenerator(Positioning(tree.lineMap, tree.endPositions), callFixup).generateAstFile(tree)
+fun generateAst(tree: JCTree.JCCompilationUnit, callFixup: CallFixup, positioning: Positioning): AbstractSyntaxTree {
+    val astFile = AstGenerator(positioning, callFixup).generateAstFile(tree)
     return AbstractSyntaxTree(astFile, tree.sourceFile.name)
 }
 

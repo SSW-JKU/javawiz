@@ -3,6 +3,7 @@
 package at.jku.ssw.wsdebug.compilation.instrumentation
 
 import com.sun.source.util.JavacTask
+import com.sun.source.util.Trees
 import com.sun.tools.javac.tree.JCTree
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -305,7 +306,7 @@ class StreamOperationInstrumentationTest {
         val task = compiler.getTask(null, null, null, listOf("-proc:none"), null, listOf(sourceFile)) as JavacTask
         val tree = task.parse().single() as JCTree.JCCompilationUnit
         task.analyze()
-        return collectStreamOperationInstrumentationInfos(tree)
+        return collectStreamOperationInstrumentationInfos(tree, Positioning(tree, Trees.instance(task).sourcePositions))
     }
 
     private fun instrument(source: String): String {

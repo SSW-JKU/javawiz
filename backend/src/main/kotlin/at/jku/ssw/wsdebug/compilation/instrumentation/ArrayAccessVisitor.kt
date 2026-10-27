@@ -6,8 +6,8 @@ import com.sun.tools.javac.tree.JCTree
 import com.sun.tools.javac.tree.TreeScanner
 import java.util.*
 
-fun generateArrayAccessInfo(tree: JCTree.JCCompilationUnit): Pair<List<ArrayAccess>, List<IndexWrapper>> {
-    val visitor = ArrayAccessVisitor(Positioning(tree))
+fun generateArrayAccessInfo(tree: JCTree.JCCompilationUnit, positioning: Positioning): Pair<List<ArrayAccess>, List<IndexWrapper>> {
+    val visitor = ArrayAccessVisitor(positioning)
     tree.accept(visitor)
     return Pair(visitor.getArrayAccessValues(), visitor.getIndexWrappers())
 }

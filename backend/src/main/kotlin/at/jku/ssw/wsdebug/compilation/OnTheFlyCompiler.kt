@@ -8,6 +8,7 @@ import at.jku.ssw.wsdebug.compilation.ast.AbstractSyntaxTree
 import at.jku.ssw.wsdebug.compilation.ast.CallFixup
 import at.jku.ssw.wsdebug.compilation.ast.generateAst
 import at.jku.ssw.wsdebug.compilation.instrumentation.*
+import com.sun.source.util.SourcePositions
 import com.sun.tools.javac.tree.JCTree
 import java.io.File
 import java.io.StringWriter
@@ -123,30 +124,32 @@ fun modifyAndComputeParseInfos(
     tree: JCTree.JCCompilationUnit,
     callFixup: CallFixup,
     timing: CompileTimingReport,
+    sourcePositions: SourcePositions,
     operationIdAllocator: OperationIdAllocator = OperationIdAllocator()
 ): ParseInfo? {
     val label = tree.sourceFile.name.substringAfterLast('/')
     timing.openBlock("$label total")
     try {
+        val positioning = Positioning(tree, sourcePositions)
         val t0 = timing.now()
         val packageDot = if (tree.packageName == null) "" else (tree.packageName.toString() + ".")
         val typeNames = tree.typeDecls.filterIsInstance<JCTree.JCClassDecl>().flatMap { getTypeNames(packageDot, it) }
         timing.add("collectTypeNames: ${timing.elapsed(t0)}ms (${typeNames.size} classes)")
 
         val t1 = timing.now()
-        val ast = generateAst(tree, callFixup)
+        val ast = generateAst(tree, callFixup, positioning)
         timing.add("generateAst: ${timing.elapsed(t1)}ms (${typeNames.size} classes)")
 
         val t2 = timing.now()
-        val conditions = generateConditions(tree)
+        val conditions = generateConditions(tree, positioning)
         timing.add("generateConditions: ${timing.elapsed(t2)}ms (${conditions.size} conditions)")
 
         val t3 = timing.now()
-        val (arrayAccesses, indexWrappers) = generateArrayAccessInfo(tree)
+        val (arrayAccesses, indexWrappers) = generateArrayAccessInfo(tree, positioning)
         timing.add("generateArrayAccessInfo: ${timing.elapsed(t3)}ms (${arrayAccesses.size} accesses, ${indexWrappers.size} wrappers)")
 
         val t4 = timing.now()
-        val streamOperationInstrumentationInfos = collectStreamOperationInstrumentationInfos(tree, operationIdAllocator)
+        val streamOperationInstrumentationInfos = collectStreamOperationInstrumentationInfos(tree, positioning, operationIdAllocator)
         timing.add("collectStreamOperationInstrumentationInfos: ${timing.elapsed(t4)}ms (${streamOperationInstrumentationInfos.size} stream ops)")
 
         val t5 = timing.now()
