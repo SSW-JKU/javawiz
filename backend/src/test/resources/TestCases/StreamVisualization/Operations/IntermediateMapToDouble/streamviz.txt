@@ -1,0 +1,38 @@
+stream 1
+  lanes
+    of | int |
+    mapToDouble | int | (n)->n / 2.0
+    forEach | void | System.out::println
+  playback
+    step 1: of@1 START int "1"
+    step 2: mapToDouble@1 OUT double "0.5"
+    step 3: forEach@1 END void "forEach"
+    step 4: of@2 START int "2"
+    step 5: mapToDouble@2 OUT double "1.0"
+    step 6: forEach@2 END void "forEach"
+    step 7: of@3 START int "3"
+    step 8: mapToDouble@3 OUT double "1.5"
+    step 9: forEach@3 END void "forEach"
+    link from step 2: of@1 -> mapToDouble@1
+    link from step 3: mapToDouble@1 -> forEach@1
+    link from step 5: of@2 -> mapToDouble@2
+    link from step 6: mapToDouble@1 -> forEach@2
+    link from step 6: mapToDouble@2 -> forEach@2
+    link from step 8: of@3 -> mapToDouble@3
+    link from step 9: mapToDouble@1 -> forEach@3
+    link from step 9: mapToDouble@2 -> forEach@3
+    link from step 9: mapToDouble@3 -> forEach@3
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    of@3 START int "3"
+    mapToDouble@1 OUT double "0.5"
+    mapToDouble@2 OUT double "1.0"
+    mapToDouble@3 OUT double "1.5"
+    forEach@3 END void "forEach"
+    link of@1 -> mapToDouble@1
+    link mapToDouble@1 -> forEach@3
+    link of@2 -> mapToDouble@2
+    link mapToDouble@2 -> forEach@3
+    link of@3 -> mapToDouble@3
+    link mapToDouble@3 -> forEach@3

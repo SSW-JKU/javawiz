@@ -1,6 +1,8 @@
 package at.jku.ssw.wsdebug.debugger.vm.jdi
 
+import at.jku.ssw.wsdebug.compilation.JAVAWIZ_STANDARD_INPUT_FIELD
 import at.jku.ssw.wsdebug.debugger.recording.*
+import at.jku.ssw.wsdebug.debugger.recording.stream.*
 import at.jku.ssw.wsdebug.outerClassMatchesOuterClassPattern
 import com.sun.jdi.AbsentInformationException
 import com.sun.jdi.Method
@@ -59,7 +61,8 @@ fun buildTraceState(
                 if (classification.hasCollectedFields) {
                     clazz
                         .allFields()
-                        .filter { it.isStatic && !it.isSynthetic }
+                        // The standard input field belongs to JavaWiz's instrumentation, not to the user's program.
+                        .filter { field -> field.isStatic && !field.isSynthetic && field.name() != JAVAWIZ_STANDARD_INPUT_FIELD }
                         .map { field -> createVar(field, heap, classesWithCollectedFields) }
                 } else {
                     emptyList()

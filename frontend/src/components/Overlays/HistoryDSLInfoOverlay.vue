@@ -122,12 +122,12 @@ table {
 th,
 td {
   padding: 7px 9px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--jw-light-medium-gray);
   vertical-align: top;
 }
 
 th {
-  background: #eef3f8;
+  background: var(--jw-light-gray);
   white-space: nowrap;
 }
 
@@ -142,7 +142,7 @@ code {
 
 .type-note {
   margin: 10px 0 0;
-  color: #555;
+  color: var(--jw-dark-gray);
   font-size: 12px;
 }
 </style>

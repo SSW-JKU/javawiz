@@ -5,12 +5,12 @@ import at.jku.ssw.wsdebug.debugger.recording.HeapArray
 import at.jku.ssw.wsdebug.debugger.recording.HeapObject
 import at.jku.ssw.wsdebug.debugger.recording.HeapString
 import at.jku.ssw.wsdebug.debugger.recording.InputBufferInfo
-import at.jku.ssw.wsdebug.debugger.recording.MarbleDiagramDataCollection
 import at.jku.ssw.wsdebug.debugger.recording.ReferenceVal
 import at.jku.ssw.wsdebug.debugger.recording.StackFrame
 import at.jku.ssw.wsdebug.debugger.recording.StepResult
 import at.jku.ssw.wsdebug.debugger.recording.TraceState
 import at.jku.ssw.wsdebug.debugger.recording.Var
+import at.jku.ssw.wsdebug.debugger.recording.stream.MarbleDiagramDataCollection
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

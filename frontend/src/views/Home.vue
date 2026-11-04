@@ -49,6 +49,7 @@ import { Pane, Splitpanes } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import * as d3 from 'd3'
 import { ExtensionCommunication } from '@/helpers/ExtensionCommunication'
+import { parsePortParameter } from '@/helpers/portParameter'
 import { onMounted, ref } from 'vue'
 import shared from '@Shared/Shared'
 import {
@@ -161,10 +162,30 @@ async function connect () {
 
 const route = useRoute()
 
+// Reads a port from the URL query, e.g. ?backendPort=51235, and warns about invalid values.
+function readPortParameter (name: string): number | undefined {
+  const value = route.query[name]
+  const port = parsePortParameter(value)
+  if (value !== undefined && port === undefined) {
+    console.warn(`Ignoring invalid ${name} "${String(value)}".`)
+  }
+  return port
+}
+
 onMounted(async () => {
+  // The IDE integrations always pass backendPort; developers may pass it to use a second local backend.
+  const backendPort = readPortParameter('backendPort')
+  if (backendPort !== undefined) {
+    generalStore.debugger.setPort(backendPort)
+  }
+
   if (route.name === 'Extension') {
-    vscCommunicationPort.value = parseInt(String(route.params.vscExtensionPort))
-    generalStore.debugger.setPort(parseInt(String(route.params.debuggerPort)))
+    const pluginPort = readPortParameter('pluginPort')
+    if (pluginPort === undefined || backendPort === undefined) {
+      console.error('Extension mode needs valid pluginPort and backendPort URL parameters.')
+      return
+    }
+    vscCommunicationPort.value = pluginPort
     generalStore.vscExtensionMode = true
     visualizationStore.hideEditor()
     visualizationStore.hideConsole()
@@ -265,7 +286,7 @@ body {
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
-  color: #212529;
+  color: var(--jw-dark-gray);
   overflow: hidden;
 }
 
@@ -273,9 +294,9 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  border-left: 4px solid #163150;
-  border-right: 4px solid #163150;
-  border-bottom: 4px solid #163150;
+  border-left: 4px solid var(--jw-primary-blue);
+  border-right: 4px solid var(--jw-primary-blue);
+  border-bottom: 4px solid var(--jw-primary-blue);
 }
 
 a {
@@ -301,8 +322,8 @@ a {
 }
 
 .btn-primary {
-  background-color: #007bff;
-  border-color: #007bff;
+  background-color: var(--jw-action-blue);
+  border-color: var(--jw-action-blue);
   color: #fff;
 }
 
@@ -353,7 +374,7 @@ a {
 
 .divider {
   height: 1px;
-  border-bottom: 1px dashed grey;
+  border-bottom: 1px dashed var(--jw-light-medium-gray);
   margin-top: 10px;
 }
 
@@ -369,12 +390,12 @@ a {
 
 .splitpanes--vertical > .splitpanes__splitter {
   min-width: 8px;
-  background-color: #163150;
+  background-color: var(--jw-primary-blue);
 }
 
 .splitpanes--horizontal > .splitpanes__splitter {
   min-height: 8px;
-  background-color: #163150;
+  background-color: var(--jw-primary-blue);
 }
 
 #desktest-pane {

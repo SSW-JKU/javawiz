@@ -1,0 +1,1 @@
+IntSummaryStatistics{count=4, sum=20, min=2, average=5.000000, max=8}

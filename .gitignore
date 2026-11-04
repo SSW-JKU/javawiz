@@ -171,3 +171,7 @@ intellij-plugin/src/main/resources/Backend/
 
 # IDE-generated source mirror — IntelliJ copies sources here; never commit
 intellij-plugin/bin/
+
+### Python ###
+__pycache__/
+*.py[cod]

@@ -1,4 +1,5 @@
 import { ProcessedHeapObject } from '@/dto/TraceState'
+import { colors } from '@/helpers/colors'
 import { shouldShowObjectFields } from '../DataStructureVisibility'
 import {
   CHANGED_VAR_COLOR,
@@ -60,7 +61,7 @@ export class HeapVizHeapObject extends HeapVizHeapItem<ProcessedHeapObject> {
     let dotString = this.renderMemoryHeaderRow()
 
     if (!this.fieldsAreVisible) {
-      dotString += `<tr><td colspan="5" width="${MIN_WIDTH}"><font color="gray"><i>fields hidden</i></font></td></tr>`
+      dotString += `<tr><td colspan="5" width="${MIN_WIDTH}"><font color="${colors.mediumGray}"><i>fields hidden</i></font></td></tr>`
       return dotString + this.renderMemoryTotalRow(this.getUnalignedBytes())
     }
 

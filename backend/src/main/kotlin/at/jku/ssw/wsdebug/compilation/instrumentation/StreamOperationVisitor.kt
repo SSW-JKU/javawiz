@@ -5,6 +5,7 @@ package at.jku.ssw.wsdebug.compilation.instrumentation
 import at.jku.ssw.wsdebug.OperationIdAllocator
 import com.sun.tools.javac.code.Symbol
 import com.sun.tools.javac.tree.JCTree
+import com.sun.tools.javac.tree.TreeInfo
 import com.sun.tools.javac.tree.TreeScanner
 
 /** Collects independent stream-operation instrumentation sites in source order. */
@@ -28,7 +29,7 @@ class StreamOperationVisitor(
     private val statementStack = ArrayDeque<JCTree.JCStatement>()
     // These names are recognized by their attributed return/receiver types, not by variable names.
     private val terminalOperations = setOf(
-        "count", "max", "min", "reduce", "collect", "forEach", "toArray", "toList", "toSet",
+        "count", "max", "min", "reduce", "collect", "forEach", "toArray", "toList",
         "findFirst", "findAny", "anyMatch", "allMatch", "noneMatch", "sum", "average"
     )
     private val startOperations = setOf(
@@ -101,8 +102,10 @@ class StreamOperationVisitor(
             startLine = pos.getStreamOperationStartLine(invocation.args[0])
             startColumn = pos.getBeginColumn(invocation.args[0]) - 1
         }
-        if (description.name == "reduce" && invocation.args.size >= 2) {
-            reductionCastType = invocation.args[1].type.toString()
+        // The accumulator is the second argument of reduce(identity, accumulator[, combiner]) and collect(supplier, accumulator, combiner).
+        if ((description.name == "reduce" && invocation.args.size >= 2) || (description.name == "collect" && invocation.args.size == 3)) {
+            // collect needs no cast: its accumulator wrappers have distinct names, so javac infers their types directly.
+            if (description.name == "reduce") reductionCastType = invocation.args[1].type.toString()
             startLine = pos.getStreamOperationStartLine(invocation.args[1])
             startColumn = pos.getBeginColumn(invocation.args[1]) - 1
             if (invocation.args.size == 3) {
@@ -165,3 +168,37 @@ private data class OperationDescription(
 )
 
 private fun JCTree.JCVariableDecl.isField() = sym?.owner is Symbol.ClassSymbol
+
+/** Zero-based source range of the mapper argument of one `Collectors.flatMapping` call. */
+data class CollectorFlatMappingMapper(val beginLine: Int, val beginColumn: Int, val endLine: Int, val endColumn: Int)
+
+/**
+ * Finds the mapper of every `Collectors.flatMapping(mapper, downstream)` call, also statically imported or nested in
+ * another collector. Instrumentation wraps each mapper so that the streams it returns become child executions of the
+ * calling stream, including empty ones.
+ */
+fun collectCollectorFlatMappingMappers(tree: JCTree.JCCompilationUnit, positioning: Positioning): List<CollectorFlatMappingMapper> {
+    val mappers = mutableListOf<CollectorFlatMappingMapper>()
+    tree.accept(object : TreeScanner() {
+        override fun visitApply(invocation: JCTree.JCMethodInvocation) {
+            // TreeInfo.symbol returns the method that javac resolved for the call. It identifies Collectors.flatMapping
+            // for both `Collectors.flatMapping(...)` and a statically imported `flatMapping(...)`, and ignores
+            // unrelated methods with the same name.
+            val method = TreeInfo.symbol(invocation.meth)
+            if (method?.name?.toString() == "flatMapping" &&
+                method.owner?.qualifiedName?.toString() == "java.util.stream.Collectors" &&
+                invocation.args.isNotEmpty()
+            ) {
+                val mapper = invocation.args[0]
+                mappers += CollectorFlatMappingMapper(
+                    positioning.getBeginLine(mapper) - 1,
+                    positioning.getBeginColumn(mapper) - 1,
+                    positioning.getEndLine(mapper) - 1,
+                    positioning.getEndColumn(mapper) - 1
+                )
+            }
+            super.visitApply(invocation)
+        }
+    })
+    return mappers
+}

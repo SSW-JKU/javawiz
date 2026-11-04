@@ -22,11 +22,17 @@
     </p>
     <ul>
       <li>
-        Herbert Pr&auml;hofer
-      </li>
-
-      <li>
         Markus Weninger
+      </li>
+    </ul>
+    <div class="divider" />
+
+    <p class="heading">
+      Retired Project Leads
+    </p>
+    <ul>
+      <li>
+        Herbert Pr&auml;hofer
       </li>
     </ul>
     <div class="divider" />
@@ -82,7 +88,7 @@ import { useOverlayStore } from '@/store/OverlayStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-10-27-13-35'
+const releaseDate = '2026-11-04-16-44'
 const overlayStore = useOverlayStore()
 
 function hide () {

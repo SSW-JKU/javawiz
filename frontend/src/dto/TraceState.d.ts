@@ -228,6 +228,8 @@ export interface MarbleDiagramData {
 export interface MarbleDiagramMarble {
   readonly kind: 'MarbleDiagramMarble',
   readonly playbackStep: number,
+  // Identifies the marble as "elementId.operationId"; equal for all marbles of one element in one lane.
+  // Links and items refer to marbles by this key and only compare it.
   readonly marbleKey: string,
   readonly x: number,
   readonly y: number,
@@ -236,7 +238,27 @@ export interface MarbleDiagramMarble {
   readonly operationId: number,
   readonly operation: string,
   readonly color: string,
-  readonly eventKind: 'START' | 'IN' | 'OUT' | 'END' | 'REPLAY_LAST_TERMINAL'
+  readonly eventKind: 'START' | 'IN' | 'OUT' | 'END',
+  // Contents of List, Set, and Array marbles (`items`) and Map marbles (`entries`); their label is empty.
+  // A stream element that is an array or a collection, such as `int[]` or a `List`, also lists its elements in `items`
+  // and keeps its text, such as `[1, 2]`, as label.
+  readonly items: MarbleDiagramItem[] | null,
+  readonly entries: MarbleDiagramEntry[] | null
+}
+
+/** A value inside a list or map marble: a link to an element marble, or a plain value of `type`. */
+export interface MarbleDiagramItem {
+  readonly kind: 'MarbleDiagramItem',
+  readonly marbleKey: string | null,
+  readonly type: string | null,
+  readonly value: string | null
+}
+
+/** One map entry: its key as text and its values. A single value is a list with one item. */
+export interface MarbleDiagramEntry {
+  readonly kind: 'MarbleDiagramEntry',
+  readonly key: string,
+  readonly items: MarbleDiagramItem[]
 }
 
 export interface MarbleDiagramLink {

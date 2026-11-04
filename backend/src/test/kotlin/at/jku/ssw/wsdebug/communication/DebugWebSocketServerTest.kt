@@ -9,20 +9,23 @@ import at.jku.ssw.wsdebug.compilation.instrumentation.VariableTarget
 import at.jku.ssw.wsdebug.debugger.MAX_STACK_DEPTH_EXCEEDED_MESSAGE
 import at.jku.ssw.wsdebug.debugger.recording.HeapObject
 import at.jku.ssw.wsdebug.debugger.recording.InputBufferInfo
-import at.jku.ssw.wsdebug.debugger.recording.MarbleDiagramData
 import at.jku.ssw.wsdebug.debugger.recording.TraceState
+import at.jku.ssw.wsdebug.debugger.recording.stream.MarbleDiagramData
 import at.jku.ssw.wsdebug.debugger.vm.VirtualMachine.Companion.INTERNAL_CLASS_PATTERNS
 import at.jku.ssw.wsdebug.outerClassMatchesOuterClassPattern
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Named
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.io.InputStreamReader
 import java.net.InetSocketAddress
 
@@ -53,6 +56,32 @@ internal class DebugWebSocketServerTest {
         val visualizationResult: String,
         val operationLanes: List<String>,
         val expectedReduceMarbles: Int = 1
+    )
+
+    /**
+     * Describes one directory below [STREAM_OPERATIONS]. A case that is not fully supported yet names the issue that
+     * will fix it: [diagramPendingIn] still checks the program output but skips the diagram, and [runPendingIn]
+     * skips the whole case because JavaWiz cannot run the program yet.
+     */
+    internal data class StreamOperationCase(
+        val name: String,
+        val fileName: String = "Main.java",
+        val diagramPendingIn: String? = null,
+        val runPendingIn: String? = null
+    )
+
+    /**
+     * Describes a pipeline over a list of persons whose callback creates its own stream for every call.
+     * [childCount] is `null` when the JDK decides how often the callback runs (sorted comparators); the test then
+     * only requires two children per comparator call.
+     */
+    internal data class CallbackStreamCase(
+        val name: String,
+        val pipeline: String,
+        val output: String,
+        val outerLanes: List<String>,
+        val childLanes: List<String>,
+        val childCount: Int?
     )
 
     internal enum class ReceiverKind {
@@ -94,6 +123,63 @@ internal class DebugWebSocketServerTest {
                 }
             }
         }
+
+        const val STREAM_OPERATIONS = "$STREAM_VISUALIZATION/Operations"
+
+        /**
+         * Lists the per-operation StreamViz cases: the JW-662 issue example, every intermediate operation, every terminal
+         * operation, and every collector. `Named` gives each case a readable test name instead of its data-class text.
+         */
+        @JvmStatic
+        fun streamOperationCases(): List<Arguments> = (
+            listOf(StreamOperationCase("IssueFilterMapForEach", fileName = "HelloWorld.java")) +
+                listOf(
+                    "Filter", "Map", "MapToInt", "MapToLong", "MapToDouble", "MapToObj", "Boxed", "FlatMap",
+                    "Distinct", "Sorted", "Limit", "Skip", "Peek", "TakeWhile", "DropWhile", "MapToArray", "MapToCollection"
+                ).map { StreamOperationCase("Intermediate$it") } +
+                listOf(
+                    "ForEach", "EmptyForEach", "Count", "Max", "Min", "Reduce", "ToArray", "ToList",
+                    "FindFirst", "FindAny", "AnyMatch", "AllMatch", "NoneMatch", "Sum", "Average"
+                ).map { StreamOperationCase("Terminal$it") } +
+                listOf(
+                    "ToList", "ToUnmodifiableList", "ToSet", "ToUnmodifiableSet", "ToCollection", "ToMap", "ToUnmodifiableMap",
+                    "ToConcurrentMap", "GroupingBy", "GroupingByConcurrent", "PartitioningBy", "Joining", "JoiningWithoutDelimiter",
+                    "Counting", "SummingInt", "SummingLong", "SummingDouble", "AveragingInt", "AveragingLong", "AveragingDouble",
+                    "SummarizingInt", "SummarizingLong", "SummarizingDouble", "Reducing", "MinBy", "MaxBy", "CollectingAndThen",
+                    "CollectingAndThenToList", "Teeing", "Mapping", "Filtering", "SupplierAccumulatorCombiner",
+                    "IntStreamSupplierAccumulatorCombiner",
+                    "LongStreamSupplierAccumulatorCombiner", "DoubleStreamSupplierAccumulatorCombiner", "FlatMapping"
+                ).map { StreamOperationCase("TerminalCollect$it") }
+            ).map { Arguments.of(Named.of(it.name, it)) }
+
+        /** Lists pipelines whose sorted comparator, filter predicate, or map function creates and consumes a stream. */
+        @JvmStatic
+        fun callbackStreamCases(): List<Arguments> = listOf(
+            CallbackStreamCase(
+                name = "sorted comparator",
+                pipeline = ".sorted((a, b) -> a.grades().stream().mapToInt(g -> g).sum() - b.grades().stream().mapToInt(g -> g).sum()).map(Person::name)",
+                output = "[Ben, Anna, Cleo]",
+                outerLanes = listOf("stream", "sorted", "map", "toList"),
+                childLanes = listOf("stream", "mapToInt", "sum"),
+                childCount = null
+            ),
+            CallbackStreamCase(
+                name = "filter predicate",
+                pipeline = ".filter(p -> p.grades().stream().anyMatch(g -> g == 1)).map(Person::name)",
+                output = "[Anna, Ben]",
+                outerLanes = listOf("stream", "filter", "map", "toList"),
+                childLanes = listOf("stream", "anyMatch"),
+                childCount = 3
+            ),
+            CallbackStreamCase(
+                name = "map function",
+                pipeline = ".map(p -> p.grades().stream().mapToInt(g -> g).sum())",
+                output = "[4, 2, 6]",
+                outerLanes = listOf("stream", "map", "toList"),
+                childLanes = listOf("stream", "mapToInt", "sum"),
+                childCount = 3
+            )
+        ).map { Arguments.of(Named.of(it.name, it)) }
 
         /** Supplies empty, filtered, singleton, and ordinary reduce cases for backend integration tests. */
         @JvmStatic
@@ -1411,6 +1497,87 @@ internal class DebugWebSocketServerTest {
         }
     }
 
+    // JW-675: a program that is silent for a second is not necessarily waiting for input. On JDK 27, the first
+    // locale-dependent format runs for seconds under the debugger; a sleep is silent on every JDK.
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun runToEndThroughFirstFormat(testFlags: TestFlags) {
+        assertRunsToEndWithoutInputWait("$INPUT/FirstFormat", "FirstFormat.java", "5.000000")
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun runToEndThroughLongCall(testFlags: TestFlags) {
+        assertRunsToEndWithoutInputWait("$INPUT/LongCall", "LongCall.java", "after sleep")
+    }
+
+    private fun assertRunsToEndWithoutInputWait(directoryPath: String, className: String, expectedOutput: String) {
+        requestCompile(listOf(createFilePathAndContent(directoryPath, className)))
+
+        val result = (request(RunToEnd()) as StepResultResponse).data
+
+        assertFalse(result.isWaitingForInput) { "a program that does not read input was reported as waiting for input" }
+        assertFalse(result.isVMRunning)
+        assertTrue(result.traceStates.joinToString("") { it.output }.contains(expectedOutput)) {
+            "output does not contain '$expectedOutput'"
+        }
+    }
+
+    // JW-675: JavaWiz must wrap System.in before user fields capture it, or real input waits go unnoticed. The time
+    // limit catches a read that bypasses the wrapper, which would only be reported after 10 s, as unresponsive.
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun staticScannerFieldInput(testFlags: TestFlags) {
+        assertInputWaitThroughField("$INPUT/StaticScannerField", "StaticScannerField.java", "StaticScannerField")
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun compactSourceFieldInput(testFlags: TestFlags) {
+        assertInputWaitThroughField("$INPUT/CompactSourceField", "CompactSourceField.java", "CompactSourceField")
+    }
+
+    private fun assertInputWaitThroughField(directoryPath: String, className: String, mainClass: String) {
+        requestCompile(listOf(createFilePathAndContent(directoryPath, className)))
+
+        val start = System.currentTimeMillis()
+        val runResult = (request(RunToEnd()) as StepResultResponse).data
+        val elapsed = System.currentTimeMillis() - start
+
+        assertTrue(runResult.isWaitingForInput) { "the read through the field was not reported as an input wait" }
+        assertTrue(elapsed < 5000) { "the input wait was reported only after ${elapsed}ms" }
+
+        val inputResult = (request(Input("7")) as InputResponse).data
+        assertNotNull(inputResult)
+        val traceStates = runResult.traceStates + inputResult!!.traceStates
+        assertTrue(traceStates.joinToString("") { it.output }.contains("read 7"))
+        // The field that installs the input tracker belongs to JavaWiz and must not appear in the memory view.
+        traceStates.flatMap { it.loadedClasses }.filter { it.`class` == mainClass }.forEach { loadedClass ->
+            assertTrue(loadedClass.staticFields.none { it.name.startsWith("\$javaWiz") }) {
+                "JavaWiz's own field is visible in $mainClass: ${loadedClass.staticFields.map { it.name }}"
+            }
+        }
+    }
+
+    // JW-675: a program that is silent for longer than 10 s without reading input is reported as unresponsive, not as
+    // waiting for input. A further step keeps waiting and then continues the program. Not parameterized, because each
+    // run takes about 12 s. The flag is read from the JSON that the frontend receives.
+    @Test
+    fun unresponsiveProgramCanContinue() {
+        requestCompile(listOf(createFilePathAndContent("$INPUT/UnresponsiveCall", "UnresponsiveCall.java")))
+
+        val firstResponse = request(RunToEnd()) as StepResultResponse
+        val firstJson = jacksonObjectMapper().valueToTree<JsonNode>(firstResponse.data)
+        assertTrue(firstJson.path("isUnresponsive").asBoolean(false)) { "not reported as unresponsive: $firstJson" }
+        assertFalse(firstResponse.data.isWaitingForInput)
+        assertTrue(firstResponse.data.isVMRunning)
+
+        val secondResponse = request(RunToEnd()) as StepResultResponse
+        assertFalse(secondResponse.data.isVMRunning)
+        val traceStates = firstResponse.data.traceStates + secondResponse.data.traceStates
+        assertTrue(traceStates.joinToString("") { it.output }.contains("after long sleep"))
+    }
+
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun runToEndWithEarlyInput(testFlags: TestFlags) {
@@ -2503,13 +2670,7 @@ internal class DebugWebSocketServerTest {
         }
     }
 
-    /**
-     * Documents the missing generalized child boundary for streams created by callbacks.
-     * This currently fails when enabled because the comparator stream is not reliably attached
-     * to the enclosing sorted execution; future work must propagate an explicit callback-child
-     * parent context and restore it when the callback's terminal operation completes.
-     */
-    @Disabled("Pending generalized callback-created stream execution nesting")
+    /** A stream created inside a sorted comparator is a child of the sorted stream, not part of it. */
     @Test
     fun testStreamCreatedInsideSortedComparatorGetsChildExecution() {
         val source = """
@@ -2530,9 +2691,155 @@ internal class DebugWebSocketServerTest {
 
         assertOutputEquals(trace, "a\n")
         val streams = trace.last().streamVisualizationData.streams
-        val parent = streams.single { it.operationLanes.values.any { lane -> lane.operation == "findFirst" } }
-        val child = streams.single { it.parentStreamId == parent.id }
-        assertTrue(child.operationLanes.values.any { it.operation == "count" })
+        val parent = streams.single { it.parentStreamId == null }
+        assertEquals(listOf("of", "sorted", "findFirst"), parent.operationLanes.values.map { it.operation })
+        // Sorting three elements calls the comparator at least twice, and every call creates its own stream.
+        val children = streams.filter { it !== parent }
+        assertTrue(children.size >= 2) { "one child per comparator call, got ${children.size}" }
+        children.forEach { child ->
+            assertEquals(parent.id, child.parentStreamId)
+            assertTrue(child.operationLanes.values.any { it.operation == "count" })
+        }
+    }
+
+    /**
+     * An inner stream over an empty list never produces an element, but its terminal operation still gets its own
+     * child execution instead of ending the calling stream.
+     */
+    @Test
+    fun testEmptyStreamInCallbackGetsChildExecution() {
+        val source = """
+            import java.util.List;
+
+            public class Main {
+                record Person(String name, List<Integer> grades) {}
+
+                public static void main(String[] args) {
+                    List<Person> persons = List.of(new Person("Anna", List.of(3, 1)), new Person("Dora", List.of()));
+                    var result = persons.stream().filter(p -> p.grades().stream().anyMatch(g -> g == 1)).map(Person::name).toList();
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "[Anna]\n")
+        assertErrorEquals(trace, "")
+        val streams = trace.last().streamVisualizationData.streams
+        val outer = streams.single { it.parentStreamId == null }
+        assertEquals(listOf("stream", "filter", "map", "toList"), outer.operationLanes.values.map { it.operation })
+        val children = streams.filter { it.parentStreamId == outer.id }
+        assertEquals(
+            listOf(listOf("stream", "anyMatch"), listOf("anyMatch")),
+            children.map { child -> child.operationLanes.values.map { it.operation } }
+        )
+        assertEquals("false", children.last().marbles.single().label)
+    }
+
+    /** Streams returned by a Collectors.flatMapping mapper are children of the calling stream, also when they are empty. */
+    @Test
+    fun testEmptyFlatMappingStreamsRemainVisible() {
+        val source = """
+            import java.util.stream.Collectors;
+            import java.util.stream.Stream;
+
+            public class Main {
+                public static void main(String[] args) {
+                    var result = Stream.of(1, 2, 3, 4)
+                            .collect(Collectors.flatMapping(n -> n % 2 == 0 ? Stream.<Integer>empty() : Stream.of(n, -n), Collectors.toList()));
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "[1, -1, 3, -3]\n")
+        assertErrorEquals(trace, "")
+        val streams = trace.last().streamVisualizationData.streams
+        val outer = streams.single { it.parentStreamId == null }
+        assertEquals(listOf("of", "collect"), outer.operationLanes.values.map { it.operation })
+        val children = streams.filter { it.parentStreamId == outer.id }
+        assertEquals(
+            listOf(listOf("of"), emptyList(), listOf("of"), emptyList()),
+            children.map { child -> child.operationLanes.values.map { it.operation } }
+        )
+        assertEquals(listOf(2, 0, 2, 0), children.map { it.marbles.size })
+    }
+
+    /** A flatMapping mapper may return null, which Java treats as an empty stream; the program must still run. */
+    @Test
+    fun testFlatMappingInGroupingByWithNullResult() {
+        val source = """
+            import java.util.List;
+            import java.util.TreeMap;
+            import static java.util.stream.Collectors.flatMapping;
+            import static java.util.stream.Collectors.groupingBy;
+            import static java.util.stream.Collectors.toList;
+
+            public class Main {
+                record Person(String name, List<Integer> grades) {}
+
+                public static void main(String[] args) {
+                    List<Person> persons = List.of(new Person("Anna", List.of(3, 1)), new Person("Dora", List.of()));
+                    var result = persons.stream()
+                            .collect(groupingBy(Person::name, TreeMap::new, flatMapping(p -> p.grades().isEmpty() ? null : p.grades().stream(), toList())));
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "{Anna=[3, 1], Dora=[]}\n")
+        assertErrorEquals(trace, "")
+        val streams = trace.last().streamVisualizationData.streams
+        val outer = streams.single { it.parentStreamId == null }
+        assertEquals(listOf("stream", "collect"), outer.operationLanes.values.map { it.operation })
+    }
+
+    /**
+     * Streams that a callback creates and finishes with a terminal operation become children of the calling stream.
+     * The calling stream stays one diagram with only its own lanes and ends with its own terminal result.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("callbackStreamCases")
+    fun testStreamsCreatedInCallbacksBecomeChildExecutions(case: CallbackStreamCase) {
+        val source = """
+            import java.util.List;
+
+            public class Main {
+                record Person(String name, List<Integer> grades) {}
+
+                public static void main(String[] args) {
+                    List<Person> persons = List.of(new Person("Anna", List.of(3, 1)), new Person("Ben", List.of(1, 1)), new Person("Cleo", List.of(2, 2, 2)));
+                    var result = persons.stream()${case.pipeline}.toList();
+                    System.out.println(result);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "${case.output}\n")
+        assertErrorEquals(trace, "")
+        val streams = trace.last().streamVisualizationData.streams
+        val outer = streams.single { it.parentStreamId == null }
+        assertEquals(case.outerLanes, outer.operationLanes.values.map { it.operation })
+        // A list marble shows the list as items; joined, they read like the printed list.
+        val resultItems = outer.marbles.last { it.operation == "toList" }.items.orEmpty()
+        assertEquals(case.output, resultItems.joinToString(prefix = "[", postfix = "]") { it.value.toString() })
+        assertTrue(outer.marbles.any { it.operation == case.outerLanes[case.outerLanes.size - 2] })
+
+        val children = streams.filter { it !== outer }
+        assertTrue(children.all { it.parentStreamId == outer.id }) { "every inner stream must be a child of the outer stream" }
+        if (case.childCount == null) {
+            assertTrue(children.size >= 2 && children.size % 2 == 0) { "two children per comparator call, got ${children.size}" }
+        } else {
+            assertEquals(case.childCount, children.size)
+        }
+        children.forEach { child -> assertEquals(case.childLanes, child.operationLanes.values.map { it.operation }) }
     }
 
     /** Verifies that terminal reduce results survive when no accumulator callback runs. */
@@ -2659,6 +2966,78 @@ internal class DebugWebSocketServerTest {
         assertEquals("10", trace.last().latestTopLevelStreamData().marbles.last { it.operation == "reduce" }.label)
         assertEquals("([Ljava/lang/String;)V", trace.last().stack.first().signature)
         assertEquals(1, trace.last().stack.count { it.method == "main" })
+    }
+
+    /**
+     * Array elements whose items are objects carry each object's ID, the same value an object marble shows as its label.
+     * Each case runs twice: with objects created inline in the stream source (`Stream.of(new Person(...))`) and with
+     * objects added to a list before the stream (`people.stream()`). Object IDs change between runs, so this is checked
+     * here instead of in a `streamviz.txt` golden file.
+     */
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = ["inline", "list"])
+    fun testArrayStreamElementsListTheirElements(objectSource: String) {
+        val inline = objectSource == "inline"
+        val setup = if (inline) "" else """
+            List<Person> first = new ArrayList<>();
+            first.add(new Person("Anna", 30));
+            List<Person> second = new ArrayList<>();
+            second.add(new Person("Ben", 40));
+        """.trimIndent()
+        val firstSource = if (inline) "Stream.of(new Person(\"Anna\", 30))" else "first.stream()"
+        val secondSource = if (inline) "Stream.of(new Person(\"Ben\", 40))" else "second.stream()"
+        val source = """
+            import java.util.ArrayList;
+            import java.util.List;
+            import java.util.stream.Stream;
+
+            public class Main {
+                record Person(String name, int age) {}
+
+                public static void main(String[] args) {
+                    $setup
+                    int people = $firstSource.map(p -> new Person[]{p}).toList().size();
+                    int mixed = $secondSource.map(p -> new Object[]{p, "x"}).toList().size();
+                    System.out.println(people + mixed);
+                }
+            }
+        """.trimIndent()
+
+        val trace = fullTrace(listOf(FilepathAndContent("Main.java", source)), checkAst = false, testFlags = TestFlags())
+
+        assertOutputEquals(trace, "2\n")
+        val sourceOperation = if (inline) "of" else "stream"
+        val (people, mixed) = trace.last().streamVisualizationData.streams.filter { it.parentStreamId == null }
+        fun arrayAndSource(stream: MarbleDiagramData) =
+            stream.marbles.single { it.operation == "map" } to stream.marbles.single { it.operation == sourceOperation }
+
+        val (personArray, anna) = arrayAndSource(people)
+        assertEquals("Main\$Person[]", personArray.type)
+        assertEquals(listOf("Person" to anna.label), personArray.items?.map { it.type to it.value })
+
+        val (objectArray, ben) = arrayAndSource(mixed)
+        assertEquals("java.lang.Object[]", objectArray.type)
+        assertEquals(listOf("Person" to ben.label, "java.lang.String" to "x"), objectArray.items?.map { it.type to it.value })
+    }
+
+    /**
+     * Compares the complete StreamViz payload of one operation case with its `streamviz.txt` golden file,
+     * covering both the recorded event order (playback) and the final lanes, marble columns, and links.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("streamOperationCases")
+    fun testStreamOperationVisualization(case: StreamOperationCase) {
+        // An assumption marks the case as skipped (not passed or failed), so pending work stays visible in test reports.
+        assumeTrue(case.runPendingIn == null) { "JavaWiz cannot run this program until ${case.runPendingIn} is fixed" }
+        val directory = "$STREAM_OPERATIONS/${case.name}"
+        val trace = callRunToEndAndCompareTestcaseMetadataFiles(directory, listOf(case.fileName), checkAst = false, testFlags = TestFlags())
+        assertErrorEquals(trace, "")
+
+        assumeTrue(case.diagramPendingIn == null) { "The diagram is checked once ${case.diagramPendingIn} is fixed" }
+        val actual = StreamVisualizationSnapshot.render(trace.last().streamVisualizationData)
+        val expected = getResourceAsReader(directory, "streamviz.txt")?.readText()
+            ?: fail("Missing $directory/streamviz.txt. Actual snapshot:\n$actual")
+        assertEquals(expected, actual, case.name)
     }
 
     @ParameterizedTest

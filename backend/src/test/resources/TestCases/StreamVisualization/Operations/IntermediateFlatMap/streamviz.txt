@@ -1,0 +1,66 @@
+stream 1
+  lanes
+    of | int |
+    flatMap | int | (n)->Stream.of(n, n * 10)
+    forEach | void | System.out::println
+  playback
+    step 1: of@1 START int "1"
+    step 2: flatMap@1 OUT int "1"
+    step 3: forEach@1 END void "forEach"
+    step 4: flatMap@2 OUT int "10"
+    step 5: forEach@2 END void "forEach"
+    step 6: of@3 START int "2"
+    step 7: flatMap@3 OUT int "2"
+    step 8: forEach@3 END void "forEach"
+    step 9: flatMap@4 OUT int "20"
+    step 10: forEach@4 END void "forEach"
+    link from step 2: of@1 -> flatMap@1
+    link from step 3: flatMap@1 -> forEach@1
+    link from step 4: of@1 -> flatMap@2
+    link from step 5: flatMap@1 -> forEach@2
+    link from step 5: flatMap@2 -> forEach@2
+    link from step 7: of@3 -> flatMap@3
+    link from step 8: flatMap@1 -> forEach@3
+    link from step 8: flatMap@2 -> forEach@3
+    link from step 8: flatMap@3 -> forEach@3
+    link from step 9: of@3 -> flatMap@4
+    link from step 10: flatMap@1 -> forEach@4
+    link from step 10: flatMap@2 -> forEach@4
+    link from step 10: flatMap@3 -> forEach@4
+    link from step 10: flatMap@4 -> forEach@4
+  final
+    of@1 START int "1"
+    of@3 START int "2"
+    flatMap@1 OUT int "1"
+    flatMap@2 OUT int "10"
+    flatMap@3 OUT int "2"
+    flatMap@4 OUT int "20"
+    forEach@4 END void "forEach"
+    link of@1 -> flatMap@1
+    link flatMap@1 -> forEach@4
+    link of@1 -> flatMap@2
+    link flatMap@2 -> forEach@4
+    link of@3 -> flatMap@3
+    link flatMap@3 -> forEach@4
+    link of@3 -> flatMap@4
+    link flatMap@4 -> forEach@4
+
+stream 2 (child of stream 1)
+  lanes
+    of | int |
+  playback
+    step 1: of@1 START int "1"
+    step 2: of@2 START int "10"
+  final
+    of@1 START int "1"
+    of@2 START int "10"
+
+stream 3 (child of stream 1)
+  lanes
+    of | int |
+  playback
+    step 1: of@1 START int "2"
+    step 2: of@2 START int "20"
+  final
+    of@1 START int "2"
+    of@2 START int "20"

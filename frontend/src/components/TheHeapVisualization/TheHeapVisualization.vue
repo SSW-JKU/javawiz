@@ -1,12 +1,12 @@
 <template>
   <div ref="heapWrapper" class="heap-wrapper">
-    <NavigationBarWithSettings :zoom-in="graph.zoomIn.bind(graph)" :zoom-out="graph.zoomOut.bind(graph)" :zoom-reset="graph.zoomReset.bind(graph)" :viz-id="graph.store.MEMORY.id">
+    <VizSetting :zoom-in="graph.zoomIn.bind(graph)" :zoom-out="graph.zoomOut.bind(graph)" :zoom-reset="graph.zoomReset.bind(graph)" :viz-id="graph.store.MEMORY.id">
       <HeapVisualizationSettings
         v-model:show-data-structure-details="showDataStructureDetails"
         v-model:show-data-structure-statics="showDataStructureStatics"
         v-model:show-data-structure-fields="showDataStructureFields"
         v-model:show-memory="showMemory" />
-    </NavigationBarWithSettings>
+    </VizSetting>
   </div>
 </template>
 
@@ -15,7 +15,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { HeapVizChart } from './HeapVizChart'
 import HeapVisualizationSettings from './HeapVisualizationSettings.vue'
-import NavigationBarWithSettings from '../NavigationBarWithSettings.vue'
+import VizSetting from '../VizSetting.vue'
 import { DEFAULT_DATA_STRUCTURE_VISIBILITY_SETTINGS } from './DataStructureVisibility'
 import { HeapAnnotationManager, type HeapQuestionAnswer, type HeapQuestionOption } from './HeapAnnotations'
 import { parsePetQuestionPayload } from '@/components/PetAnnotations'

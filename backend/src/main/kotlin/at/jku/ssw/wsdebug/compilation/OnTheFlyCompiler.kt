@@ -27,6 +27,8 @@ val BASE_RESOURCE_PATH = "/additionalclasses/"
 val JAVAWIZ_PACKAGE = "jwdebug"
 val JAVAWIZ_CLASS = "\$JavaWiz"
 val JAVAWIZ_PATH = "$JAVAWIZ_PACKAGE/$JAVAWIZ_CLASS.java"
+/** The field that instrumentation adds to each main class to install `$JavaWiz`'s standard input tracking. */
+val JAVAWIZ_STANDARD_INPUT_FIELD = "\$javaWizStandardInput"
 
 fun compile(
     mainUri: String,
@@ -153,7 +155,12 @@ fun modifyAndComputeParseInfos(
         timing.add("collectStreamOperationInstrumentationInfos: ${timing.elapsed(t4)}ms (${streamOperationInstrumentationInfos.size} stream ops)")
 
         val t5 = timing.now()
-        val instrumentationInsertions = buildInstrumentationInsertions(conditions, indexWrappers, streamOperationInstrumentationInfos)
+        val collectorFlatMappingMappers = collectCollectorFlatMappingMappers(tree, positioning)
+        val mainClassDeclaration = findMainClassDeclaration(tree)
+        val standardInputTrackingSite = mainClassDeclaration?.let { findStandardInputTrackingSite(it, positioning) }
+        val instrumentationInsertions = buildInstrumentationInsertions(
+            conditions, indexWrappers, streamOperationInstrumentationInfos, collectorFlatMappingMappers, standardInputTrackingSite
+        )
         timing.add("buildInstrumentationInsertions: ${timing.elapsed(t5)}ms (${instrumentationInsertions.size} points)")
 
         val t6 = timing.now()
@@ -178,7 +185,7 @@ fun modifyAndComputeParseInfos(
             conditions.map { it.content },
             ast,
             typeNames,
-            findMainClass(tree, packageDot),
+            mainClassDeclaration?.let { packageDot + it.name },
             methodLines(ast),
             featureWarnings,
             unsupportedFeatures
@@ -208,11 +215,12 @@ private fun methodLines(ast: AbstractSyntaxTree): Set<Int> {
     return result.toSet()
 }
 
-private fun findMainClass(tree: JCTree.JCCompilationUnit, packageDot: String): String? {
+/** Returns the first top-level class, record, enum, or implicit class of a compact source file that declares a `main` method. */
+private fun findMainClassDeclaration(tree: JCTree.JCCompilationUnit): JCTree.JCClassDecl? {
     val classDeclarations = tree.typeDecls.filterIsInstance<JCTree.JCClassDecl>().filterNot { it.modifiers.toString().contains("interface") }
     return classDeclarations.find { cls ->
         cls.members.filterIsInstance<JCTree.JCMethodDecl>().any(::isCandidateMainMethod)
-    }?.let { packageDot + it.name }
+    }
 }
 
 /**

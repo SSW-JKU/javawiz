@@ -31,13 +31,14 @@ export function createHoverCondition (clazz: string, expression: string): HoverI
   }
 }
 
-export function createHoverLocal (clazz: string, method: string, name: string, reference: number): HoverInfo {
+export function createHoverLocal (clazz: string, method: string, name: string, reference: number, stackFrameNr?: number): HoverInfo {
   return {
     kind: 'Local',
     class: clazz,
     method,
     name,
-    reference
+    reference,
+    ...(stackFrameNr === undefined ? {} : { stackFrameNr })
   }
 }
 

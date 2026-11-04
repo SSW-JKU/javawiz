@@ -1,5 +1,7 @@
 package at.jku.ssw.wsdebug.debugger.recording
 
+import at.jku.ssw.wsdebug.debugger.recording.stream.MarbleDiagramDataCollection
+
 data class TraceState(
     val sourceFileUri: String,
     // val sourceCode : SourceCode,

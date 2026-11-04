@@ -153,6 +153,8 @@ Perform the following two commands.
 
 Then open the localhost URL printed by `:frontend:run`.
 
+To run a second backend while another one already uses the default port 51234, start it on another port with `./gradlew :backend:run --args=51235` and open the frontend with `?backendPort=51235`, for example `http://localhost:5173/?backendPort=51235`.
+
 These tasks are also available as IntelliJ run configurations when the repository is imported into IntelliJ IDEA.
 
 #### Running the extension as IntelliJ plugin
@@ -174,6 +176,9 @@ This automatically builds frontend and backend, packages them and runs the plugi
 
 # Run the backend suite on every configured JDK
 ./gradlew :backend:testAll
+
+# Run the IntelliJ plugin tests
+./gradlew :intellij-plugin:test
 ```
 
 By default, Gradle prints only failed backend tests and suppresses test-process standard streams. Add `-PverboseTests` to a backend test command to print passed/skipped events and standard output/error, for example `./gradlew :backend:test -PverboseTests`.

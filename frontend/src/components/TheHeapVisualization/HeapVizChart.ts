@@ -20,6 +20,8 @@ import {
   CLUSTER_TITLE_FONT_SIZE,
   DEFAULT_TRANSITION_TIME,
   FONT_FACE_CLUSTER_TITLE,
+  MAIN_HEADER_BG_COLOR,
+  MAIN_HEADER_FONT_COLOR,
   MAX_ZOOM_IN_FACTOR,
   MAX_ZOOM_OUT_FACTOR,
   NewLine,
@@ -29,6 +31,7 @@ import { linkHeapItemsToLoadedClasses } from '@/debugger/processedTraceState';
 import type { DataStructureVisibilitySettings } from './DataStructureVisibility'
 import { MemoryViewRenderContext } from './MemoryViewRenderContext'
 import { processInjectedTitles } from './HeapLookup'
+import { applyHoverStyles, type HoverStyles, hoverStylesFromDot } from './HoverRecoloring'
 import { desanitizeIdentifier, identifierFromSvgCellIdentifier, SVG_CELL_SUFFIXES } from './identifiers'
 import type { HeapVizVar } from './Types/HeapVizVar'
 import { renderRootsNode } from './RootsNodeRenderer'
@@ -47,9 +50,12 @@ export class HeapVizChart {
   private graphvizInstance: ReturnType<typeof graphviz> | null = null
   private readonly renderContext = new MemoryViewRenderContext()
   private readonly hoverHandler = this.onHover.bind(this)
-  private pendingUpdate: { needed: boolean, hoverChanged: boolean } = { needed: false, hoverChanged: false }
+  private pendingUpdate = false
+  /** Hover styles currently shown in the SVG; null while no SVG matches the current trace state. */
+  private drawnHoverStyles: HoverStyles | null = null
+  /** Elements of the current SVG by id, so a hover change does not search the DOM for each cell. */
+  private svgElementsById = new Map<string, Element>()
   private stopTraceWatch: (() => void) | null = null
-  private zoomBehaviour!: import('vue').Ref<d3.ZoomBehavior<Element, unknown>, d3.ZoomBehavior<Element, unknown>>;
 
   /** The callback lets wrapper-owned overlays redraw only after the replacement SVG is ready. */
   constructor (private readonly onRenderComplete: () => void = () => {}) {}
@@ -58,14 +64,6 @@ export class HeapVizChart {
   public get domReady (): boolean { return this.chartRootElement !== null }
 
   public init () {
-    this.zoomBehaviour = ref(d3
-      .zoom()
-      .scaleExtent([MAX_ZOOM_OUT_FACTOR, MAX_ZOOM_IN_FACTOR])
-      .on('zoom', (e: any) => { // e is a ZoomEvent, although d3 typings do not seem to know that
-        d3.select(this.chartRootElement)
-          .select('svg g')
-          .attr('transform', e.transform)
-      }))
     this.highlightedItems = ref<HoverInfo[]>([])
     const generalStore = useGeneralStore()
     const cachedTraceState = ref<HeapVizTraceState>()
@@ -120,12 +118,9 @@ export class HeapVizChart {
       this.redraw()
     }
   }
-  public redraw (hoverChanged: boolean = false) {
+  public redraw () {
     if (this.rendering) {
-      this.pendingUpdate = {
-        needed: true,
-        hoverChanged: hoverChanged || this.pendingUpdate.hoverChanged
-      }
+      this.pendingUpdate = true
       return
     }
 
@@ -142,15 +137,16 @@ export class HeapVizChart {
     if (!this.isInitialized || this.graphvizInstance == null)
       return null;
 
-    const duration = hoverChanged ? 0 : DEFAULT_TRANSITION_TIME
     this.lastRenderedDotString = dotString
+    const renderedHoverStyles = hoverStylesFromDot(dotString)
+    this.drawnHoverStyles = null
     this.rendering = true
 
     this.graphvizInstance
       // Per d3-graphviz docs: (a) use a factory so the transition is scheduled *after* layout,
       // not before; (b) the transition must be named when zoom is enabled, otherwise the zoom
       // behavior interrupts it and the graph renders incorrectly.
-      .transition(() => d3.transition('heapviz-transition').duration(duration) as any)
+      .transition(() => d3.transition('heapviz-transition').duration(DEFAULT_TRANSITION_TIME) as any)
       .renderDot(dotString, () => {
         if (!this.isMounted) {
           this.rendering = false
@@ -158,14 +154,17 @@ export class HeapVizChart {
         }
         // Graphviz cannot attach arbitrary attributes to HTML-label cells, so restore them before interaction and overlays run.
         processInjectedTitles(this.chartRootElement!)
+        this.svgElementsById = new Map(Array.from(this.chartRootElement!.querySelectorAll('[id]'), element => [element.id, element]))
+        this.drawnHoverStyles = renderedHoverStyles
+        this.rendering = false
+        // The hover may have changed while Graphviz was rendering.
+        this.applyHoverColors()
         this.installClickListener()
         this.installMouseMoveListenersForHover()
         this.onRenderComplete()
-        this.rendering = false
-        if (this.pendingUpdate.needed) {
-          const nextHoverChanged = this.pendingUpdate.hoverChanged
-          this.pendingUpdate = { needed: false, hoverChanged: false }
-          this.redraw(nextHoverChanged)
+        if (this.pendingUpdate) {
+          this.pendingUpdate = false
+          this.redraw()
         }
       })
   }
@@ -173,33 +172,52 @@ export class HeapVizChart {
     if (this.relevantChange(this.highlightedItems.value, hoverInfos)) {
       this.highlightedItems.value = hoverInfos
       this.renderContext.setHoverInfos(hoverInfos)
-      this.redraw(true)
+      this.applyHoverColors()
     }
   }
+  /**
+   * Shows the current hover by recoloring the existing SVG instead of running a new Graphviz layout.
+   * It builds the DOT string for the current hover, which is cheap compared with a layout, and copies
+   * the colors that differ from the drawn ones. While Graphviz is rendering, the render callback applies them.
+   */
+  private applyHoverColors () {
+    if (this.drawnHoverStyles === null || !this.traceState)
+      return
+    const nextHoverStyles = hoverStylesFromDot(this.render())
+    applyHoverStyles(this.svgElementsById, this.drawnHoverStyles, nextHoverStyles)
+    this.drawnHoverStyles = nextHoverStyles
+  }
   public zoomIn () {
-    d3.select(this.chartRootElement).select('svg')
-      .transition()
-      .duration(TRANSFORMATION_DURATION)
-      .ease(d3.easeCubic)
-      .call(this.zoomBehaviour.value.scaleBy as any, BTN_ZOOM_FACTOR)
+    this.scaleBy(BTN_ZOOM_FACTOR)
   }
   public zoomOut () {
-    d3.select(this.chartRootElement).select('svg')
-      .transition()
-      .duration(TRANSFORMATION_DURATION)
-      .ease(d3.easeCubic)
-      .call(this.zoomBehaviour.value.scaleBy as any, 1 / BTN_ZOOM_FACTOR)
+    this.scaleBy(1 / BTN_ZOOM_FACTOR)
   }
   public zoomReset () {
-    const svg = d3.select(this.chartRootElement).select('svg')
-    const viewBox = svg.attr('viewBox').split(' ')
-    const graphHeight = +viewBox[3]
-    const transform = this.zoomBehaviour.value.transform as any
-    // Define which point should be centered, resetting zoom to 1
-    // +4 and -4 are used since they seem to be the default d3-graphviz offsets
-    svg.transition('translateTransition').duration(TRANSFORMATION_DURATION)
+    // resetZoom animates back to the graph's own layout position at scale 1.
+    // d3-graphviz recomputes that position on every render, so it stays correct when the graph changes size.
+    // It throws before the first render, when d3-graphviz has not attached its zoom behavior yet.
+    if (this.graphvizInstance?.zoomBehavior())
+      this.graphvizInstance.resetZoom(this.zoomTransition() as any)
+  }
+  /** Creates the animation shared by the zoom buttons. */
+  private zoomTransition () {
+    return d3.transition()
+      .duration(TRANSFORMATION_DURATION)
       .ease(d3.easeCubic)
-      .call(transform, d3.zoomIdentity.translate(4, graphHeight - 4))
+  }
+  /**
+   * Animates the zoom by `factor` around the view center, using the zoom behavior that d3-graphviz attached
+   * to the SVG. Mouse-wheel and button zooming then share one state and one set of scale limits.
+   * Does nothing before the first render, because d3-graphviz attaches its zoom behavior only then.
+   */
+  private scaleBy (factor: number) {
+    const zoomBehavior = this.graphvizInstance?.zoomBehavior()
+    if (!zoomBehavior)
+      return
+    d3.select(this.chartRootElement).select('svg')
+      .transition(this.zoomTransition() as any)
+      .call(zoomBehavior.scaleBy as any, factor)
   }
 
   public close () {
@@ -212,7 +230,9 @@ export class HeapVizChart {
     this.graphvizInstance = null
     this.isInitialized = false
     this.rendering = false
-    this.pendingUpdate = { needed: false, hoverChanged: false }
+    this.pendingUpdate = false
+    this.drawnHoverStyles = null
+    this.svgElementsById = new Map()
     this.lastRenderedDotString = null
   }
   public render (): string {
@@ -235,6 +255,12 @@ export class HeapVizChart {
     // d3-graphviz accepts the root DOM node directly. Keeping that exact node makes the
     // renderer instance-safe even if another chart later reuses the same CSS selector.
     this.graphvizInstance = graphviz(chartRootElement)
+      // d3-graphviz attaches its own zoom behavior (mouse wheel, drag, zoom buttons) on the first render and
+      // reads the scale limits only at that point, so they must be set before anything is rendered.
+      // The wheel and the buttons share these limits but step differently: the wheel uses d3-zoom's default
+      // step (about 1.1-1.2x per notch, depending on browser and device), zooms around the mouse pointer and
+      // is not animated. The buttons zoom by BTN_ZOOM_FACTOR around the view center, with an animation.
+      .zoomScaleExtent([MAX_ZOOM_OUT_FACTOR, MAX_ZOOM_IN_FACTOR])
       //.logEvents(true) // -> for large graphs, dataProcessPass1End is the event that takes the longest by far
       .onerror((msg: string) => console.error(msg))
       .on('initEnd', () => {
@@ -260,19 +286,37 @@ export class HeapVizChart {
   private getStackAndStaticsNodeCluster (): string {
     return renderRootsNode(this.traceState)
   }
+  /**
+   * Renders the heap as a Graphviz cluster with a blue "Heap" header bar across its full width.
+   *
+   * Graphviz clusters only support a plain title, and a filled bar cannot be sized before layout. So the heap is
+   * drawn as two nested clusters: the outer one is filled blue, has no inner margin (`margin="0"`), and carries the
+   * title; the inner one is filled white and covers the outer one everywhere except the title strip at the top.
+   * The inner cluster keeps the default margin around the heap nodes. Because the bar is part of the layout,
+   * it follows zoom, animated transitions, and image export without extra code.
+   */
   public getHeapNodeCluster (): string {
     let dotString = `subgraph cluster_heap {
        shape="box";
+       style="filled";
+       fillcolor="${MAIN_HEADER_BG_COLOR}";
+       color="black";
+       margin="0";
        label=<
-         <font point-size="${CLUSTER_TITLE_FONT_SIZE}" face="${FONT_FACE_CLUSTER_TITLE}">Heap</font>
-       >;\n`
+         <font point-size="${CLUSTER_TITLE_FONT_SIZE}" face="${FONT_FACE_CLUSTER_TITLE}" color="${MAIN_HEADER_FONT_COLOR}"><b>Heap</b></font>
+       >;
+       subgraph cluster_heap_body {
+         style="filled";
+         fillcolor="white";
+         color="black";
+         label="";\n`
     for (const heapItem of this.traceState.heapAfterExecution) {
 
       if (heapItem.isVisible) {
         dotString += heapItem.renderNode()
       }
     }
-    dotString += '\n}\n'
+    dotString += '\n}\n}\n'
     return dotString
   }
 
@@ -489,98 +533,6 @@ export class HeapVizChart {
             : getMethodHoverInfos(identifier, this.traceState)
         HoverSynchronizer.hover(hoverInfos)
       })
-  }
-  private isHighlightedEdge (sanitizedFrom: string, sanitizedTo: string, highlightedItems: HoverInfo[], state: HeapVizTraceState): boolean {
-
-    const from = desanitizeIdentifier(sanitizedFrom)
-    const to = desanitizeIdentifier(sanitizedTo)
-    const toObjId = Number(to.match(/\d+/g)![0])
-    const objectHighlighted = highlightedItems.some(item => item.kind === 'HeapObject' && item.objId === toObjId)
-    if (!objectHighlighted) {
-      return false
-    }
-    const isLocal = from.split(':')[1].startsWith('l_')
-    const isStatic = from.split(':')[1].startsWith('s_')
-    if (from.startsWith('o_')) { // check if a field references a heap item
-      const splitFrom = from.split(':')
-      const fromObjId = Number(splitFrom[0].match(/\d+/g)![0])
-      if (splitFrom[1].startsWith('i_')) {
-        const index = Number(splitFrom[1].split('_')[1])
-        for (const item of highlightedItems) {
-          if (item.kind === 'ArrayCell' &&
-            item.objId === fromObjId &&
-            item.index === index) {
-            return true
-          }
-        }
-        return false
-      }
-      const field = splitFrom[1]
-      for (const item of highlightedItems) {
-        if (item.kind === 'Field' &&
-          item.objId === fromObjId &&
-          item.name === field &&
-          item.reference === toObjId) {
-          return true
-        }
-      }
-      return false
-    }
-    if (isLocal) { // check if a local variable or static field is referencing a heap item
-      const splitFrom = from.split('_')
-      const name = splitFrom[splitFrom.length - 1]
-      const stackFrame = state.stackAfterExecution[Number(splitFrom[1])]
-      for (const item of highlightedItems) {
-        if (item.kind === 'Local' &&
-          item.class === stackFrame.class &&
-          item.method === stackFrame.method &&
-          item.name === name &&
-          item.reference === toObjId) {
-          return true
-        }
-      }
-      return false
-    }
-    if (isStatic) {
-      const splitFrom = from.split('_')
-      const name = splitFrom.slice(2).join('_')
-      const classOfStaticField = from.split('_')[1]
-      const loadedClass = state.loadedClasses.find(loadedClass => loadedClass.class === classOfStaticField)!
-      for (const item of highlightedItems) {
-        if (item.kind === 'Static' &&
-          item.class === loadedClass.class &&
-          item.name === name &&
-          item.reference === toObjId) {
-          return true
-        }
-      }
-      return false
-    }
-    if (from.split(':')[1].search('localvar_') === 0) {
-      const stackFrameNr = Number(from.split('_')[1])
-      const thisVar = state.stackAfterExecution.at(stackFrameNr)?.this?.value as HeapVizReferenceVal
-      if (thisVar === undefined) {
-        return false
-      }
-      for (const item of highlightedItems) {
-        if (item.kind === 'ThisVar' &&
-          thisVar.reference === toObjId &&
-          item.methodId === stackFrameNr &&
-          item.reference === toObjId) {
-          return true
-        }
-      }
-      for (const item of highlightedItems) {
-        if (item.kind === 'ThisVar' ||
-          item.kind === 'Static' ||
-          item.kind === 'Local' ||
-          item.kind === 'Field') {
-          return false
-        }
-      }
-      return thisVar.reference === toObjId && highlightedItems.some(item => item.kind === 'HeapObject' && item.objId === toObjId)
-    }
-    return false
   }
 
 }

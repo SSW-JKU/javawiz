@@ -42,9 +42,10 @@
         <strong>JDK 25</strong> to run.</p>
 
         <h3>Start</h3>
-        <p>After installing JavaWiz and opening a Java file, start it by clicking
-        <strong>Debug with JavaWiz</strong> above the <code>main</code> method, from the editor context menu,
-        from the Run menu, or from the JavaWiz tool window.</p>
+        <p>After installing JavaWiz and opening a Java file, start it with
+        <strong>Debug <em>File</em> with JavaWiz</strong>: click the icon next to the <code>main</code> method,
+        use the context menu of the editor or the Project tree, or use the JavaWiz tool window. The toolbar button and the Run menu
+        start the selected Java run configuration, or the file in the editor if "Current File" is selected.</p>
 
         <h3>Navigation</h3>
         <p>An explanation of the user interface can be accessed by clicking the Help button inside JavaWiz.</p>
@@ -77,6 +78,7 @@
             <add-to-group group-id="RunMenu" anchor="first"/>
             <add-to-group group-id="MainToolbarRight" anchor="first"/>
             <add-to-group group-id="EditorPopupMenu.Run" anchor="first"/>
+            <add-to-group group-id="ProjectViewPopupMenuRunGroup" anchor="first"/>
         </action>
     </actions>
 
@@ -100,5 +102,12 @@
 
         <!-- Custom executor that groups JavaWiz run configurations -->
         <executor implementation="at.jku.ssw.javawiz.intellij.action.JWExecutor" order="first"/>
+
+        <!-- Lets users send JavaWiz exceptions and UI freezes from the IDE's error dialog to JetBrains Marketplace.
+             This is the platform's built-in reporter: the IDE still asks for consent (or uses the user's
+             automatic-reporting choice) and attaches stack traces and thread dumps itself.
+             Reports appear on the plugin's Marketplace page under Exceptions and Freezes.
+             Read more: https://plugins.jetbrains.com/docs/marketplace/error-handler.html -->
+        <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
 </idea-plugin>

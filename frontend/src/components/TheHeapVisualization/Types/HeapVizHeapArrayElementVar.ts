@@ -5,6 +5,7 @@ import { HeapVizVal } from './HeapVizVal';
 import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { heapArrayElementIdentifier } from '../identifiers'
+import { type EdgeStyle, referenceEdgeStyle, renderReferenceEdge } from '../ReferenceEdge'
 
 export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementVar> {
   public override get bgColor (): string {
@@ -46,15 +47,17 @@ export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementV
     if (!(this.value instanceof HeapVizReferenceVal))
       throw new Error('Not supported for ' + this.value.kind);
 
-    let additionalProperties = '[]'
-    const ref1 = (this.value as HeapVizReferenceVal).reference
+    return renderReferenceEdge(this.identifier, `o_${this.value.reference}`, this.edgeStyle)
 
-    if (this.model.changed) {
-      additionalProperties = '[color="red" penwidth="2.0"]'
-    }
+  }
 
-    return `${this.identifier}:e -> o_${ref1}:heap_object_header:w ${additionalProperties};`
-
+  /** The reference arrow is highlighted when both this cell and the object it references are hovered. */
+  private get edgeStyle (): EdgeStyle {
+    const hoverInfos = this.renderContext.hoverInfos()
+    const reference = (this.value as HeapVizReferenceVal).reference
+    const highlighted = hoverInfos.some(item => item.kind === 'ArrayCell' && item.objId === this.arrayId && item.index === this.index) &&
+      hoverInfos.some(item => item.kind === 'HeapObject' && item.objId === reference)
+    return referenceEdgeStyle(highlighted, this.model.changed)
   }
 
   public getTotalBytes (): number {

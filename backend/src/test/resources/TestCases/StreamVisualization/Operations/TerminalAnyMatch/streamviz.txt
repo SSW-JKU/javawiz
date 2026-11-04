@@ -1,0 +1,27 @@
+stream 1
+  lanes
+    of | int |
+    map | int | (n)->n * 2
+    anyMatch | boolean | (n)->n > 3
+  playback
+    step 1: of@1 START int "1"
+    step 2: map@1 OUT int "2"
+    step 3: anyMatch@1 END boolean "false"
+    step 4: of@2 START int "2"
+    step 5: map@2 OUT int "4"
+    step 6: anyMatch@2 END boolean "true"
+    link from step 2: of@1 -> map@1
+    link from step 3: map@1 -> anyMatch@1
+    link from step 5: of@2 -> map@2
+    link from step 6: map@1 -> anyMatch@2
+    link from step 6: map@2 -> anyMatch@2
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    map@1 OUT int "2"
+    map@2 OUT int "4"
+    anyMatch@2 END boolean "true"
+    link of@1 -> map@1
+    link map@1 -> anyMatch@2
+    link of@2 -> map@2
+    link map@2 -> anyMatch@2

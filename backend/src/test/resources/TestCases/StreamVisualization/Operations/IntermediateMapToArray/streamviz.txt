@@ -1,0 +1,55 @@
+stream 1
+  lanes
+    of | java.lang.String |
+    map | java.lang.String | (s)->s.split(" ")
+    toList | List |
+  playback
+    step 1: of@1 START java.lang.String "a b"
+    step 2: map@1 OUT java.lang.String[] ["a", "b"]
+    step 3: toList@1 END List [map@1]
+    step 4: of@2 START java.lang.String "c"
+    step 5: map@2 OUT java.lang.String[] ["c"]
+    step 6: toList@2 END List [map@1, map@2]
+    link from step 2: of@1 -> map@1
+    link from step 3: map@1 -> toList@1
+    link from step 5: of@2 -> map@2
+    link from step 6: map@1 -> toList@2
+    link from step 6: map@2 -> toList@2
+  final
+    of@1 START java.lang.String "a b"
+    of@2 START java.lang.String "c"
+    map@1 OUT java.lang.String[] ["a", "b"]
+    map@2 OUT java.lang.String[] ["c"]
+    toList@2 END List [map@1, map@2]
+    link of@1 -> map@1
+    link map@1 -> toList@2
+    link of@2 -> map@2
+    link map@2 -> toList@2
+
+stream 2
+  lanes
+    of | int |
+    map | int | (i)->new int[]{i, i * 2}
+    forEach | void | (a)->System.out.println(Arrays.toString(a))
+  playback
+    step 1: of@1 START int "1"
+    step 2: map@1 OUT int[] ["1", "2"]
+    step 3: forEach@1 END void "forEach"
+    step 4: of@2 START int "2"
+    step 5: map@2 OUT int[] ["2", "4"]
+    step 6: forEach@2 END void "forEach"
+    link from step 2: of@1 -> map@1
+    link from step 3: map@1 -> forEach@1
+    link from step 5: of@2 -> map@2
+    link from step 6: map@1 -> forEach@2
+    link from step 6: map@2 -> forEach@2
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    map@1 OUT int[] ["1", "2"]
+    map@2 OUT int[] ["2", "4"]
+    forEach@2 END void "forEach"
+    link of@1 -> map@1
+    link map@1 -> forEach@2
+    link of@2 -> map@2
+    link map@2 -> forEach@2

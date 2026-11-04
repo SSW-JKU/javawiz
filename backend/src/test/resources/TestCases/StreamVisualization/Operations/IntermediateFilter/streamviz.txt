@@ -1,0 +1,39 @@
+stream 1
+  lanes
+    of | int |
+    filter | int | (n)->n % 2 == 0
+    forEach | void | System.out::println
+  playback
+    step 1: of@1 START int "1"
+    step 2: filter@1 IN int "1"
+    step 3: of@2 START int "2"
+    step 4: filter@2 OUT int "2"
+    step 5: forEach@2 END void "forEach"
+    step 6: of@3 START int "3"
+    step 7: filter@3 IN int "3"
+    step 8: of@4 START int "4"
+    step 9: filter@4 OUT int "4"
+    step 10: forEach@4 END void "forEach"
+    link from step 2: of@1 -> filter@1
+    link from step 4: of@2 -> filter@2
+    link from step 5: filter@2 -> forEach@2
+    link from step 7: of@3 -> filter@3
+    link from step 9: of@4 -> filter@4
+    link from step 10: filter@2 -> forEach@4
+    link from step 10: filter@4 -> forEach@4
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    of@3 START int "3"
+    of@4 START int "4"
+    filter@1 IN int "1"
+    filter@2 OUT int "2"
+    filter@3 IN int "3"
+    filter@4 OUT int "4"
+    forEach@4 END void "forEach"
+    link of@1 -> filter@1
+    link of@2 -> filter@2
+    link filter@2 -> forEach@4
+    link of@3 -> filter@3
+    link of@4 -> filter@4
+    link filter@4 -> forEach@4

@@ -26,7 +26,7 @@ class JWToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true) {
   val cefClient = JBCefApp.getInstance().createClient()
   val browser = JBCefBrowser.createBuilder()
     .setClient(cefClient)
-    .setUrl(service<JavaWizApplicationService>().DEFAULT_FRONTEND_URL_PATH)
+    .setUrl(service<JavaWizApplicationService>().DEFAULT_FRONTEND_URL)
     .build()
 
   init {
@@ -52,7 +52,7 @@ class JWToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true) {
   }
 
   fun defaultFrontend() {
-    refreshFrontend(service<JavaWizApplicationService>().DEFAULT_FRONTEND_URL_PATH)
+    refreshFrontend(service<JavaWizApplicationService>().DEFAULT_FRONTEND_URL)
   }
 
   fun extensionModeFrontend() {
@@ -70,7 +70,7 @@ class JWToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true) {
     val frontendPort = project.service<JavaWizProjectService>().frontendPort
     val communicationPort = project.service<JavaWizProjectService>().communicationPort
     val debuggerPort = project.service<JavaWizProjectService>().debuggerPort
-    return "${Globals.Props.HOST}:$frontendPort${Globals.Props.FRONTEND_ENDPOINT_ROOT}extensionMode${communicationPort};${debuggerPort}"
+    return buildExtensionModeUrl(Globals.Props.HOST, frontendPort, Globals.Props.FRONTEND_ENDPOINT_ROOT, communicationPort, debuggerPort)
   }
 }
 

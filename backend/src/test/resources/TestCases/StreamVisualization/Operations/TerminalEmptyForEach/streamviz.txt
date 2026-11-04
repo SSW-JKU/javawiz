@@ -1,0 +1,7 @@
+stream 1
+  lanes
+    forEach | void | System.out::println
+  playback
+    step 1: forEach@1 END void "forEach"
+  final
+    forEach@1 END void "forEach"

@@ -1,6 +1,6 @@
 <template>
-  <div v-if="(generalStore.currentTraceData?.deskTestLines?.length ?? 0) > 0" style="position: relative; height: 100%">
-    <NavigationBarWithSettings :viz-id="visualizationStore.DESKTEST.id" />
+  <div v-if="(generalStore.currentTraceData?.deskTestLines?.length ?? 0) > 0" class="desk-test-content" style="position: relative; height: 100%">
+    <VizSetting :viz-id="visualizationStore.DESKTEST.id" />
     <div class="scrollable-container">
       <table id="fixed-column-table">
         <thead>
@@ -184,8 +184,8 @@
       </table>
     </div>
   </div>
-  <div v-else id="default-text">
-    <NavigationBarWithSettings :viz-id="visualizationStore.DESKTEST.id" />
+  <div v-else id="default-text" class="desk-test-content">
+    <VizSetting :viz-id="visualizationStore.DESKTEST.id" />
     Use the buttons in the upper left or arrow keys to navigate through the program.
   </div>
 </template>
@@ -194,12 +194,13 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { DeskTestCondition, DeskTestMethod, DeskTestStatic, DeskTestVar, HoverTarget } from '@/components/TheDeskTest/types'
 import DeskTestValue from './DeskTestValue.vue'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useHoverStore } from '@/store/HoverStore'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverInfo } from '@/hover/types'
+import { NAVIGATION_CONTENT_INSET } from '@/helpers/constants'
 
 const generalStore= useGeneralStore()
 const hoverStore = useHoverStore()
@@ -311,6 +312,11 @@ onUnmounted(() => {
 }
 
 /*** Desk Test container ***/
+.desk-test-content {
+  padding-left: v-bind('NAVIGATION_CONTENT_INSET + "px"');
+  box-sizing: border-box;
+}
+
 .scrollable-container {
   height: 100%;
   overflow: scroll;
@@ -324,16 +330,16 @@ onUnmounted(() => {
 }
 
 .scrollable-container::-webkit-scrollbar-track {
-  background-color: #f5f5f5;
+  background-color: var(--jw-light-gray);
 }
 
 .scrollable-container::-webkit-scrollbar-thumb {
-  background-color: #888;
+  background-color: var(--jw-medium-gray);
   border-radius: 4px;
 }
 
 .scrollable-container::-webkit-scrollbar-thumb:hover {
-  background-color: #555;
+  background-color: var(--jw-dark-gray);
 }
 
 /*** General table CSS ***/
@@ -347,7 +353,7 @@ onUnmounted(() => {
 }
 
 .scrollable-container #var-name-header th {
-  border-bottom: 2px solid grey;
+  border-bottom: 2px solid var(--jw-medium-gray);
 }
 
 .scrollable-container th {
@@ -360,7 +366,7 @@ onUnmounted(() => {
   position:sticky;
   top:0;
   z-index: var(--visualization-layer2);
-  border-bottom: 2px solid grey;
+  border-bottom: 2px solid var(--jw-medium-gray);
 }
 
 .scrollable-container tr {
@@ -368,12 +374,12 @@ onUnmounted(() => {
 }
 
 .scrollable-container td {
-  border-bottom: 1px dotted grey;
+  border-bottom: 1px dotted var(--jw-light-medium-gray);
   animation: fadeIn 800ms;
 }
 
 .scrollable-container td:not(.last-header-child) {
-  border-right: 1px dotted grey;
+  border-right: 1px dotted var(--jw-light-medium-gray);
 }
 
 /*** Fixed table ***/
@@ -383,7 +389,7 @@ onUnmounted(() => {
   z-index: var(--visualization-layer3);
   background-color: #ffffff;
   max-width: fit-content;
-  border: 1px solid grey;
+  border: 1px solid var(--jw-medium-gray);
 }
 
 #fixed-column-table tr:last-child > td {
@@ -397,7 +403,7 @@ onUnmounted(() => {
 }
 
 #line-column-header-row th {
-  border-bottom: 2px solid grey;
+  border-bottom: 2px solid var(--jw-medium-gray);
   top:0;
 }
 
@@ -428,14 +434,14 @@ onUnmounted(() => {
 }
 
 .header-cell {
-  border-top: 1px solid grey;
-  border-right: 1px solid grey;
+  border-top: 1px solid var(--jw-medium-gray);
+  border-right: 1px solid var(--jw-medium-gray);
 }
 
 .sub-header-cell, .filler-cell {
-  border-top: 1px dotted grey;
-  border-bottom: 1px dotted grey;
-  border-right: 1px solid grey;
+  border-top: 1px dotted var(--jw-light-medium-gray);
+  border-bottom: 1px dotted var(--jw-light-medium-gray);
+  border-right: 1px solid var(--jw-medium-gray);
 }
 
 .location-header {
@@ -443,11 +449,11 @@ onUnmounted(() => {
 }
 
 #var-name-header th:not(.last-header-child) {
-  border-right: 1px dotted grey;
+  border-right: 1px dotted var(--jw-light-medium-gray);
 }
 
 .last-header-child {
-  border-right: 1px solid grey;
+  border-right: 1px solid var(--jw-medium-gray);
 }
 
 .value-row:last-child > td {
@@ -466,11 +472,11 @@ onUnmounted(() => {
 
 /* Line highlighting */
 .highlighted td:not(.overlay-cell) {
-  background-color: #ffe9d8;
+  background-color: var(--jw-object-hover);
 }
 
 .highlighted-col {
-  background-color: #ffe9d8;
+  background-color: var(--jw-object-hover);
   width: 100%;
 }
 
@@ -490,7 +496,7 @@ onUnmounted(() => {
 
 .reveal-hover {
   background-color: white;
-  box-shadow: 0.5px 0.5px 2px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 0.5px 0.5px 2px 0px var(--jw-popup-shadow);
   width: fit-content;
   white-space: nowrap;
   padding-right: 5px;

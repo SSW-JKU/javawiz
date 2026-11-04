@@ -10,8 +10,6 @@ import { ConsoleLine } from '@Shared/Protocol'
 import _ from 'lodash'
 import sanitizer from '@/helpers/sanitizer'
 import { OverlayVar } from '@/components/TheFlowChart/types'
-import { SequenceDiagramHistory } from '@/components/TheSequenceDiagram/SequenceDiagramHistory'
-import { Arrow, LifeLine, Box } from '@/components/TheSequenceDiagram/types'
 import { calculateDeskTestLine } from '@/components/TheDeskTest/line'
 import { TraceData } from './TraceData'
 import { linkHeapItemsToLoadedClasses } from './processedTraceState'
@@ -22,15 +20,15 @@ export class Trace {
   public readonly processedTrace: ProcessedTraceState[]
   private readonly deskTestLines: DeskTestLine[]
   private readonly initialConsoleLines: ConsoleLine[]
-
-  private readonly sequenceDiagramHistory: SequenceDiagramHistory
+  // Index of the first state of every batch passed to addTraceStates, in order.
+  private readonly batchStartIndices: number[]
 
   constructor () {
     this.trace = []
     this.processedTrace = []
     this.deskTestLines = []
     this.initialConsoleLines = []
-    this.sequenceDiagramHistory = new SequenceDiagramHistory()
+    this.batchStartIndices = []
   }
 
   public getTraceData (stateIndex: number, previousStateIndex: number | undefined): TraceData | undefined {
@@ -47,12 +45,6 @@ export class Trace {
       flowChartOverlayStatics: this.getFlowChartOverlayStatics(stateIndex),
       processedTraceState: previousStateIndex === undefined ? undefined : this.delta(previousStateIndex, stateIndex),
       stackFrames: this.getStackFrames(stateIndex),
-      lifeLines: this.getLifeLines(stateIndex),
-      boxes: this.getBoxes(stateIndex),
-      timeIdx: this.getTimeIdx(stateIndex),
-      arrows: this.getArrows(stateIndex),
-      timeIdxStateIdxMap: this.getTimeIdxStateIdxMap(),
-      visitedLines: this.getVisitedLines(),
       streamVisualizationData: this.getStreamVisualizationData(stateIndex)
     }
   }
@@ -84,7 +76,9 @@ export class Trace {
   public addTraceStates (
     newStates: TraceState[]
   ): void {
-    this.sequenceDiagramHistory.addTraceStates(newStates, this.trace.length)
+    if (newStates.length > 0) {
+      this.batchStartIndices.push(this.trace.length)
+    }
     newStates.forEach((state: TraceState) => {
       sanitizer.sanitizeTraceState(state)
       this.trace.push(state)
@@ -124,35 +118,14 @@ export class Trace {
     return this.trace[stateIndex].streamVisualizationData
   }
 
-  end (lastStates: TraceState[]) {
-    if (lastStates.length > 0) {
-      this.addTraceStates(lastStates)
-    }
-    return this.sequenceDiagramHistory.endAllLifeLines()
-  }
-
-  getLifeLines (stateIndex: number): LifeLine[] {
-    return this.sequenceDiagramHistory.getLifeLines(stateIndex)
-  }
-
-  getArrows (stateIndex: number): Arrow[] {
-    return this.sequenceDiagramHistory.getArrows(stateIndex)
-  }
-
-  getTimeIdx (stateIndex: number): number {
-    return this.sequenceDiagramHistory.getTimeIdx(stateIndex)
-  }
-
-  getBoxes (stateIndex: number): Box[] {
-    return this.sequenceDiagramHistory.getBoxes(stateIndex)
-  }
-
-  getTimeIdxStateIdxMap () {
-    return this.sequenceDiagramHistory.getTimeIdxStateIdxMap()
-  }
-
-  getVisitedLines () {
-    return this.sequenceDiagramHistory.getVisitedLines()
+  /**
+   * Returns the index of the first state of every batch that addTraceStates received, in order.
+   * A batch is one debugger response, usually one step. Views that build their own data step by step,
+   * such as the sequence diagram, use these indices to replay the stored states batch by batch.
+   * Example: batches of 1, 2 and 3 states give [0, 1, 3].
+   */
+  getBatchStartIndices (): readonly number[] {
+    return this.batchStartIndices
   }
 
   getStackFrames (stateIndex: number) {

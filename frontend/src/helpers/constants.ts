@@ -20,3 +20,6 @@ export const TRANSFORMATION = {
 }
 
 export const DEFAULT_ZOOM_FACTOR = 1.3
+
+/** Initial content starts beyond the navigation icons, which end at 30 CSS px. */
+export const NAVIGATION_CONTENT_INSET = 36

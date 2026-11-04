@@ -1,5 +1,4 @@
 import { InputBufferInfo, ProcessedTraceState, StackFrame, MarbleDiagramDataCollection, TraceState } from '@/dto/TraceState'
-import { Arrow, Box, LifeLine } from '@/components/TheSequenceDiagram/types'
 import { ConsoleLine } from '@Shared/Protocol'
 import { DeskTestLine } from '@/components/TheDeskTest/types'
 import { OverlayVar } from '@/components/TheFlowChart/types'
@@ -14,11 +13,5 @@ type TraceData = {
   flowChartOverlayLocals: OverlayVar[],
   flowChartOverlayStatics: OverlayVar[],
   stackFrames: StackFrame[],
-  lifeLines: LifeLine[],
-  timeIdx: number,
-  boxes: Box[],
-  arrows: Arrow[],
-  timeIdxStateIdxMap: Map<number, number>,
-  visitedLines: number[],
   streamVisualizationData: MarbleDiagramDataCollection
 }

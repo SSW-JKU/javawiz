@@ -61,7 +61,9 @@ export namespace DebuggerProtocol {
   export type StepResult = {
     readonly traceStates: TraceState[],
     readonly isWaitingForInput: boolean,
-    readonly vmrunning: boolean
+    readonly vmrunning: boolean,
+    /** The program sent nothing for a long time without reading input; it may still be running. */
+    readonly isUnresponsive: boolean
   }
 
   export type CompileSendData = {

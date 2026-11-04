@@ -56,10 +56,10 @@ class StreamOperationInstrumentationTest {
 
             class Main {
                 void main() {
-                    Stream<String> names = Stream.of("Max", "Susi", "Maya").peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 0, "\"Max\""));
+                    Stream<String> names = Stream.of("Max", "Susi", "Maya").peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 0, "\"Max\""));
                     Stream<String> mnames = names.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 1, "(x)->x.charAt(0) == 'M'")).filter(x -> x.charAt(0) == 'M').peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 1, "(x)->x.charAt(0) == 'M'"));
                     IntStream nameLengths = mnames.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "mapToInt", 2, "(x)->x.length()")).mapToInt(x -> x.length()).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "mapToInt", 2, "(x)->x.length()"));
-                    OptionalInt maximum = jwdebug.${'$'}JavaWiz.completeStreamVisualization("max", 3, "", nameLengths.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "max", 3, "")).max());
+                    OptionalInt maximum = jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "max", 3, "", nameLengths.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "max", 3, "")).max());
                 }
             }
             """
@@ -101,11 +101,11 @@ class StreamOperationInstrumentationTest {
 
             class Main {
                 Stream<String> source() {
-                    return Stream.of("Max", "Susi", "Maya").peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 0, "\"Max\""));
+                    return Stream.of("Max", "Susi", "Maya").peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 0, "\"Max\""));
                 }
 
                 void main() {
-                    jwdebug.${'$'}JavaWiz.completeStreamVisualization("count", 1, "", source().peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).filter(x -> x.charAt(0) == 'M').peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 1, "")).count());
+                    jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "count", 1, "", source().peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).filter(x -> x.charAt(0) == 'M').peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 1, "")).count());
                 }
             }
             """
@@ -147,11 +147,11 @@ class StreamOperationInstrumentationTest {
 
             class Main {
                 void main() {
-                    consume(Stream.of("Max", "Susi", "Maya").peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 0, "\"Max\"")));
+                    consume(Stream.of("Max", "Susi", "Maya").peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 0, "\"Max\"")));
                 }
 
                 void consume(Stream<String> stream) {
-                    jwdebug.${'$'}JavaWiz.completeStreamVisualization("count", 1, "", stream.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).filter(x -> x.charAt(0) == 'M').peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 1, "")).count());
+                    jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "count", 1, "", stream.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).filter(x -> x.charAt(0) == 'M').peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 2, "(x)->x.charAt(0) == 'M'")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 1, "")).count());
                 }
             }
             """
@@ -185,11 +185,11 @@ class StreamOperationInstrumentationTest {
 
             class Main {
                 void main() {
-                    consume(Stream.of("Max", "Susi", "Maya").peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 1, "\"Max\"")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 0, "(x)->x.length() > 3")).filter(x -> x.length() > 3).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 0, "(x)->x.length() > 3")));
+                    consume(Stream.of("Max", "Susi", "Maya").peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 1, "\"Max\"")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 0, "(x)->x.length() > 3")).filter(x -> x.length() > 3).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 0, "(x)->x.length() > 3")));
                 }
 
                 void consume(Stream<String> stream) {
-                    jwdebug.${'$'}JavaWiz.completeStreamVisualization("findFirst", 2, "", stream.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "sorted", 3, "")).sorted().peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "sorted", 3, "")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "findFirst", 2, "")).findFirst());
+                    jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "findFirst", 2, "", stream.peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "sorted", 3, "")).sorted().peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "sorted", 3, "")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "findFirst", 2, "")).findFirst());
                 }
             }
             """
@@ -221,8 +221,8 @@ class StreamOperationInstrumentationTest {
 
             class Main {
                 void main() {
-                    jwdebug.${'$'}JavaWiz.completeStreamVisualization("count", 0, "", Stream.of("Max").peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 2, "\"Max\"")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 1, "(x)->true")).filter(x -> true).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 1, "(x)->true")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 0, "")).count());
-                    jwdebug.${'$'}JavaWiz.completeStreamVisualization("count", 3, "", Stream.of("Susi").peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 5, "\"Susi\"")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 4, "(x)->true")).filter(x -> true).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 4, "(x)->true")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 3, "")).count());
+                    jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "count", 0, "", Stream.of("Max").peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 2, "\"Max\"")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 1, "(x)->true")).filter(x -> true).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 1, "(x)->true")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 0, "")).count());
+                    jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "count", 3, "", Stream.of("Susi").peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 5, "\"Susi\"")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("IN", element, "filter", 4, "(x)->true")).filter(x -> true).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("OUT", element, "filter", 4, "(x)->true")).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("END", element, "count", 3, "")).count());
                 }
             }
             """
@@ -257,10 +257,10 @@ class StreamOperationInstrumentationTest {
 
             class Main {
                 void main() {
-                    var staticValues = of(1, 2, 3).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 0, "1"));
-                    var values = IntStream.of(4, 8, 4).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "of", 1, "4"));
-                    var range = IntStream.range(0, 3).peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "range", 2, "0"));
-                    var empty = IntStream.empty().peek(element -> jwdebug.${'$'}JavaWiz.traceStream("START", element, "empty", 3, ""));
+                    var staticValues = of(1, 2, 3).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 0, "1"));
+                    var values = IntStream.of(4, 8, 4).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 1, "4"));
+                    var range = IntStream.range(0, 3).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("range", 2, "0"));
+                    var empty = IntStream.empty().peek(jwdebug.${'$'}JavaWiz.traceStreamSource("empty", 3, ""));
                 }
             }
             """
@@ -269,6 +269,72 @@ class StreamOperationInstrumentationTest {
         assertEquals(
             listOf("of", "of", "range", "empty"),
             infos.filter { it.isStreamSource }.map { it.operationName }
+        )
+    }
+
+    @Test
+    fun threeArgumentCollectWrapsOnlyTheAccumulator() {
+        val source = """
+            import java.util.ArrayList;
+            import java.util.stream.IntStream;
+            import java.util.stream.Stream;
+
+            class Main {
+                void main() {
+                    var objects = Stream.of(1, 2).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                    var ints = IntStream.of(1, 2).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                }
+            }
+            """.trimIndent()
+
+        assertInstrumentedSource(
+            source,
+            """
+            import java.util.ArrayList;
+            import java.util.stream.IntStream;
+            import java.util.stream.Stream;
+
+            class Main {
+                void main() {
+                    var objects = jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "collect", 0, "ArrayList::new", Stream.of(1, 2).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 1, "1")).collect(ArrayList::new, jwdebug.${'$'}JavaWiz.traceCollectAccumulator("collect", 0, "ArrayList::new", ArrayList::add), ArrayList::addAll));
+                    var ints = jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "collect", 2, "ArrayList::new", IntStream.of(1, 2).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 3, "1")).collect(ArrayList::new, jwdebug.${'$'}JavaWiz.traceIntCollectAccumulator("collect", 2, "ArrayList::new", ArrayList::add), ArrayList::addAll));
+                }
+            }
+            """
+        )
+    }
+
+    @Test
+    fun collectorFlatMappingMapperIsWrapped() {
+        val source = """
+            import java.util.stream.Collectors;
+            import java.util.stream.Stream;
+            import static java.util.stream.Collectors.flatMapping;
+            import static java.util.stream.Collectors.toList;
+
+            class Main {
+                void main() {
+                    var a = Stream.of(1, 2).collect(Collectors.flatMapping(n -> Stream.of(n, -n), Collectors.toList()));
+                    var b = Stream.of(1, 2).collect(flatMapping(n -> Stream.of(n), toList()));
+                }
+            }
+            """.trimIndent()
+
+        assertInstrumentedSource(
+            source,
+            """
+            import java.util.stream.Collectors;
+            import java.util.stream.Stream;
+            import static java.util.stream.Collectors.flatMapping;
+            import static java.util.stream.Collectors.toList;
+
+            class Main {
+                void main() {
+                    var a = jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "collect", 0, "Collectors.flatMapping((n)->Stream.of(n, -n), Collectors.toList())", Stream.of(1, 2).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 1, "1")).collect(jwdebug.${'$'}JavaWiz.traceParam("collect", 0, "Collectors.flatMapping((n)->Stream.of(n, -n), Collectors.toList())", Collectors.flatMapping(jwdebug.${'$'}JavaWiz.wrapFlatMappingMapper(n -> Stream.of(n, -n).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 2, "n"))), Collectors.toList()))));
+                    var b = jwdebug.${'$'}JavaWiz.completeStreamVisualization(jwdebug.${'$'}JavaWiz.streamFrameDepth(), "collect", 3, "flatMapping((n)->Stream.of(n), toList())", Stream.of(1, 2).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 4, "1")).collect(jwdebug.${'$'}JavaWiz.traceParam("collect", 3, "flatMapping((n)->Stream.of(n), toList())", flatMapping(jwdebug.${'$'}JavaWiz.wrapFlatMappingMapper(n -> Stream.of(n).peek(jwdebug.${'$'}JavaWiz.traceStreamSource("of", 5, "n"))), toList()))));
+                }
+            }
+            """
         )
     }
 
@@ -293,12 +359,17 @@ class StreamOperationInstrumentationTest {
         val insertionText = buildInstrumentationInsertions(emptyList(), emptyList(), listOf(operation)).joinToString("\n") { it.insertedText }
 
         assertEquals(
-            ".peek(element -> jwdebug.${'$'}JavaWiz.traceStream(\"START\", element, \"stream\", 1, \"\"))",
+            ".peek(jwdebug.${'$'}JavaWiz.traceStreamSource(\"stream\", 1, \"\"))",
             insertionText
         )
     }
 
     private fun collectInfos(source: String): List<StreamOperationInstrumentationInfo> {
+        val (tree, positioning) = analyze(source)
+        return collectStreamOperationInstrumentationInfos(tree, positioning)
+    }
+
+    private fun analyze(source: String): Pair<JCTree.JCCompilationUnit, Positioning> {
         val compiler = ToolProvider.getSystemJavaCompiler()
         val sourceFile = object : SimpleJavaFileObject(URI.create("string:///Main.java"), JavaFileObject.Kind.SOURCE) {
             override fun getCharContent(ignoreEncodingErrors: Boolean): CharSequence = source
@@ -306,12 +377,18 @@ class StreamOperationInstrumentationTest {
         val task = compiler.getTask(null, null, null, listOf("-proc:none"), null, listOf(sourceFile)) as JavacTask
         val tree = task.parse().single() as JCTree.JCCompilationUnit
         task.analyze()
-        return collectStreamOperationInstrumentationInfos(tree, Positioning(tree, Trees.instance(task).sourcePositions))
+        return tree to Positioning(tree, Trees.instance(task).sourcePositions)
     }
 
     private fun instrument(source: String): String {
-        val infos = collectInfos(source)
-        return applySourceInsertions(source, buildInstrumentationInsertions(emptyList(), emptyList(), infos))
+        val (tree, positioning) = analyze(source)
+        val insertions = buildInstrumentationInsertions(
+            emptyList(),
+            emptyList(),
+            collectStreamOperationInstrumentationInfos(tree, positioning),
+            collectCollectorFlatMappingMappers(tree, positioning)
+        )
+        return applySourceInsertions(source, insertions)
     }
 
     private fun assertInstrumentedSource(source: String, expected: String) {

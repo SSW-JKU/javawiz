@@ -1,3 +1,12 @@
+/* Colors of question callouts. They are used only in this file; shared colors come from src/helpers/colors.ts. */
+:root {
+  --pet-question-fill: #eef6ff;
+  --pet-question-border: #6aa7ff;
+  --pet-question-option-hover: #dbeafe;
+  --pet-question-option-selected: #cfe4ff;
+  --pet-question-accent: #2f78d0;
+}
+
 .pet-highlight,
 .pet-html-highlight,
 .pet-html-pointer {
@@ -18,16 +27,16 @@ svg .pet-speech-bubble-box,
 svg .pet-speech-bubble-pointer,
 svg .pet-question-box,
 svg .pet-question-pointer {
-  fill: #fff9e6;
-  stroke: #ffc552;
+  fill: var(--jw-annotation-fill);
+  stroke: var(--jw-annotation-stroke);
   stroke-width: 1.5px;
-  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(2px 2px 2px var(--jw-soft-shadow));
 }
 
 svg .pet-question-box,
 svg .pet-question-pointer {
-  fill: #eef6ff;
-  stroke: #6aa7ff;
+  fill: var(--pet-question-fill);
+  stroke: var(--pet-question-border);
 }
 
 svg .pet-speech-bubble.collapsed .pet-speech-bubble-pointer,
@@ -43,8 +52,8 @@ svg .pet-question.collapsed .pet-question-pointer,
 .pet-speech-bubble-collapsed-text,
 .pet-question-collapsed-text,
 .pet-question-option {
-  color: #333;
-  fill: #333;
+  color: var(--jw-dark-gray);
+  fill: var(--jw-dark-gray);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 13px;
 }
@@ -63,22 +72,22 @@ svg .pet-question-option-text {
 
 svg .pet-question-option rect {
   fill: #fff;
-  stroke: #6aa7ff;
+  stroke: var(--pet-question-border);
   stroke-width: 1px;
 }
 
 svg .pet-question-option:hover rect {
-  fill: #dbeafe;
+  fill: var(--pet-question-option-hover);
 }
 
 svg .pet-question-option.selected rect {
-  fill: #cfe4ff;
-  stroke: #2f78d0;
+  fill: var(--pet-question-option-selected);
+  stroke: var(--pet-question-accent);
   stroke-width: 1.5px;
 }
 
 svg .pet-question-option-text {
-  fill: #163150;
+  fill: var(--jw-primary-blue);
   font-size: 12px;
 }
 
@@ -107,15 +116,15 @@ svg .pet-question-option-text {
 
 .pet-html-pointer.pet-speech-bubble-pointer path,
 .pet-html-pointer.pet-question-pointer path {
-  fill: #fff9e6;
-  stroke: #ffc552;
+  fill: var(--jw-annotation-fill);
+  stroke: var(--jw-annotation-stroke);
   stroke-width: 1.5px;
-  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(2px 2px 2px var(--jw-soft-shadow));
 }
 
 .pet-html-pointer.pet-question-pointer path {
-  fill: #eef6ff;
-  stroke: #6aa7ff;
+  fill: var(--pet-question-fill);
+  stroke: var(--pet-question-border);
 }
 
 .pet-html-callout {
@@ -126,10 +135,10 @@ svg .pet-question-option-text {
   min-width: 116px;
   max-width: 260px;
   padding: 8px 10px;
-  border: 1.5px solid #ffc552;
+  border: 1.5px solid var(--jw-annotation-stroke);
   border-radius: 6px;
-  background: #fff9e6;
-  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
+  background: var(--jw-annotation-fill);
+  box-shadow: 2px 2px 3px var(--jw-soft-shadow);
   pointer-events: auto;
   user-select: none;
 }
@@ -152,8 +161,8 @@ svg .pet-question-option-text {
 }
 
 .pet-html-callout.pet-question {
-  border-color: #6aa7ff;
-  background: #eef6ff;
+  border-color: var(--pet-question-border);
+  background: var(--pet-question-fill);
 }
 
 .pet-html-callout.collapsed {
@@ -182,7 +191,7 @@ svg .pet-question-option-text {
 .pet-html-callout:focus-visible,
 svg .pet-speech-bubble:focus-visible .pet-speech-bubble-box,
 svg .pet-question:focus-visible .pet-question-box {
-  outline: 2px solid #2f78d0;
+  outline: 2px solid var(--pet-question-accent);
   outline-offset: 2px;
 }
 
@@ -197,19 +206,19 @@ button.pet-question-option {
   width: 100%;
   min-height: 24px;
   padding: 3px 8px;
-  border: 1px solid #6aa7ff;
+  border: 1px solid var(--pet-question-border);
   border-radius: 4px;
   background: #fff;
-  color: #163150;
+  color: var(--jw-primary-blue);
   text-align: left;
 }
 
 button.pet-question-option:hover {
-  background: #dbeafe;
+  background: var(--pet-question-option-hover);
 }
 
 button.pet-question-option.selected {
-  border-color: #2f78d0;
+  border-color: var(--pet-question-accent);
   border-width: 1.5px;
-  background: #cfe4ff;
+  background: var(--pet-question-option-selected);
 }

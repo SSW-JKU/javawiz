@@ -1,0 +1,27 @@
+stream 1
+  lanes
+    of | int |
+    limit | int | 2
+    forEach | void | System.out::println
+  playback
+    step 1: of@1 START int "1"
+    step 2: limit@1 OUT int "1"
+    step 3: forEach@1 END void "forEach"
+    step 4: of@2 START int "2"
+    step 5: limit@2 OUT int "2"
+    step 6: forEach@2 END void "forEach"
+    link from step 2: of@1 -> limit@1
+    link from step 3: limit@1 -> forEach@1
+    link from step 5: of@2 -> limit@2
+    link from step 6: limit@1 -> forEach@2
+    link from step 6: limit@2 -> forEach@2
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    limit@1 OUT int "1"
+    limit@2 OUT int "2"
+    forEach@2 END void "forEach"
+    link of@1 -> limit@1
+    link limit@1 -> forEach@2
+    link of@2 -> limit@2
+    link limit@2 -> forEach@2

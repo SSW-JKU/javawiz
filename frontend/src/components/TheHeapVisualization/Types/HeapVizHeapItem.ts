@@ -8,6 +8,7 @@ import {
   FONT_FACE_TABLES,
   MAIN_HEADER_BG_COLOR,
   MAIN_HEADER_BG_COLOR_HOVER,
+  MAIN_HEADER_FONT_COLOR,
   MIN_WIDTH,
   TABLE_FORMAT
 } from '../constants'
@@ -94,7 +95,7 @@ export abstract class HeapVizHeapItem<T extends ProcessedHeapItem> extends HeapV
     return `${this.identifier}[label=<<font face="${FONT_FACE_TABLES}" point-size="${CONTENT_FONT_SIZE}">
                               <table ${TABLE_FORMAT}><tr>
                             <td align="center" colspan="5" title="${headerTitle}" bgcolor="${headerBgColor}" port="heap_object_header">
-                              <b>${shortTypeName(this.varType.replace('-',''))}</b>
+                              <font color="${MAIN_HEADER_FONT_COLOR}"><b>${shortTypeName(this.varType.replace('-',''))}</b></font>
                             </td>
                           </tr>   ${this.render()}\n\n  </table>  </font>> , class="${this.getCssClasses()}"];\n`
   }

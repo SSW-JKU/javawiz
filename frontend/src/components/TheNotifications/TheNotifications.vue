@@ -95,13 +95,13 @@ function deleteButtonStyle () {
 
 #remove-notification-button {
   display: none;
-  background-color: #163150;
-  border-color: #163150;
+  background-color: var(--jw-primary-blue);
+  border-color: var(--jw-primary-blue);
   font-size: 0.7rem;
   margin-bottom: 10px;
 }
 
 #remove-notification-button:hover {
-  background-color: #334967;
+  background-color: var(--jw-secondary-blue);
 }
 </style>

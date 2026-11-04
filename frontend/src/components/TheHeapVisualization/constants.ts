@@ -1,3 +1,5 @@
+import { colors } from '@/helpers/colors'
+
 export const DEFAULT_TRANSITION_TIME = 1250
 
 export const MIN_WIDTH = 30
@@ -10,17 +12,20 @@ export const MAX_ARRAY_ELEMENTS = 5
 export const MAX_FIELDS_THRESHOLD = 7
 export const MAX_SHOWN_FIELDS = 4 // actually shown object fields if above threshold was reached
 
-export const MAIN_HEADER_BG_COLOR = '#A3C2DB'
-export const MAIN_HEADER_BG_COLOR_HOVER = '#b0d1ae'
-export const METHOD_HEADER_BG_COLOR_HOVER = '#ffd9bb'
-
-export const OBJECT_BG_HOVER = '#ffe9d8'
-export const REFERENCED_OBJECT_BG_HOVER = '#e3eee2'
 export const WHITE = '#ffffff'
 
-export const SUB_HEADER_BG_COLOR = '#e3ecf4'
-// const ROW_BG_COLOR = '#FAFAFA'
-export const TYPE_FONT_COLOR = '#0000ff'
+export const MAIN_HEADER_BG_COLOR = colors.secondaryBlue
+// Text on main headers is white, because black text on the dark header blue is hard to read.
+export const MAIN_HEADER_FONT_COLOR = WHITE
+// Hover recoloring changes only cell backgrounds, so this green must stay dark enough for the white header text.
+export const MAIN_HEADER_BG_COLOR_HOVER = '#4a7a46'
+export const METHOD_HEADER_BG_COLOR_HOVER = '#ffd9bb'
+
+export const OBJECT_BG_HOVER = colors.objectHover
+export const REFERENCED_OBJECT_BG_HOVER = colors.referencedObjectHover
+
+export const SUB_HEADER_BG_COLOR = colors.paleBlue
+export const TYPE_FONT_COLOR = colors.actionBlue
 
 export const TABLE_FORMAT = 'border="0" cellborder="1" cellspacing="0"'
 
@@ -36,9 +41,10 @@ export const NULL_VAL = `<font face="${FONT_FACE_VALUES}"><i>null&nbsp;&nbsp;</i
 export const MAX_ZOOM_IN_FACTOR = 5
 export const MAX_ZOOM_OUT_FACTOR = 0.4
 // const DEFAULT_ZOOM_FACTOR = 0.7
+// Zoom step of the zoom buttons. The mouse wheel uses d3-zoom's smaller default step (see HeapVizChart.onMounted).
 export const BTN_ZOOM_FACTOR = 1.3
 
-export const TRANSFORMATION_DURATION = 1200
+export const TRANSFORMATION_DURATION = 600
 
 export const CHANGED_VAR_COLOR = '#ff0000'
 export const UNCHANGED_VAR_COLOR = '#000000'

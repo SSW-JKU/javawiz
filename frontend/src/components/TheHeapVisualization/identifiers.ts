@@ -91,7 +91,8 @@ export const SVG_CELL_SUFFIXES = {
   pseudo: 'pseudo',
   value: 'value',
   moreLess: 'moreless',
-  empty: 'empty'
+  empty: 'empty',
+  bytes: 'bytes'
 } as const
 
 export type SvgCellSuffix = typeof SVG_CELL_SUFFIXES[keyof typeof SVG_CELL_SUFFIXES]
@@ -99,6 +100,15 @@ export type SvgCellSuffix = typeof SVG_CELL_SUFFIXES[keyof typeof SVG_CELL_SUFFI
 /** Builds the unique DOM ID injected into one rendered Graphviz table cell. */
 export function svgCellIdentifier (recordIdentifier: string, suffix: SvgCellSuffix): string {
   return `${recordIdentifier}:${suffix}`
+}
+
+/**
+ * Builds the DOM ID of the reference edge from the record `from` to the heap item `to`, for example
+ * `edge:o_1:next->o_2`. The `edge:` prefix keeps the ID from starting with `o_1:`, so looking up all
+ * cells of object `o_1` by that prefix does not also return the edge.
+ */
+export function edgeIdentifier (from: string, to: string): string {
+  return `edge:${from}->${to}`
 }
 
 /** Builds the method-header ID while preserving the frame identifier used by hover synchronization. */

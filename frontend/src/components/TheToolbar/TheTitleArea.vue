@@ -57,10 +57,12 @@ function showAbout () {
   color: inherit;
   font-size: 0.65rem;
   text-decoration: none;
+  padding: 0px 7px;
 }
 
 .version:hover {
   font-size: 0.75rem;
+  padding: 0px 4px;
 }
 
 .dev-container {

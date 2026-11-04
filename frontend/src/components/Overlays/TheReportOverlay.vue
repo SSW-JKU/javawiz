@@ -384,6 +384,11 @@ watch([reportType, title, name, email, reportMarkdown, selectedFiles], () => {
 </script>
 
 <style scoped>
+/* The submit button sits in .report-form, the confirmation in .success-message. */
+.report-form, .success-message {
+  --report-success-color: #28a745; /* Bootstrap success color */
+}
+
 .report-form {
   display: flex;
   flex-direction: column;
@@ -407,7 +412,7 @@ input[type="email"],
 select,
 textarea {
   padding: 8px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--jw-medium-gray);
   border-radius: 4px;
   font-size: 0.9rem;
   width: 100%; /* Make inputs fill container */
@@ -417,9 +422,10 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #007bff;
+  border-color: var(--jw-action-blue);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  /* color-mix() makes the central blue translucent for the focus ring. */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jw-action-blue) 25%, transparent);
 }
 
 
@@ -452,7 +458,7 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr; /* 50% 50% */
   gap: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--jw-light-medium-gray);
   border-radius: 4px;
   padding: 5px;
   min-height: 150px; /* Ensure some height even when empty */
@@ -467,9 +473,9 @@ textarea {
 }
 
 .markdown-preview {
-  border-left: 1px solid #eee;
+  border-left: 1px solid var(--jw-light-medium-gray);
   padding-left: 10px;
-  background-color: #f8f9fa;
+  background-color: #fff;
   font-size: 0.9rem;
   overflow-y: auto; /* Allow scrolling if content overflows */
   max-height: 300px; /* Prevent excessive height */
@@ -495,14 +501,14 @@ textarea {
 }
 
 .markdown-preview :deep(code) {
-  background-color: #e9ecef;
+  background-color: var(--jw-light-gray);
   padding: 0.1em 0.3em;
   border-radius: 3px;
   font-size: 0.85em;
 }
 
 .markdown-preview :deep(pre) {
-  background-color: #e9ecef;
+  background-color: var(--jw-light-gray);
   padding: 10px;
   border-radius: 4px;
   overflow-x: auto;
@@ -514,10 +520,10 @@ textarea {
 }
 
 .markdown-preview :deep(blockquote) {
-  border-left: 3px solid #ccc;
+  border-left: 3px solid var(--jw-light-medium-gray);
   padding-left: 10px;
   margin-left: 0;
-  color: #6c757d;
+  color: var(--jw-dark-gray);
 }
 
 
@@ -531,7 +537,7 @@ input[type="file"] {
   padding: 0;
   margin-top: 5px;
   font-size: 0.8rem;
-  color: #555;
+  color: var(--jw-dark-gray);
 }
 
 .file-list li {
@@ -548,7 +554,7 @@ input[type="file"] {
 
 button[type="submit"], .success-message button {
   padding: 10px 20px;
-  background-color: #28a745; /* Bootstrap success color */
+  background-color: var(--report-success-color);
   color: white;
   border: none;
   border-radius: 4px;
@@ -562,7 +568,7 @@ button[type="submit"]:hover:not(:disabled) {
 }
 
 button:disabled {
-  background-color: #cccccc;
+  background-color: var(--jw-light-medium-gray);
   cursor: not-allowed;
 }
 
@@ -572,17 +578,17 @@ button:disabled {
 }
 
 .success-message h3 {
-  color: #28a745;
+  color: var(--report-success-color);
   margin-bottom: 10px;
 }
 
 .success-message button {
   margin-top: 15px;
-  background-color: #007bff; /* Blue for close */
+  background-color: var(--jw-action-blue);
 }
 
 .success-message button:hover {
-  background-color: #0056b3;
+  background-color: var(--jw-secondary-blue);
 }
 
 /* Adjustments for smaller screens if needed */
@@ -593,7 +599,7 @@ button:disabled {
 
   .markdown-preview {
     border-left: none;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--jw-light-medium-gray);
     padding-left: 0;
     padding-top: 10px;
     margin-top: 10px;

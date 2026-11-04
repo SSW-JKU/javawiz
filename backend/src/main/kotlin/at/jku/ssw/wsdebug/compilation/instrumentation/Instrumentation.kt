@@ -2,6 +2,7 @@ package at.jku.ssw.wsdebug.compilation.instrumentation
 
 import at.jku.ssw.wsdebug.compilation.JAVAWIZ_CLASS
 import at.jku.ssw.wsdebug.compilation.JAVAWIZ_PACKAGE
+import at.jku.ssw.wsdebug.compilation.JAVAWIZ_STANDARD_INPUT_FIELD
 
 /** Describes one text fragment to insert at a zero-based source position. */
 data class SourceInsertion(
@@ -15,10 +16,30 @@ data class SourceInsertion(
 fun buildInstrumentationInsertions(
     conditions: List<Condition>,
     arrayAccessIndexWrappers: List<IndexWrapper>,
-    streamOperationInstrumentationInfos: List<StreamOperationInstrumentationInfo>
+    streamOperationInstrumentationInfos: List<StreamOperationInstrumentationInfo>,
+    collectorFlatMappingMappers: List<CollectorFlatMappingMapper> = emptyList(),
+    standardInputTrackingSite: StandardInputTrackingSite? = null
 ): List<SourceInsertion> = buildConditionSourceInsertions(conditions) +
     buildArrayAccessSourceInsertions(arrayAccessIndexWrappers) +
-    streamOperationInstrumentationInfos.flatMap(::buildStreamOperationSourceInsertions)
+    streamOperationInstrumentationInfos.flatMap(::buildStreamOperationSourceInsertions) +
+    buildCollectorFlatMappingInsertions(collectorFlatMappingMappers) +
+    listOfNotNull(standardInputTrackingSite?.let(::buildStandardInputTrackingInsertion))
+
+/** Inserts the field that installs standard input tracking in the main class; see [findStandardInputTrackingSite]. */
+private fun buildStandardInputTrackingInsertion(site: StandardInputTrackingSite) = SourceInsertion(
+    site.line,
+    site.column,
+    "static final boolean $JAVAWIZ_STANDARD_INPUT_FIELD = $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.trackStandardInput(); "
+)
+
+// Order -1/1 encloses insertions at the same position: the mapper often ends where its returned source ends, for
+// example `n -> Stream.of(n, -n)`, and the closing parenthesis must follow that source's `.peek(...)`.
+private fun buildCollectorFlatMappingInsertions(mappers: List<CollectorFlatMappingMapper>): List<SourceInsertion> = mappers.flatMap {
+    listOf(
+        SourceInsertion(it.beginLine, it.beginColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.wrapFlatMappingMapper(", samePositionOrder = -1),
+        SourceInsertion(it.endLine, it.endColumn, ")", samePositionOrder = 1)
+    )
+}
 
 private fun buildConditionSourceInsertions(conditions: List<Condition>): List<SourceInsertion> = conditions.flatMap {
     listOf(
@@ -42,7 +63,7 @@ private fun buildStreamSourceInsertions(operation: StreamOperationInstrumentatio
     SourceInsertion(
         operation.invocationEndLine,
         operation.invocationEndColumn,
-        ".peek(element -> $JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStream(\"START\", element, \"${operation.operationName}\", ${operation.operationId}, \"${operation.parameter}\"))"
+        ".peek($JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.traceStreamSource(\"${operation.operationName}\", ${operation.operationId}, \"${operation.parameter}\"))"
     )
 )
 
@@ -51,9 +72,9 @@ private fun buildNonSourceStreamInsertions(operation: StreamOperationInstrumenta
     if (operation.isTerminal) {
         val voidTerminal = operation.operationName == "forEach" || operation.operationName == "forEachOrdered"
         val prefix = if (voidTerminal) {
-            "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.completeStreamVisualization(\"${operation.operationName}\", ${operation.operationId}, \"${operation.parameter}\", () -> "
+            "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.completeVoidStreamVisualization($JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.streamFrameDepth(), \"${operation.operationName}\", ${operation.operationId}, \"${operation.parameter}\", () -> "
         } else {
-            "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.completeStreamVisualization(\"${operation.operationName}\", ${operation.operationId}, \"${operation.parameter}\", "
+            "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.completeStreamVisualization($JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.streamFrameDepth(), \"${operation.operationName}\", ${operation.operationId}, \"${operation.parameter}\", "
         }
         insertions += SourceInsertion(operation.invocationBeginLine, operation.invocationBeginColumn, prefix)
         insertions += SourceInsertion(
@@ -62,7 +83,7 @@ private fun buildNonSourceStreamInsertions(operation: StreamOperationInstrumenta
             ")",
             samePositionOrder = 1
         )
-        insertions += buildTerminalInsertions(operation, voidTerminal)
+        insertions += buildTerminalInsertions(operation)
     } else {
         insertions += buildIntermediateInsertions(operation)
     }
@@ -83,12 +104,19 @@ private fun buildNonSourceStreamInsertions(operation: StreamOperationInstrumenta
     return insertions
 }
 
-private fun buildTerminalInsertions(
-    operation: StreamOperationInstrumentationInfo,
-    voidTerminal: Boolean
-): List<SourceInsertion> = buildList {
+private fun buildTerminalInsertions(operation: StreamOperationInstrumentationInfo): List<SourceInsertion> = buildList {
     if (operation.hasParameter) {
-        if (operation.operationName in setOf("anyMatch", "allMatch", "noneMatch", "max", "min", "collect")) {
+        if (operation.operationName == "collect" && operation.reductionAccumulatorEndLine != null && operation.reductionAccumulatorEndColumn != null) {
+            // collect(supplier, accumulator, combiner): wrap only the accumulator, so this works for all four stream types.
+            val traceMethod = when (operation.receiverStreamType) {
+                "java.util.stream.IntStream" -> "traceIntCollectAccumulator"
+                "java.util.stream.LongStream" -> "traceLongCollectAccumulator"
+                "java.util.stream.DoubleStream" -> "traceDoubleCollectAccumulator"
+                else -> "traceCollectAccumulator"
+            }
+            add(SourceInsertion(operation.startLine, operation.startColumn, "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS.$traceMethod(\"collect\", ${operation.operationId}, \"${operation.parameter}\", "))
+            add(SourceInsertion(operation.reductionAccumulatorEndLine, operation.reductionAccumulatorEndColumn, ")"))
+        } else if (operation.operationName in setOf("anyMatch", "allMatch", "noneMatch", "max", "min", "collect")) {
             val traceMethod = when (operation.receiverStreamType) {
                 "java.util.stream.IntStream" -> "traceIntParam"
                 "java.util.stream.LongStream" -> "traceLongParam"
@@ -106,7 +134,8 @@ private fun buildTerminalInsertions(
                 add(SourceInsertion(operation.invocationEndLine, operation.invocationEndColumn, "))"))
             }
         }
-    } else if (!voidTerminal) {
+    } else {
+        // Parameterless terminals, including forEach, trace each arriving element so StreamViz can link it to the terminal marble.
         add(SourceInsertion(
             operation.startLine,
             operation.startColumn,

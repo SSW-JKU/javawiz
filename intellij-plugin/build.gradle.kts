@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.3.1"
+version = "2.4.0"
 
 fun htmlEscape(value: String): String =
     value
@@ -249,6 +249,14 @@ tasks {
         // Model-level tests need no display. Force headless AWT even on desktop Linux:
         // otherwise Wayland starts a persistent keyboard timer that fails thread-leak checks.
         systemProperty("java.awt.headless", "true")
+        // JavaWiz services extract files into ~/javawiz-intellij/<version> and delete other version
+        // folders there. Give the test JVM its own home directory under build/ so tests never touch
+        // a developer's installed plugin files.
+        systemProperty("user.home", layout.buildDirectory.dir("test-home").get().asFile.absolutePath)
+        // IntelliJ tests may only read files below known folders, among them `<user.home>/.gradle`.
+        // After moving user.home, add the real Gradle user home back so the test project can still
+        // read libraries from the Gradle cache. Several folders would be joined with the path separator.
+        systemProperty("vfs.additional-allowed-roots", gradle.gradleUserHomeDir.absolutePath)
         useJUnitPlatform()
     }
 

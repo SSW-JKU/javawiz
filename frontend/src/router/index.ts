@@ -17,7 +17,7 @@ const routes: Array<RouteRecordRaw> = [
     component: Home
   },
   {
-    path: '/extensionMode:vscExtensionPort(\\d+);:debuggerPort(\\d+)',
+    path: '/extensionMode',
     name: 'Extension',
     component: Home
   },

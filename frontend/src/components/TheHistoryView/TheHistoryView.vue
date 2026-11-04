@@ -1,6 +1,6 @@
 <template>
   <div id="history-wrapper">
-    <NavigationBarWithSettings :viz-id="visualizationStore.HISTORY.id" />
+    <VizSetting :viz-id="visualizationStore.HISTORY.id" />
     <div class="history-header">
       <strong>The History View for {{ generalStore.debugger.fullTrace.traceLength }} trace states</strong>
       <div class="history-controls">
@@ -103,7 +103,7 @@
 import { useGeneralStore } from '@/store/GeneralStore';
 import { useHoverStore } from '@/store/HoverStore';
 import { computed, ref, watch, nextTick } from 'vue';
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue';
+import VizSetting from '@/components/VizSetting.vue';
 import { useVisualizationStore } from '@/store/VisualizationStore';
 import { StackFrame } from '@/dto/TraceState';
 import arrowUpIcon from '@/assets/icons/controls/arrow-small-up.svg';
@@ -345,8 +345,8 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 
 .search-bar {
   padding: 10px;
-  background-color: #f8f9fa;
-  border-top: 1px solid #ccc;
+  background-color: var(--jw-light-gray);
+  border-top: 1px solid var(--jw-light-medium-gray);
   flex-shrink: 0;
   display: flex;
   gap: 10px;
@@ -356,7 +356,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 .search-bar input {
   flex-grow: 1;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--jw-medium-gray);
   border-radius: 4px;
   font-family: inherit;
 }
@@ -373,7 +373,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 .nav-btn {
   padding: 6px 10px;
   background-color: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid var(--jw-medium-gray);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -384,7 +384,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 }
 
 .nav-btn:hover:not(:disabled) {
-  background-color: #e9ecef;
+  background-color: var(--jw-light-gray);
 }
 
 .nav-icon {
@@ -426,7 +426,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
   padding: 8px 12px;
   border-radius: 4px;
   background-color: #fff;
-  border: 1px solid #eee;
+  border: 1px solid var(--jw-light-medium-gray);
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   transition:
@@ -447,7 +447,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
   min-width: 3ch;
   margin-right: 12px;
   padding-right: 12px;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--jw-light-medium-gray);
   text-align: right;
   font-weight: bold;
   opacity: 0.7;
@@ -461,8 +461,8 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 
 
 .past-line .history-item {
-  color: #555;
-  border-color: #e0e0e0;
+  color: var(--jw-dark-gray);
+  border-color: var(--jw-light-medium-gray);
 }
 
 .current-line .history-item {
@@ -474,13 +474,13 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 }
 
 .future-line .history-item {
-  color: #999;
-  background-color: #fafafa;
+  color: var(--jw-medium-gray);
+  background-color: var(--jw-light-gray);
   font-style: italic;
 }
 
 .dropdown-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--jw-light-gray);
 }
 
 .arrow {
@@ -508,7 +508,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
 }
 
 .shown-method-filter-info {
-  color: #555;
+  color: var(--jw-dark-gray);
   font-size: 14px;
   line-height: 1;
   cursor: help;
@@ -518,7 +518,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background-color: #f9f9f9;
+  background-color: var(--jw-light-gray);
   width: max-content;
   min-width: 200px;
   max-width: calc(100vw - 32px);
@@ -527,7 +527,7 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
   z-index: var(--visualization-buttons);
   max-height: 300px;
   overflow: auto;
-  border: 1px solid #ccc;
+  border: 1px solid var(--jw-light-medium-gray);
 }
 
 .dropdown-content label {

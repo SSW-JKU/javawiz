@@ -185,8 +185,11 @@ class Communication(project: Project) : Component(project) {
 
   /**
    * returns a Frame to the client which has to be sent, otherwise the default response is sent
+   *
+   * Internal rather than private so tests can check the message protocol without starting the
+   * Netty WebSocket server.
    */
-  private fun processFrontendMessage(message: FrontendMessage): String {
+  internal fun processFrontendMessage(message: FrontendMessage): String {
     // create default Responses
     val defaultResponseFailed = Json.encodeToString(
       Response(

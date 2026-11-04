@@ -1,0 +1,23 @@
+stream 1
+  lanes
+    of | int |
+    filter | int | (n)->n > 1
+    findFirst | int |
+  playback
+    step 1: of@1 START int "1"
+    step 2: filter@1 IN int "1"
+    step 3: of@2 START int "2"
+    step 4: filter@2 OUT int "2"
+    step 5: findFirst@2 END int "2"
+    link from step 2: of@1 -> filter@1
+    link from step 4: of@2 -> filter@2
+    link from step 5: filter@2 -> findFirst@2
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    filter@1 IN int "1"
+    filter@2 OUT int "2"
+    findFirst@2 END int "2"
+    link of@1 -> filter@1
+    link of@2 -> filter@2
+    link filter@2 -> findFirst@2

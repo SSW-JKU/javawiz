@@ -16,7 +16,7 @@
         <g :id="HTML.ids.nodePointers" />
       </g>
     </svg>
-    <NavigationBarWithSettings
+    <VizSetting
       :zoom-in="zoomIn"
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
@@ -42,7 +42,7 @@
         Name of previous variable:
       </p>
       <input v-model="prevName" class="text-input" placeholder="Enter name of previous variable ..."> <br>
-    </NavigationBarWithSettings>
+    </VizSetting>
   </div>
 </template>
 
@@ -52,7 +52,7 @@ import 'd3-transition'
 import { zoom, zoomIdentity } from 'd3-zoom'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { transform, setTransform, levelCoordinates, setLevelCoordinates } from './state'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import ClassCheckboxGroup from '../ClassCheckboxGroup.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
@@ -347,15 +347,15 @@ p {
 }
 
 :deep(.highlighted) {
-  fill: #ffe9d8;
+  fill: var(--jw-object-hover);
 }
 
 :deep(.highlighted-ref rect) {
-  fill: #e3eee2;
+  fill: var(--jw-referenced-object-hover);
 }
 
 :deep(.highlighted-pointer), :deep(.highlighted-pointer line) {
-  stroke: #eda167;
-  color: #eda167;
+  stroke: var(--jw-object-accent);
+  color: var(--jw-object-accent);
 }
 </style>

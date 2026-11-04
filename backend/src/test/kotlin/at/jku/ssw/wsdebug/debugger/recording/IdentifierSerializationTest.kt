@@ -1,6 +1,8 @@
 package at.jku.ssw.wsdebug.debugger.recording
 
 import at.jku.ssw.wsdebug.compilation.instrumentation.ArrayAccess
+import at.jku.ssw.wsdebug.debugger.recording.stream.StreamEvent
+import at.jku.ssw.wsdebug.debugger.recording.stream.StreamEventKind
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

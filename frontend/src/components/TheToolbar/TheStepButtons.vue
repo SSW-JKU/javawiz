@@ -153,13 +153,13 @@ const generalStore = useGeneralStore()
   justify-content: space-between;
   gap: 4px;
   position: absolute;
-  background: #163150;
+  background: var(--jw-primary-blue);
   z-index: var(--global-selector);
 }
 
 .absolute-vertical-box.wide-expanded {
-  border:  1px solid rgba(0, 0, 0, 0.75);
-  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.75);
+  border:  1px solid var(--jw-popup-shadow);
+  box-shadow: 2px 4px 8px var(--jw-popup-shadow);
   top: -5px;
   left: -5px;
   padding: 5px 10px 10px 5px;

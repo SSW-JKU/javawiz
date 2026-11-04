@@ -52,10 +52,13 @@ class JavaWizApplicationService : Disposable {
 
     val BACKEND_JAR_PATH: String
         get() = Paths.get(TEMP_DIR_PATH, Props.BACKEND, Props.BACKEND_JAR_NAME).toString()
-    val DEFAULT_FRONTEND_URL_PATH: String
-        get() = Paths.get(TEMP_DIR_PATH, Props.DEFAULT, Props.DEFAULT_INDEX_URL).toString()
+    // The start page as a file:// URL for the browser in the JavaWiz tool window.
+    // Unlike the Ktor folder below, the browser needs a URL, not a plain path: on Linux and macOS
+    // it would read "/home/user/..." as the web address "http://home/user/..." and fail to find the host "home".
+    val DEFAULT_FRONTEND_URL: String
+        get() = Paths.get(TEMP_DIR_PATH, Props.DEFAULT, Props.DEFAULT_INDEX_URL).toUri().toString()
 
-    // do not use .toUri().toString() as this can cause problems with ktor
+    // The folder the Ktor server serves the frontend from. Ktor needs a plain path here, so do not use .toUri().toString()
     // .toString() will result in a working configuration, see log "Configuring to serve frontend from path C:\Users\marku\AppData\Local\Temp\javawiz-tmp\Frontend on port 43210 ..."
     // .toUri().toString() will result in a non-working configuration, see log "Configuring to serve frontend from path file:///C:/Users/marku/AppData/Local/Temp/javawiz-tmp/Frontend/ on port 43210 ..."
     val JAVAWIZ_FRONTEND_URL_PATH: String

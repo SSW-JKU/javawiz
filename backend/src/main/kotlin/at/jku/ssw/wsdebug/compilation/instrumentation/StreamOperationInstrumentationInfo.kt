@@ -18,6 +18,7 @@ data class StreamOperationInstrumentationInfo(
     val parameterEndColumn: Int? = null,
     val receiverStreamType: String?,
     val reductionCastType: String?,
+    /** End of the accumulator argument of a three-argument reduce or collect; [startLine]/[startColumn] mark its start. */
     val reductionAccumulatorEndLine: Int? = null,
     val reductionAccumulatorEndColumn: Int? = null,
     val statementEndLine: Int,

@@ -1,0 +1,69 @@
+stream 1
+  lanes
+    stream | int |
+    filter | int | (n)->n % 2 == 0
+    map | int | (n)->n * n
+    forEach | void | System.out::println
+  playback
+    step 1: stream@1 START int "1"
+    step 2: filter@1 IN int "1"
+    step 3: stream@2 START int "2"
+    step 4: filter@2 OUT int "2"
+    step 5: map@2 OUT int "4"
+    step 6: forEach@2 END void "forEach"
+    step 7: stream@3 START int "3"
+    step 8: filter@3 IN int "3"
+    step 9: stream@4 START int "4"
+    step 10: filter@4 OUT int "4"
+    step 11: map@4 OUT int "16"
+    step 12: forEach@4 END void "forEach"
+    step 13: stream@5 START int "5"
+    step 14: filter@5 IN int "5"
+    step 15: stream@6 START int "6"
+    step 16: filter@6 OUT int "6"
+    step 17: map@6 OUT int "36"
+    step 18: forEach@6 END void "forEach"
+    link from step 2: stream@1 -> filter@1
+    link from step 4: stream@2 -> filter@2
+    link from step 5: filter@2 -> map@2
+    link from step 6: map@2 -> forEach@2
+    link from step 8: stream@3 -> filter@3
+    link from step 10: stream@4 -> filter@4
+    link from step 11: filter@4 -> map@4
+    link from step 12: map@2 -> forEach@4
+    link from step 12: map@4 -> forEach@4
+    link from step 14: stream@5 -> filter@5
+    link from step 16: stream@6 -> filter@6
+    link from step 17: filter@6 -> map@6
+    link from step 18: map@2 -> forEach@6
+    link from step 18: map@4 -> forEach@6
+    link from step 18: map@6 -> forEach@6
+  final
+    stream@1 START int "1"
+    stream@2 START int "2"
+    stream@3 START int "3"
+    stream@4 START int "4"
+    stream@5 START int "5"
+    stream@6 START int "6"
+    filter@1 IN int "1"
+    filter@2 OUT int "2"
+    filter@3 IN int "3"
+    filter@4 OUT int "4"
+    filter@5 IN int "5"
+    filter@6 OUT int "6"
+    map@2 OUT int "4"
+    map@4 OUT int "16"
+    map@6 OUT int "36"
+    forEach@6 END void "forEach"
+    link stream@1 -> filter@1
+    link stream@2 -> filter@2
+    link filter@2 -> map@2
+    link map@2 -> forEach@6
+    link stream@3 -> filter@3
+    link stream@4 -> filter@4
+    link filter@4 -> map@4
+    link map@4 -> forEach@6
+    link stream@5 -> filter@5
+    link stream@6 -> filter@6
+    link filter@6 -> map@6
+    link map@6 -> forEach@6

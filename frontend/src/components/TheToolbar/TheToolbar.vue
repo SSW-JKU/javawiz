@@ -32,7 +32,7 @@ const generalStore = useGeneralStore()
 .toolbar {
   box-sizing: border-box;
   padding: 4px 0px;
-  background: #163150;
+  background: var(--jw-primary-blue);
 }
 
 .jiggle {

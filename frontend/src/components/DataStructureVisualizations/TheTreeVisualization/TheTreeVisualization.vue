@@ -16,7 +16,7 @@
         <g :id="HTML.ids.nodePointers" />
       </g>
     </svg>
-    <NavigationBarWithSettings
+    <VizSetting
       :zoom-in="zoomIn"
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
@@ -45,7 +45,7 @@
         Name of parent variable:
       </p>
       <input v-model="parentName" class="text-input" placeholder="Enter name of parent variable ..."> <br>
-    </NavigationBarWithSettings>
+    </VizSetting>
   </div>
 </template>
 
@@ -54,7 +54,7 @@ import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { BaseType, select, Selection } from 'd3-selection'
 import { zoom, zoomIdentity } from 'd3-zoom'
 import { transform, setTransform, levelCoordinates, setLevelCoordinates, levelWidths, setLevelWidths } from './state'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import ClassCheckboxGroup from '../ClassCheckboxGroup.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
@@ -355,15 +355,15 @@ onUnmounted(() => {
   }
 
   :deep(.highlighted) {
-    fill: #ffe9d8;
+    fill: var(--jw-object-hover);
   }
 
   :deep(.highlighted-ref rect) {
-    fill: #e3eee2;
+    fill: var(--jw-referenced-object-hover);
   }
 
   :deep(.highlighted-pointer), :deep(.highlighted-pointer line) {
-    stroke: #eda167;
-    color: #eda167;
+    stroke: var(--jw-object-accent);
+    color: var(--jw-object-accent);
   }
 </style>

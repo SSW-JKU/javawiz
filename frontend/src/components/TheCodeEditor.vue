@@ -2,11 +2,10 @@
   <div data-pet-target="ui CodeEditor">
     <div id="tabs">
       <div v-for="file in generalStore.fileManager.fileUris" :key="file">
-        <div class="file-button-container">
+        <div class="file-button-container" :class="generalStore.fileManager.openFile === file ? 'active' : ''">
           <button
             :id="`${file.replace('.', '')}-btn`"
             class="tablinks"
-            :class="generalStore.fileManager.openFile === file ? 'active' : ''"
             @click="generalStore.fileManager.changeToFile(file, getViewState())">
             {{ file }}
           </button>
@@ -256,8 +255,8 @@ onUnmounted(() => {
 
 #tabs {
   overflow: hidden;
-  border: 1px solid #ccc;
-  background-color: #f1f1f1;
+  border: 1px solid var(--jw-light-medium-gray);
+  background-color: var(--jw-light-gray);
   display: flex;
   flex-wrap: wrap;
 }
@@ -280,7 +279,7 @@ onUnmounted(() => {
 .close-btn {
   padding: 6px 10px;
   border: none;
-  border-right: rgb(128, 128, 128) thin solid;
+  border-right: var(--jw-light-medium-gray) thin solid;
 }
 
 .tablinks {
@@ -288,14 +287,18 @@ onUnmounted(() => {
   border: none;
 }
 
-/* Change background color of buttons on hover */
-#tabs button:hover {
-  background-color: #ddd;
+/* The selected tab, both the file name and its "x" button: pale blue, with a blue line at the bottom
+   that marks it even while hovered. An inset shadow draws the line inside the buttons, so the tab keeps
+   the height of the other tabs. */
+#tabs .active button {
+  background-color: var(--jw-pale-blue);
+  box-shadow: inset 0 -2px 0 var(--jw-action-blue);
 }
 
-/* Create an active/current tablink class */
-#tabs button.active {
-  background-color: #ccc;
+/* Change background color of buttons on hover, including the buttons of the selected tab.
+   This rule must stay after the selected-tab rule: both are equally specific, so the later one wins. */
+#tabs button:hover {
+  background-color: #fff;
 }
 
 /* Style the tab content */

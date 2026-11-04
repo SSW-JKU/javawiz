@@ -87,3 +87,17 @@ export const INPUT_EXPECTED: DebuggerState = {
   running: true,
   inputExpected: true
 }
+
+/**
+ * The program has sent nothing for a long time without reading input. It may still be running, or read input in a way
+ * the backend cannot see. The console stays open for that case, and stepping again keeps waiting.
+ */
+export const UNRESPONSIVE: DebuggerState = {
+  name: 'UNRESPONSIVE',
+  connected: true,
+  talking: false,
+  compiling: false,
+  compiled: true,
+  running: true,
+  inputExpected: true
+}

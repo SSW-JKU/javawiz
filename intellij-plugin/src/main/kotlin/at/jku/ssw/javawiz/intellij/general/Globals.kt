@@ -39,6 +39,14 @@ object Globals {
     val GUI_CONTEXT: String = properties.getProperty("guiContextId")
     val GUI_BUTTON_RUN: String = properties.getProperty("guiButtonTitleRun")
     val GUI_BUTTON_STOP: String = properties.getProperty("guiButtonTitleStop")
+    val GUI_BUTTON_DISABLED_NO_EDITOR: String = properties.getProperty("guiButtonDisabledNoEditor")
+    val GUI_BUTTON_DISABLED_NO_APPLICATION_IN_EDITOR: String = properties.getProperty("guiButtonDisabledNoApplicationInEditor")
+    val GUI_BUTTON_DISABLED_NO_MAIN_IN_EDITOR: String = properties.getProperty("guiButtonDisabledNoMainInEditor")
+    val GUI_BUTTON_DISABLED_RUN_CONFIGURATION: String = properties.getProperty("guiButtonDisabledRunConfiguration")
+    private val GUI_BUTTON_RUN_FILE: String = properties.getProperty("guiButtonTitleRunFile")
+
+    /** Returns the start button text naming the file to start, for example "Debug Main.java with JavaWiz". */
+    fun guiButtonRunFor(fileName: String): String = GUI_BUTTON_RUN_FILE.replace("{0}", fileName)
 
     // Plugin Information
     val PLUGIN_NAME: String = properties.getProperty("pluginName")

@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -164,7 +164,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "lint": "eslint",
-    "test": "npm run compile && node --test out/vsc-extension/src/HiddenPath.test.js out/vsc-extension/src/JavaRuntime.test.js",
+    "test": "npm run compile && node --test out/vsc-extension/src/HiddenPath.test.js out/vsc-extension/src/JavaRuntime.test.js out/vsc-extension/src/ExtensionModeUrl.test.js",
     "watch": "node watch.cjs"
   },
   "devDependencies": {

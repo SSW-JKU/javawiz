@@ -5,12 +5,13 @@ import { textWidth } from '@/components/TheFlowChart/Font'
 import * as d3 from 'd3'
 import { ELEMENT } from './Element'
 import { AstElement } from '@/dto/AbstractSyntaxTree'
+import { colors } from '@/helpers/colors'
 
 export const OVERLAY = {
   CHANGED_VAR_COLOR: 'red',
   UNCHANGED_VAR_COLOR: 'black',
-  FILL: '#fff9e6',
-  STROKE: '#ffc552',
+  FILL: colors.annotationFill,
+  STROKE: colors.annotationStroke,
   RADIUS: 3,
   LINE_DISTANCE: 14,
   MOVE_TIME: 500,
@@ -23,7 +24,7 @@ export const OVERLAY = {
   EMPTY_BOX_HEIGHT: 15,
   STACK: 'stackOverlay',
   STATICS: 'staticsOverlay',
-  FILTER: 'drop-shadow(0 0 2px grey)'
+  FILTER: `drop-shadow(0 0 2px ${colors.mediumGray})`
 }
 
 /*

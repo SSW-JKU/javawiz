@@ -5,7 +5,7 @@
 
     <before-compilation-text v-if="vizSelected && !generalStore.debugger.compiled" />
     <compilation-spinner v-if="vizSelected && !generalStore.debugger.compiled" />
-    <navigation-bar-with-settings
+    <viz-setting
       v-if="selectedViz && !generalStore.debugger.compiled"
       :viz-id="selectedViz.id"
       close-only />
@@ -21,9 +21,10 @@ import { Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import CompilationSpinner from '@/components/VizLayouts/CompilationSpinner.vue'
 import BeforeCompilationText from '@/components/VizLayouts/BeforeCompilationText.vue'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { UserLayoutPlacement, useVisualizationStore } from '@/store/VisualizationStore'
+import { colors } from '@/helpers/colors'
 
 const { location } = defineProps<{ location: UserLayoutPlacement }>()
 
@@ -40,7 +41,7 @@ const vizSelected = computed(() => selectedViz.value !== null)
 const style = computed(() => {
   return {
     position: 'relative',
-    'background-color': (selectedViz.value === null ? 'rgb(42,70,101)' : 'rgb(255, 255, 255)')
+    'background-color': (selectedViz.value === null ? colors.secondaryBlue : 'rgb(255, 255, 255)')
   }
 })
 

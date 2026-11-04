@@ -4,6 +4,8 @@ Usage examples:
   Use the default image content:
   <IconWithTooltip
     :icon="helpIcon"
+    background-color="var(--jw-light-gray)"
+    hover-background="var(--jw-medium-gray)"
     :tooltip="{ text: 'Help' }"
     @action="showHelp" />
 
@@ -35,8 +37,10 @@ Usage examples:
   <!-- relative position needed to be able to place the tooltip absolutely relative to the icon */ -->
   <div class="icon-container" :data-pet-target="petTarget">
     <a
+      class="icon-button"
       role="button"
       tabindex="0"
+      :style="{ '--icon-background': backgroundColor, '--icon-hover-background': hoverBackground }"
       :aria-label="tooltip?.text"
       :aria-disabled="!enabled"
       :aria-haspopup="ariaHaspopup"
@@ -94,6 +98,10 @@ type Props= {
   ariaExpanded?: boolean
   /** Image URL for the default icon content. Omit this when using the named `icon` slot. */
   icon?: string
+  /** CSS color behind image or slotted icon content; omitted leaves the background unset. */
+  backgroundColor?: string
+  /** CSS background on hover; omitted keeps backgroundColor while the icon grows. */
+  hoverBackground?: string
   semitransparent?: boolean
   /**
      *  Contains the tooltip text, its placement ('above' (or 'up' or 'north'), 'right' (or 'east'),
@@ -123,6 +131,8 @@ const {
   ariaHaspopup = undefined,
   ariaExpanded = undefined,
   icon = undefined,
+  backgroundColor = undefined,
+  hoverBackground = undefined,
   semitransparent = false,
   tooltip = null,
   shortcut = undefined,
@@ -196,24 +206,36 @@ const cssClass = computed(() => {
    For example, see TheArrayVisualization's settings control */
   font-size: 0.8rem;
 }
-.icon-container a {
+.icon-container > .icon-button {
   display: flex;
+  background-color: var(--icon-background, transparent);
+  transition: transform 0.2s, background-color 0.2s;
+  cursor: pointer;
+}
+
+/* Animate the common icon surface so images and named-slot content grow equally,
+   while the sibling tooltip keeps its size and position. */
+.icon-container > .icon-button:hover {
+  background-color: var(--icon-hover-background, var(--icon-background, transparent));
+  transform: scale(1.25);
 }
 
 .tt {
+  /* Border and arrow color; the arrow ::after elements inherit it. */
+  --tooltip-border-color: rgba(0, 0, 0, 0.95);
   width: v-bind(width);
   padding: 2px;
   visibility: collapse;
   position: absolute;
-  border: 1px solid rgba(0, 0, 0, 0.95);
-  background-color: rgba(102, 102, 102, 0.95);
+  border: 1px solid var(--tooltip-border-color);
+  background-color: var(--jw-dark-gray);
   color: #fff;
   text-align: center;
   border-radius: 6px;
   opacity: 0;
   transition: opacity 0.3s;
   z-index: var(--global-tooltip);
-  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.75);
+  box-shadow: 2px 4px 8px var(--jw-popup-shadow);
 }
 
 /* Because the content is empty, each border will form a triangle, becaues when borders meet at the corners, they create diagonal lines.
@@ -253,7 +275,7 @@ a:hover + .tt {
   top: 100%;
   /* arrow head is moved 5% inwards from the left end of the tooltip */
   left: 5%;
-  border-color: rgba(0, 0, 0, 0.95) transparent transparent transparent;
+  border-color: var(--tooltip-border-color) transparent transparent transparent;
 }
 
 .tt-above-middlearrow {
@@ -271,7 +293,7 @@ a:hover + .tt {
      Then, move the arrowhead back left by half its width, so that the arrow head is in the middle of the tooltip. */
   left: 50%;
   transform: translateX(-50%);
-  border-color: rgba(0, 0, 0, 0.95) transparent transparent transparent;
+  border-color: var(--tooltip-border-color) transparent transparent transparent;
 }
 
 .tt-above-rightarrow {
@@ -285,7 +307,7 @@ a:hover + .tt {
   top: 100%;
   /* arrow head is moved 5% inwards from the right end of the tooltip */
   right: 5%;
-  border-color: rgba(0, 0, 0, 0.95) transparent transparent transparent;
+  border-color: var(--tooltip-border-color) transparent transparent transparent;
 }
 
 .tt-right-middlearrow {
@@ -299,7 +321,7 @@ a:hover + .tt {
   right: 100%;
   top: 50%;
   transform: translateY(-50%);
-  border-color: transparent rgba(0, 0, 0, 0.95) transparent transparent;
+  border-color: transparent var(--tooltip-border-color) transparent transparent;
 }
 
 .tt-below-leftarrow {
@@ -312,7 +334,7 @@ a:hover + .tt {
   bottom: 100%;
   /* arrow head is moved 5% inwards from the left end of the tooltip */
   left: 5%;
-  border-color: transparent transparent rgba(0, 0, 0, 0.95) transparent;
+  border-color: transparent transparent var(--tooltip-border-color) transparent;
 }
 
 .tt-below-middlearrow {
@@ -328,7 +350,7 @@ a:hover + .tt {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-color: transparent transparent rgba(0, 0, 0, 0.95) transparent;
+  border-color: transparent transparent var(--tooltip-border-color) transparent;
 }
 
 .tt-below-rightarrow {
@@ -340,7 +362,7 @@ a:hover + .tt {
 .tt-below-rightarrow::after {
   bottom: 100%;
   right: 5%;
-  border-color: transparent transparent rgba(0, 0, 0, 0.95) transparent;
+  border-color: transparent transparent var(--tooltip-border-color) transparent;
 }
 
 .tt-left-middlearrow {
@@ -354,7 +376,7 @@ a:hover + .tt {
   left: 100%;
   top: 50%;
   transform: translateY(-50%);
-  border-color: transparent transparent transparent rgba(0, 0, 0, 0.95);
+  border-color: transparent transparent transparent var(--tooltip-border-color);
 }
 
 .key-icon {
@@ -364,7 +386,8 @@ a:hover + .tt {
 }
 
 .key-symbol {
-  background: #777777;
+  background: var(--jw-light-medium-gray);
+  color: var(--jw-dark-gray);
   padding: 2px 4px 2px 4px;
   border-radius: 3px;
   font-size: 10px;
@@ -373,12 +396,6 @@ a:hover + .tt {
 .toolbar-icon {
   width: 24px;
   height: 24px;
-  transition: 0.2s;
-}
-
-.toolbar-icon:hover {
-  transform: scale(1.25);
-  cursor: pointer;
 }
 
 </style>

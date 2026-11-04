@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.4.0] (released on 2026-11-04)
+* JW-255: Navigation buttons overlap visualizations
+* JW-386: Replace independent d3.zoom() with d3-graphviz zoom APIs in TheHeapVisualization
+* JW-516: Expand IntelliJ plugin automated test coverage
+* JW-645: Shorten JavaWiz 2.3.1 website news
+* JW-646: Distinguish current and retired project leads
+* JW-647: Add background color feature to IconWithTooltip
+* JW-650: Enable JetBrains Marketplace exception and UI freeze reporting for the IntelliJ plugin
+* JW-651: Require AI agents to use a visible browser window
+* JW-652: Give each AI session its own visible browser profile
+* JW-654: Document Fix Version 0.0.0 as the backlog marker
+* JW-655: IntelliJ: Debug with JavaWiz gutter icon appears on methods that are not named main
+* JW-656: IntelliJ: Clarify names in the run-line marker contributor
+* JW-657: Keep Python bytecode files out of Git and the public mirror
+* JW-658: Instead of using per-icon backgrounds in NavigationBarWithSettings, put a general JavaWiz-blue background behind the whole settings dialog.
+* JW-659: Exclude release_credentials.py from the public mirror
+* JW-660: Collect repeated frontend colors in a central place
+* JW-661: Review names of central frontend colors and merge very similar colors
+* JW-662: StreamViz misplaces marbles and drops links into terminal operations
+* JW-663: StreamViz shows wrong results for most collectors, and some collectors make JavaWiz fail
+* JW-664: NavigationBarWithSettings in StreamViz is not attached to upper-left
+* JW-665: StreamViz splits or extends the calling stream's diagram when a callback, such as a sorted comparator, creates a stream
+* JW-666: Better port management
+* JW-667: Move the stream-related recording classes into their own package
+* JW-668: Simplify the collector state model used by StreamViz
+* JW-669: Tell AI agents to maximize the browser and use a single-pane JavaWiz layout
+* JW-670: Tell AI agents to center the maximized browser window on the screen
+* JW-672: StreamViz does not show empty streams created inside Collectors.flatMapping
+* JW-673: Move StreamViz buttons up and step buttons to the right
+* JW-674: Internal guide for inspecting VS Code and IntelliJ logs
+* JW-675: On JDK 27, JavaWiz stops early and reports a wait for input at the first String.format or printf
+* JW-676: StreamViz draws nothing for array stream elements
+* JW-678: Save browser screenshots to YouTrack during AI investigation and testing
+* JW-679: StreamViz: show object fields, give objects sharp corners, draw lists like arrays, and fit lane heights to their marbles
+* JW-680: Bring the hover highlighting improvements from features/master/highlighting into master
+* JW-681: Move the sequence diagram history out of the debugger trace
+* JW-682: StreamViz has no Close button when no stream is shown
+* JW-683: Background of the selected source file tab is too dark
+* JW-684: Lighten medium gray and add a light-medium gray for dividers
+* JW-685: Make the secondary blue of the pane navigation bar slightly lighter
+* JW-686: Change the central dark gray to #444444
+* JW-687: Use the pane navigation blue for memory view headers and add a Heap header
+* JW-690: Add JavaWiz 2.4.0 release notes to website news
+* JW-691: IntelliJ: Debug with JavaWiz starts the first main method in the project instead of the one launched
+* JW-693: IntelliJ: JavaWiz index page not shown on Linux due to browser sandboxing
+* JW-694: Document how AI assistants check IntelliJ plugin behavior in a sandbox IDE
+* JW-695: IntelliJ: Split the Debug with JavaWiz button state by where the action is shown
+
 [2.3.1] (released on 2026-10-27)
 * JW-260: collapse args in heap by default
 * JW-539: Rename PUBLISH_TOKEN environment variable to INTELLIJ_PUBLISH_TOKEN
@@ -12,6 +60,8 @@ All notable changes to this project will be documented in this file.
 * JW-638: JDK 27: Class com.sun.tools.javac.tree.JCTree$JCCompilationUnit does not have member field 'com.sun.tools.javac.tree.EndPosTable endPositions'
 * JW-639: Bug Report: Problems with combination "IntelliJ Plugin + Java 27"
 * JW-642: Bug report: JavaWiz fails with missing javac endPositions field
+* JW-643: Add JavaWiz 2.3.1 release notes to website news
+* JW-644: Release JavaWiz 2.3.1
 
 [2.3.0] (released on 2026-10-12)
 * JW-40: Make build and release scripts OS-independent

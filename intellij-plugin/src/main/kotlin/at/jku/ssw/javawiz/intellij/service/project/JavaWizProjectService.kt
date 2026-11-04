@@ -15,8 +15,6 @@ import at.jku.ssw.javawiz.intellij.toolwindows.TerminalToolWindowPanel
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
-import com.intellij.ide.projectView.ProjectView
-import com.intellij.ide.projectView.impl.AbstractProjectViewPane
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -36,8 +34,6 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiFileSystemItem
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.ServerSocket
@@ -105,6 +101,17 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   @Volatile
   private var isShuttingDown: Boolean = false
 
+  /**
+   * The Java file the user launched for the current session, or `null` when no session runs.
+   * It decides which `main` method JavaWiz runs (see [getFileContents]) and is also sent to the
+   * frontend when it lies outside the project, such as a scratch file.
+   *
+   * The action sets it on the UI thread when the session starts; the frontend connection reads it
+   * on its own thread. `@Volatile` makes the new value visible to that thread.
+   */
+  @Volatile
+  internal var launchFile: VirtualFile? = null
+
   var frontendPort = -1
   var communicationPort = -1
   var debuggerPort = -1
@@ -128,7 +135,11 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   //-------------------------------------------------
   // Public Methods
   //-------------------------------------------------
-  fun startDebug(callback: () -> Unit) {
+  /**
+   * Starts a JavaWiz session that runs the `main` method of [launchFile]. [callback] lets the caller
+   * update its button after the start succeeds or fails.
+   */
+  fun startDebug(launchFile: VirtualFile, callback: () -> Unit) {
     // Validate before opening tool windows or starting servers so an unsuitable PATH cannot
     // leave a partial JavaWiz session behind.
     when (val validation = JavaRuntime.check()) {
@@ -144,6 +155,7 @@ class JavaWizProjectService(private val project: Project) : Disposable {
       )
     }
 
+    this.launchFile = launchFile
     attachDocumentListeners()
 
     findAvailablePorts()
@@ -200,6 +212,8 @@ class JavaWizProjectService(private val project: Project) : Disposable {
       // UI teardown must happen on the EDT
       ApplicationManager.getApplication().invokeAndWait {
         removeHighlights(project)
+        // Cleared after removeHighlights, which still needs it to find a launched scratch file.
+        launchFile = null
         // Reset the plugin gui windows
         frontendToolWindowPanel.defaultFrontend()
         frontendToolWindow.hide(null)
@@ -299,7 +313,22 @@ class JavaWizProjectService(private val project: Project) : Disposable {
       collectJavaFiles(root, root, projectFiles)
     }
 
+    // A launched file outside the content roots, such as a scratch file, must be sent as well.
+    launchFile?.let { file ->
+      if (file !in projectFiles.values) projectFiles[localUriOf(file)] = file
+    }
+
     return projectFiles
+  }
+
+  /**
+   * Returns the path under which [file] is sent to the frontend: relative to the first content root
+   * that contains it, for example `pkg/Main.java`, or just the file name for a file outside the
+   * project, for example `scratch.java`.
+   */
+  private fun localUriOf(file: VirtualFile): String {
+    val roots = ProjectRootManager.getInstance(project).contentRoots
+    return roots.firstNotNullOfOrNull { root -> VfsUtilCore.getRelativePath(file, root) } ?: file.name
   }
 
   private fun collectJavaFiles(root: VirtualFile, file: VirtualFile, projectFiles: MutableMap<String, VirtualFile>) {
@@ -506,42 +535,13 @@ class JavaWizProjectService(private val project: Project) : Disposable {
     val response = ResponseData(
       message = message, //Message(Constants.Strings.MESSAGE_KIND_FILE_CONTENT),
       result = Globals.Strings.MESSAGE_RESULT_SUCCESS,
-      data = GetFileContentsData(fileContents, run {
-        val selectedFile = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
-          ?: getSelectedProjectViewFile()
-        val roots = ProjectRootManager.getInstance(project).contentRoots
-        selectedFile?.let { f -> roots.firstNotNullOfOrNull { root -> VfsUtilCore.getRelativePath(f, root) } }
-          ?: selectedFile?.name
-          ?: ""
-      })
+      // The backend runs the main class of the launched file. `launchFile` is null only outside a
+      // session; the empty path then makes the backend use the first main class it finds.
+      data = GetFileContentsData(fileContents, launchFile?.let(::localUriOf) ?: "")
     )
 
     // parse to JSON and send it to the client
     return Json.encodeToString(response)
-  }
-
-  private fun getSelectedProjectViewFile(): VirtualFile? {
-    var selectedFile: VirtualFile? = null
-    val readSelection = Runnable {
-      selectedFile = ProjectView.getInstance(project).currentProjectViewPane
-        ?.selectedUserObjects
-        ?.firstNotNullOfOrNull { selectedElement ->
-          when (val value = AbstractProjectViewPane.extractValueFromNode(selectedElement)) {
-            is VirtualFile -> value.takeUnless { it.isDirectory }
-            is PsiFileSystemItem -> value.virtualFile.takeUnless { it.isDirectory }
-            is PsiClass -> value.containingFile?.virtualFile?.takeUnless { it.isDirectory }
-            else -> null
-          }
-        }
-    }
-
-    val application = ApplicationManager.getApplication()
-    if (application.isDispatchThread) {
-      readSelection.run()
-    } else {
-      application.invokeAndWait(readSelection)
-    }
-    return selectedFile
   }
 
   override fun dispose() {

@@ -1,0 +1,25 @@
+stream 1
+  lanes
+    of | double |
+    collect | List | ArrayList::new
+  playback
+    step 1: of@1 START double "1.0"
+    step 2: collect@1 END List [of@1]
+    step 3: of@2 START double "2.0"
+    step 4: collect@2 END List [of@1, of@2]
+    step 5: of@3 START double "3.0"
+    step 6: collect@3 END List [of@1, of@2, of@3]
+    link from step 2: of@1 -> collect@1
+    link from step 4: of@1 -> collect@2
+    link from step 4: of@2 -> collect@2
+    link from step 6: of@1 -> collect@3
+    link from step 6: of@2 -> collect@3
+    link from step 6: of@3 -> collect@3
+  final
+    of@1 START double "1.0"
+    of@2 START double "2.0"
+    of@3 START double "3.0"
+    collect@3 END List [of@1, of@2, of@3]
+    link of@1 -> collect@3
+    link of@2 -> collect@3
+    link of@3 -> collect@3

@@ -1,0 +1,1 @@
+DoubleSummaryStatistics{count=4, sum=20.000000, min=2.000000, average=5.000000, max=8.000000}

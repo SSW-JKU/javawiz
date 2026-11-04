@@ -89,14 +89,16 @@ function blur () {
 #console-div {
   width: 100%;
   height: 100%;
-  background-color: rgba(20, 47, 79, 0.4);
+  /* color-mix() makes the central blue translucent without a separate palette entry.
+     It needs Chromium 111 or newer, which all supported browsers and IDE webviews meet. */
+  background-color: color-mix(in srgb, var(--jw-primary-blue) 40%, transparent);
   color: white;
 }
 
 #console-header {
   font-family: "Arial", sans-serif;
   height: 30px;
-  background: #163150;
+  background: var(--jw-primary-blue);
   padding-left: 5px;
   display: flex;
   align-items: center;
@@ -142,12 +144,12 @@ pre {
   margin-left: auto;
   margin-right: 10px;
   font-size: 0.9rem;
-  background-color: #163150;
-  border-color: #163150;
+  background-color: var(--jw-primary-blue);
+  border-color: var(--jw-primary-blue);
 }
 
 #console-input-button:enabled:hover {
-  background-color: #334967;
+  background-color: var(--jw-secondary-blue);
 }
 
 </style>

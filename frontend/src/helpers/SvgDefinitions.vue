@@ -28,7 +28,7 @@
       markerWidth="9"
       markerHeight="7"
       orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#eda167" />
+      <path d="M 0 0 L 10 5 L 0 10 z" :fill="colors.objectAccent" />
     </marker>
     <polygon id="triangle" points="-3,-6 0,0 3,-6" style="stroke: none" />
     <marker
@@ -70,7 +70,7 @@
       markerWidth="9"
       markerHeight="9"
       orient="auto-start-reverse"
-      stroke="#eda167">
+      :stroke="colors.objectAccent">
       <path d="M 0 0 L 10 5 L 0 10" fill-opacity="0" />
     </marker>
     <marker
@@ -81,7 +81,7 @@
       markerWidth="9"
       markerHeight="9"
       orient="auto-start-reverse"
-      stroke="#a1c79d">
+      :stroke="colors.referenceAccent">
       <path d="M 0 0 L 10 5 L 0 10" fill-opacity="0" />
     </marker>
     <marker
@@ -92,10 +92,11 @@
       markerWidth="4.5"
       markerHeight="4.5"
       orient="auto-start-reverse">
-      <circle cx="4.5" cy="4.5" r="4.5" fill="#eda167" />
+      <circle cx="4.5" cy="4.5" r="4.5" :fill="colors.objectAccent" />
     </marker>
   </defs>
 </template>
 
 <script setup lang="ts">
+import { colors } from '@/helpers/colors'
 </script>

@@ -2,7 +2,7 @@ import { DebuggerProtocol } from '@/dto/DebuggerProtocol'
 import { StackFrame, TraceState } from '@/dto/TraceState'
 import { Trace } from '@/debugger/Trace'
 import * as d3 from 'd3'
-import { COMPILING, CONNECTED, DONE, DebuggerState, INITIAL, INPUT_EXPECTED, RUNNING, WAITING, CONNECTING } from './DebuggerState'
+import { COMPILING, CONNECTED, DONE, DebuggerState, INITIAL, INPUT_EXPECTED, RUNNING, UNRESPONSIVE, WAITING, CONNECTING } from './DebuggerState'
 import { ExtensionCommunication } from '@/helpers/ExtensionCommunication'
 import { TraceData } from './TraceData'
 import { useGeneralStore } from '@/store/GeneralStore'
@@ -151,7 +151,9 @@ export class Debugger {
           this.state = RUNNING
         } else {
           this.state = DONE
-          this.trace.end(states)
+          if (states.length > 0) {
+            this.trace.addTraceStates(states)
+          }
         }
         this.showNotification({ kind: 'CompileSuccess' })
         if (data.featureWarnings.length > 0) {
@@ -182,15 +184,22 @@ export class Debugger {
           break
         }
         const newStates = stepResult.traceStates
+        this.clearNotifications(NotificationGroups.unresponsive)
         if (!stepResult.vmrunning) {
           this.state = DONE
-          this.trace.end(newStates)
+          if (newStates.length > 0) {
+            this.trace.addTraceStates(newStates)
+          }
           this.pushStateIndex(this.trace.traceLength - 1)
           break
         }
         if (stepResult.isWaitingForInput) {
           this.state = INPUT_EXPECTED
           this.showNotification({ kind: 'InputExpected' })
+          this.handleDebugStateChange()
+        } else if (stepResult.isUnresponsive) {
+          this.state = UNRESPONSIVE
+          this.showNotification({ kind: 'Unresponsive' })
           this.handleDebugStateChange()
         } else {
           this.state = RUNNING

@@ -1,0 +1,39 @@
+stream 1
+  lanes
+    of | int |
+    skip | int | 2
+    forEach | void | System.out::println
+  playback
+    step 1: of@1 START int "1"
+    step 2: skip@1 IN int "1"
+    step 3: of@2 START int "2"
+    step 4: skip@2 IN int "2"
+    step 5: of@3 START int "3"
+    step 6: skip@3 OUT int "3"
+    step 7: forEach@3 END void "forEach"
+    step 8: of@4 START int "4"
+    step 9: skip@4 OUT int "4"
+    step 10: forEach@4 END void "forEach"
+    link from step 2: of@1 -> skip@1
+    link from step 4: of@2 -> skip@2
+    link from step 6: of@3 -> skip@3
+    link from step 7: skip@3 -> forEach@3
+    link from step 9: of@4 -> skip@4
+    link from step 10: skip@3 -> forEach@4
+    link from step 10: skip@4 -> forEach@4
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    of@3 START int "3"
+    of@4 START int "4"
+    skip@1 IN int "1"
+    skip@2 IN int "2"
+    skip@3 OUT int "3"
+    skip@4 OUT int "4"
+    forEach@4 END void "forEach"
+    link of@1 -> skip@1
+    link of@2 -> skip@2
+    link of@3 -> skip@3
+    link skip@3 -> forEach@4
+    link of@4 -> skip@4
+    link skip@4 -> forEach@4

@@ -1,5 +1,8 @@
 package at.jku.ssw.javawiz.intellij.contributors
 
+import at.jku.ssw.javawiz.intellij.action.DebugWithJavaWiz
+import at.jku.ssw.javawiz.intellij.general.Globals
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.psi.PsiIdentifier
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
@@ -7,6 +10,9 @@ import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase5
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -48,19 +54,51 @@ internal class RunLineMarkerContributorTest :
     assertFalse(isMainIdentifierAtCaret("class WrongParameter { void ma<caret>in(int[] args) {} }"))
   }
 
+  @Test
+  fun testRecognizesMainClassName() {
+    assertTrue(isMainIdentifierAtCaret("class Ma<caret>in { public static void main(String[] args) {} }"))
+  }
+
+  @Test
+  fun testIgnoresMethodsAndClassesNotNamedMain() {
+    assertFalse(isMainIdentifierAtCaret("class No<caret>Main { void run() {} }", "NoMain.java"))
+    assertNull(markerInfoAtCaret("class Plain { void ru<caret>n() {} }", "Plain.java"))
+  }
+
+  @Test
+  fun testRejectsInstanceArrayMainWithoutAccessibleConstructor() {
+    // The Java launcher must instantiate the class before calling an instance main method.
+    assertFalse(isMainIdentifierAtCaret("class Hidden { private Hidden() {} void ma<caret>in(String[] args) {} }", "Hidden.java"))
+  }
+
+  @Test
+  fun testOffersRegisteredDebugActionForMainMethod() {
+    val registeredAction = ActionManager.getInstance().getAction(Globals.Props.ACTION_ID_RUN)
+    assertIs<DebugWithJavaWiz>(registeredAction)
+
+    val info = assertNotNull(markerInfoAtCaret("class Main { public static void ma<caret>in(String[] args) {} }"))
+    assertSame(registeredAction, info.actions.single())
+  }
+
+  private fun isMainIdentifierAtCaret(source: String, fileName: String = "Main.java"): Boolean =
+    withIdentifierAtCaret(source, fileName, ::shouldShowJavaWizMarker)
+
+  private fun markerInfoAtCaret(source: String, fileName: String = "Main.java") =
+    withIdentifierAtCaret(source, fileName) { RunLineMarkerContributor().getInfo(it) }
+
   /**
-   * Configures an in-memory Java file and checks the identifier immediately before its caret marker.
+   * Configures an in-memory Java file and passes the identifier immediately before its caret marker
+   * to [check], returning the check's result.
    *
    * Inline source keeps these short cases local; larger file-based scenarios belong in `testdata` as
    * described at https://plugins.jetbrains.com/docs/intellij/test-project-and-testdata-directories.html.
    */
-  private fun isMainIdentifierAtCaret(source: String, fileName: String = "Main.java"): Boolean {
+  private fun <T> withIdentifierAtCaret(source: String, fileName: String, check: (PsiIdentifier) -> T): T {
     // Creates an in-memory Java PSI file and moves the fixture caret to the source's <caret> marker.
     val file = fixture.configureByText(fileName, source)
     // JUnit 5 executes the test on a worker thread, while IntelliJ requires PSI reads inside a read action.
-    return ReadAction.computeBlocking<Boolean, RuntimeException> {
-      val identifier = file.findElementAt(fixture.caretOffset - 1)
-      isJavaWizMainIdentifier(assertIs<PsiIdentifier>(identifier))
+    return ReadAction.computeBlocking<T, RuntimeException> {
+      check(assertIs<PsiIdentifier>(file.findElementAt(fixture.caretOffset - 1)))
     }
   }
 }

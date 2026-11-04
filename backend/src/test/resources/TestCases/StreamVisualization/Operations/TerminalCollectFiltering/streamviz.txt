@@ -1,0 +1,50 @@
+stream 1
+  lanes
+    of | int |
+    map | int | (n)->n * 2
+    collect | List | Collectors.filtering((n)->n > 4, Collectors.toList())
+  playback
+    step 1: of@1 START int "1"
+    step 2: map@1 OUT int "2"
+    step 3: collect@1 END List []
+    step 4: of@2 START int "2"
+    step 5: map@2 OUT int "4"
+    step 6: collect@2 END List []
+    step 7: of@3 START int "3"
+    step 8: map@3 OUT int "6"
+    step 9: collect@3 END List [map@3]
+    step 10: of@4 START int "4"
+    step 11: map@4 OUT int "8"
+    step 12: collect@4 END List [map@3, map@4]
+    link from step 2: of@1 -> map@1
+    link from step 3: map@1 -> collect@1
+    link from step 5: of@2 -> map@2
+    link from step 6: map@1 -> collect@2
+    link from step 6: map@2 -> collect@2
+    link from step 8: of@3 -> map@3
+    link from step 9: map@1 -> collect@3
+    link from step 9: map@2 -> collect@3
+    link from step 9: map@3 -> collect@3
+    link from step 11: of@4 -> map@4
+    link from step 12: map@1 -> collect@4
+    link from step 12: map@2 -> collect@4
+    link from step 12: map@3 -> collect@4
+    link from step 12: map@4 -> collect@4
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    of@3 START int "3"
+    of@4 START int "4"
+    map@1 OUT int "2"
+    map@2 OUT int "4"
+    map@3 OUT int "6"
+    map@4 OUT int "8"
+    collect@4 END List [map@3, map@4]
+    link of@1 -> map@1
+    link map@1 -> collect@4
+    link of@2 -> map@2
+    link map@2 -> collect@4
+    link of@3 -> map@3
+    link map@3 -> collect@4
+    link of@4 -> map@4
+    link map@4 -> collect@4

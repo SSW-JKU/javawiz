@@ -1,8 +1,24 @@
 import { ZoomBehavior, ZoomedElementBaseType, type ZoomTransform } from 'd3-zoom'
 import * as d3 from 'd3'
 import { SVG, ZOOM } from './constants'
-import { TRANSFORMATION } from '@/helpers/constants'
+import { NAVIGATION_CONTENT_INSET, TRANSFORMATION } from '@/helpers/constants'
 import { resolveZoomTransform } from './zoom-transform'
+
+/**
+ * Moves the initial camera right just enough to clear the navigation icons.
+ * Pass the visible content's left edge in screen pixels, for example a chart's
+ * getBoundingClientRect().left. Scale and vertical position stay unchanged;
+ * empty or unmeasurable content leaves the current transform unchanged.
+ */
+export function getNavigationClearTransform (svg: SVGSVGElement, current: ZoomTransform, contentLeft: number) {
+  // The SVG viewBox scales drawing units independently of CSS pixels. The root
+  // screen matrix converts the requested pixel clearance to zoom coordinates.
+  const scale = svg.getScreenCTM()?.a ?? 0
+  if (!svg.isConnected || !svg.clientWidth || scale <= 0 || !Number.isFinite(contentLeft)) return current
+  const pixels = Math.max(0, svg.getBoundingClientRect().left + NAVIGATION_CONTENT_INSET - contentLeft)
+  if (!pixels) return current
+  return d3.zoomIdentity.translate(current.x + pixels / scale, current.y).scale(current.k)
+}
 
 /**
  * Zooms to change if needed
@@ -13,6 +29,7 @@ import { resolveZoomTransform } from './zoom-transform'
  * @param divId id of div the svg is in
  * @param svgWidth width of the svg
  * @param svg svg in which something changed
+ * @returns the existing movement transition, so callers can position initial content after it finishes
  */
 export function zoomToChange (
   x: number,
@@ -76,6 +93,8 @@ export function zoomToChange (
     dY += y - lowerRight[1] + offsetY
   }
   // translate
-  zoom.translateBy(svg.transition().duration(TRANSFORMATION.duration)
-    .ease(TRANSFORMATION.ease) as any, -dX, -dY)
+  const transition = svg.transition().duration(TRANSFORMATION.duration)
+    .ease(TRANSFORMATION.ease)
+  zoom.translateBy(transition as any, -dX, -dY)
+  return transition
 }

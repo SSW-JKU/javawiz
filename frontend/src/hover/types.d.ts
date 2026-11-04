@@ -27,6 +27,11 @@ export type HoverLocal = {
   readonly method: string
   readonly name: string
   readonly reference: number
+  /**
+   * The memory view's frame number of the local (main is 0), so a recursive method's locals can be
+   * told apart. Views that do not know this numbering leave it unset, which matches every frame of the method.
+   */
+  readonly stackFrameNr?: number
 }
 
 export type HoverStatic = {

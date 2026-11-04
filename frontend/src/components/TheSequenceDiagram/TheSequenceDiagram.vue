@@ -13,7 +13,7 @@
         <g id="arrows" />
       </g>
     </svg>
-    <NavigationBarWithSettings
+    <VizSetting
       :zoom-in="zoomIn"
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
@@ -29,7 +29,7 @@ import { drawLifeLines, drawArrows, drawBoxes } from '@/components/TheSequenceDi
 import { zoom, zoomIdentity } from 'd3-zoom'
 import { HTML, SVG, DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/components/TheSequenceDiagram/constants'
 import { removeChildren } from '@/components/DataStructureVisualizations/utils'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
 import {
   setHiddenArrows,
@@ -52,6 +52,7 @@ import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { ProcessedTraceState } from '@/dto/TraceState'
 import { HeapVizTraceState } from '@/components/TheHeapVisualization/Types/HeapVizTraceState'
 import { linkHeapItemsToLoadedClasses } from '@/debugger/processedTraceState'
+import { SequenceDiagramHistory } from './SequenceDiagramHistory'
 
 // Track handle replacement without deep-proxying imperative browser and D3 objects.
 const svg = shallowRef(select('#sequence-diagram-svg'))
@@ -68,15 +69,56 @@ const hoveredInfos = ref([] as HoverInfo[])
 const generalStore = useGeneralStore()
 const visualizationStore = useVisualizationStore()
 const svgWidth = computed(() => window.innerWidth * SVG.multiplier)
-const lifeLines = computed(() => generalStore.currentTraceData!.lifeLines)
-const arrows = computed(() => generalStore.currentTraceData!.arrows)
-const boxes = computed(() => generalStore.currentTraceData!.boxes)
-const timeIdx = computed(() => generalStore.currentTraceData!.timeIdx)
 const stateIndex = computed(() => generalStore.currentTraceData!.stateIndex)
-const timeIdxStateIdxMap = computed(() => generalStore.currentTraceData!.timeIdxStateIdxMap)
 const vmRunning = computed(() => generalStore.debugger.running)
 const undoStack = computed(() => generalStore.debugger.getUndoStack())
-const visitedLines = computed(() => generalStore.currentTraceData!.visitedLines)
+
+// The diagram builds its history only while it is shown. It is deliberately not reactive:
+// drawing mutates its elements (currState, isHidden, ...) and that must not trigger re-evaluation.
+let history = new SequenceDiagramHistory()
+// The trace the history was built from; only its identity is compared.
+let historyTrace: object | undefined
+
+/*
+ * Brings the history up to date with the debugger trace and returns the diagram at the current state.
+ * When the diagram opens, this replays every batch recorded so far; afterwards it only adds new batches.
+ * A new trace (after recompiling) starts a new history.
+ * The update runs lazily when the diagram reads this computed, so the debugger has always stored complete
+ * batches by then. Reading the trace states, batch indices, debugger state and state index here makes
+ * Vue re-run it after every step, step back, program end, and recompilation.
+ */
+const diagram = computed(() => {
+  const trace = generalStore.debugger.fullTrace
+  if (trace !== historyTrace) {
+    history = new SequenceDiagramHistory()
+    historyTrace = trace
+  }
+  history.addRecordedBatches(trace.trace, trace.getBatchStartIndices())
+  // The program has ended: draw the end of every lifeline that still exists.
+  if (generalStore.debugger.compiled && !generalStore.debugger.running) {
+    history.endAllLifeLines()
+  }
+  return {
+    lifeLines: history.getLifeLines(stateIndex.value),
+    arrows: history.getArrows(stateIndex.value),
+    boxes: history.getBoxes(stateIndex.value),
+    timeIdx: history.getTimeIdx(stateIndex.value),
+    timeIdxStateIdxMap: history.getTimeIdxStateIdxMap(),
+    visitedLines: history.getVisitedLines()
+  }
+})
+const lifeLines = computed(() => diagram.value.lifeLines)
+const arrows = computed(() => diagram.value.arrows)
+const boxes = computed(() => diagram.value.boxes)
+const timeIdx = computed(() => diagram.value.timeIdx)
+const timeIdxStateIdxMap = computed(() => diagram.value.timeIdxStateIdxMap)
+const visitedLines = computed(() => diagram.value.visitedLines)
+
+// Hidden and collapsed elements belong to one history; forget them when a new trace replaces it.
+watch(() => generalStore.debugger.fullTrace, () => {
+  hiddenIntervals.value = []
+  hiddenLifeLines.value = []
+})
 const currentHeapVizTraceState = computed(() => {
   /*  we want to use processedTrace to access the already computed changed-flag for highlighting changed elements,
    *  but it's only available after the first step, so the first state still has to come from the original trace
@@ -399,27 +441,28 @@ function zoomReset () {
 }
 
 :deep(.highlighted-box rect) {
-  fill: #ffe9d8;
+  fill: var(--jw-object-hover);
 }
 
 :deep(.highlighted-box circle) {
-  fill: #c9b7a9;
-  stroke: #c9b7a9;
+  --highlighted-box-color: #c9b7a9;
+  fill: var(--highlighted-box-color);
+  stroke: var(--highlighted-box-color);
 }
 
 :deep(.highlighted-arrow), :deep(.highlighted-arrow line) {
-  stroke: #eda167;
-  color: #eda167;
+  stroke: var(--jw-object-accent);
+  color: var(--jw-object-accent);
 }
 
 :deep(.highlighted-ref-arrow), :deep(.highlighted-ref-arrow line) {
-  stroke: #a1c79d;
-  color: #a1c79d;
+  stroke: var(--jw-reference-accent);
+  color: var(--jw-reference-accent);
 }
 
 :deep(.highlighted-lifeline), :deep(.highlighted-lifeline line) {
-  color: #eda167;
-  stroke: #eda167;
+  color: var(--jw-object-accent);
+  stroke: var(--jw-object-accent);
 }
 
 </style>

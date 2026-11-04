@@ -1,52 +1,54 @@
 <template>
-  <div v-if="inputBufferInfo" id="io-viz">
-    <NavigationBarWithSettings :viz-id="visualizationStore.INVIZ.id" />
-    <div v-if="inputBufferInfo.traceSuccess" id="input-viz">
-      <div id="output">
-        <b id="past-buffer">
-          {{ displayBuffer(inputBufferInfo.past) }}
-        </b>
-        <b id="separator-line">|</b>
-        <b id="future-buffer">
-          {{ displayBuffer(inputBufferInfo.future) }}
-        </b>
-      </div>
-      <div id="info">
-        <div v-if="latestMethod === 'no method called' || latestMethod === ''">
-          <i>No <span class="monospace">In.java</span> method called yet.</i>
-          <br><br>
-          <i style="font-size: 0.8rem;">
-            To use <span class="monospace">In.java</span>, a class developed at JKU Linz for exception-free input handling,
-            you can right-click in your VSCode project and press "Create In.java". (For output, you can also
-            use another utility class using "Create Out.java")
-          </i>
+  <div id="io-viz">
+    <VizSetting :viz-id="visualizationStore.INVIZ.id" />
+    <template v-if="inputBufferInfo">
+      <div v-if="inputBufferInfo.traceSuccess" id="input-viz">
+        <div id="output">
+          <b id="past-buffer">
+            {{ displayBuffer(inputBufferInfo.past) }}
+          </b>
+          <b id="separator-line">|</b>
+          <b id="future-buffer">
+            {{ displayBuffer(inputBufferInfo.future) }}
+          </b>
         </div>
-        <div v-else>
-          <div>
-            <span class="monospace">In.done()</span>:&nbsp;
-            <span class="monospace" :class="inputBufferInfo.done ? 'done-true' : 'done-false'"> {{ inputBufferInfo.done }} </span>
+        <div id="info">
+          <div v-if="latestMethod === 'no method called' || latestMethod === ''">
+            <i>No <span class="monospace">In.java</span> method called yet.</i>
+            <br><br>
+            <i style="font-size: 0.8rem;">
+              To use <span class="monospace">In.java</span>, a class developed at JKU Linz for exception-free input handling,
+              you can right-click in your VSCode project and press "Create In.java". (For output, you can also
+              use another utility class using "Create Out.java")
+            </i>
           </div>
-          <div>
-            <!-- keep the following line breaks to generate correct white spaces -->
-            Latest return value:
-            <span class="monospace">{{ encodedLatestValue }}</span>
-            (<span class="monospace">{{ latestType }}</span>&nbsp;from&nbsp;<span class="monospace">{{ latestMethod }}</span>)
+          <div v-else>
+            <div>
+              <span class="monospace">In.done()</span>:&nbsp;
+              <span class="monospace" :class="inputBufferInfo.done ? 'done-true' : 'done-false'"> {{ inputBufferInfo.done }} </span>
+            </div>
+            <div>
+              <!-- keep the following line breaks to generate correct white spaces -->
+              Latest return value:
+              <span class="monospace">{{ encodedLatestValue }}</span>
+              (<span class="monospace">{{ latestType }}</span>&nbsp;from&nbsp;<span class="monospace">{{ latestMethod }}</span>)
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div v-if="!inputBufferInfo.traceSuccess">
-      <div>
-        The input buffer visualisation only works if you use the correct In class
+      <div v-if="!inputBufferInfo.traceSuccess" class="input-warning">
+        <div>
+          The input buffer visualisation only works if you use the correct In class
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang = 'ts'>
 import { computed } from 'vue'
 import sanitizer from '@/helpers/sanitizer'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
 
@@ -155,7 +157,7 @@ function displayBuffer (s: string): string {
 }
 
 #past-buffer {
-  color: lightgrey;
+  color: var(--jw-medium-gray);
 }
 
 #separator-line {
@@ -170,8 +172,11 @@ function displayBuffer (s: string): string {
   height: 100%;
 }
 
-#input-viz {
+#input-viz, #io-viz .input-warning {
   margin: 0px 0px 0px 33px;
+}
+
+#input-viz {
   display: flex;
   flex-direction: column;
   height: 100%; /* Ensure the container takes up the full height of its parent */

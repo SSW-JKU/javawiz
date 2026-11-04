@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { Extension } from './extension'
+import { buildExtensionModeUrl } from './ExtensionModeUrl'
 
 
 
@@ -28,7 +29,7 @@ export class Webview {
       }
     )
     Webview.subscriptions.push(panel)
-    panel.webview.html = Webview.getHTMLiFrame(`http://localhost:${port}/extensionMode${communicationPort};${debuggerPort}`)
+    panel.webview.html = Webview.getHTMLiFrame(buildExtensionModeUrl(port, communicationPort, debuggerPort))
     Webview.subscriptions.push(
       panel.onDidDispose(() => Extension.endDebug())
     )

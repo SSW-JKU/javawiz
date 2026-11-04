@@ -1,0 +1,12 @@
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+public class Main {
+    public static void main(String[] args) {
+        Stream.of(1, 2)
+                .flatMap(n -> Stream.of(n, n * 10))
+                .forEach(System.out::println);
+    }
+}

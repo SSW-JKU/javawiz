@@ -16,9 +16,11 @@ export class SequenceDiagramHistory {
 
   private lastState: TraceState | undefined
   private visitedLines: number[] = []
+  // Number of recorded batches already added by addRecordedBatches.
+  private replayedBatches = 0
 
   // adapts lifelines, arrows and boxes according to new trace states
-  public addTraceStates (newStates: TraceState[], stateIndex: number): void {
+  public addTraceStates (newStates: readonly TraceState[], stateIndex: number): void {
     let previous = this.lastState
 
     for (let i = 0; i < newStates.length; i++) {
@@ -35,6 +37,20 @@ export class SequenceDiagramHistory {
     }
     this.visitedLines.push(newStates[newStates.length - 1].line)
     this.lastState = newStates.at(-1) ?? this.lastState
+  }
+
+  /**
+   * Adds the batches recorded since the previous call, so the history can be built at any time from a
+   * trace that is still growing. A batch reaches up to the start of the next batch or the end of the trace.
+   * The batches must be fed in the same groups as the debugger delivered them, because visited lines are
+   * recorded once per batch. Example: states s0..s5 with batch starts [0, 1, 3] add [s0], [s1, s2], [s3, s4, s5].
+   */
+  public addRecordedBatches (states: readonly TraceState[], batchStartIndices: readonly number[]): void {
+    for (; this.replayedBatches < batchStartIndices.length; this.replayedBatches++) {
+      const start = batchStartIndices[this.replayedBatches]
+      const end = batchStartIndices[this.replayedBatches + 1] ?? states.length
+      this.addTraceStates(states.slice(start, end), start)
+    }
   }
 
   // returns all lifelines up until a specified state index

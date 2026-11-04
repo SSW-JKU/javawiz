@@ -139,7 +139,7 @@ const { variable, value }= defineProps<{variable: DeskTestVar | DeskTestStatic, 
 
 .overlay-box {
   text-align: center;
-  border: 1px solid lightgrey;
+  border: 1px solid var(--jw-light-medium-gray);
   border-radius: 3px;
   font-family: Consolas, serif;
   font-size: 9pt;

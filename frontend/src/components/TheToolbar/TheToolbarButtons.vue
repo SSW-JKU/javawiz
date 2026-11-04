@@ -58,12 +58,12 @@ const generalStore = useGeneralStore()
 <style>
 
 .connect-button {
-  background-color: #5c87a8;
-  border-color: #4b708c;
+  background-color: var(--jw-action-blue);
+  border-color: var(--jw-action-blue);
 }
 
 .connect-button:hover {
-  background-color: #6792b8;
+  background-color: var(--jw-secondary-blue);
 }
 
 .connect-icon {

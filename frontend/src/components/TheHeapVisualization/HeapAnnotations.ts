@@ -1,4 +1,5 @@
 import type { TraceState } from '@/dto/TraceState'
+import { colors } from '@/helpers/colors'
 import {
   PetAnnotationManager,
   type CalloutState,
@@ -32,7 +33,7 @@ export class HeapAnnotationManager {
   public addHighlight (
     target: HeapLookupTarget,
     traceState: TraceState,
-    color = '#ffc552',
+    color: string = colors.annotationStroke,
     opacity = 0.35,
     padding = 3
   ): number {

@@ -24,6 +24,7 @@ import { blockContinues } from './meta-utils'
 import { FullWidthManager } from './FullWidthManager'
 import { uuidToDomId } from './ast-utils'
 import { FullHierarchyNode } from './types'
+import { colors } from '@/helpers/colors'
 
 type Selection<T extends AstElement = AstElement> = d3.Selection<SVGGElement, FullHierarchyNode<T>, any, any>
 type UpdateSelection<T extends AstElement = AstElement> = d3.Selection<d3.BaseType, FullHierarchyNode<T>, any, any>
@@ -39,6 +40,8 @@ export type InlineFn = (uuid: string, candidateUuids: string[]) => Promise<void>
 const MAIN_LINE_STROKE_WIDTH = 0.5
 const ACTIVE_COLOR = 'rgb(212,228,231)' // same as vscode plugin '#d4e4e7FF'
 const METHOD_CALL_COLOR = '#0F0F0F12'
+// Start and end color for fading statement backgrounds with D3's color interpolation.
+const TRANSPARENT = 'rgba(0,0,0,0)'
 
 const line = d3.line()
 
@@ -181,7 +184,7 @@ function joinStatements (
     u => {
       u.transition()
         .attrTween('fill', function(d) {
-          return d3.interpolateRgb((this as any)?.getAttribute('fill') || 'rgba(0,0,0,0)', d.meta.active ? ACTIVE_COLOR : 'rgba(0,0,0,0)')
+          return d3.interpolateRgb((this as any)?.getAttribute('fill') || TRANSPARENT, d.meta.active ? ACTIVE_COLOR : TRANSPARENT)
         })
       return u
     })
@@ -284,7 +287,7 @@ function joinBlocks (selection: BeforJoinSelection<Block>, collapse: CollapseFn)
       .classed('collapsed-placeholder', true)
       .text('{ … }')
       .attr('text-anchor', 'middle')
-      .attr('fill', 'grey')
+      .attr('fill', colors.mediumGray)
       .on('dblclick', (ev: MouseEvent, d) => {
         ev.preventDefault()
         ev.stopPropagation()
@@ -330,7 +333,7 @@ function joinMethods (selection: BeforJoinSelection<Method>) {
     .transition()
     .duration(COLLAPSE_TRANSITION_DURATION)
     .attrTween('filter', function() {
-      const i = d3.interpolateString((this as any)?.getAttribute('filter') || 'drop-shadow( 0 0 1px grey)', 'drop-shadow( 0 0 4px grey)')
+      const i = d3.interpolateString((this as any)?.getAttribute('filter') || `drop-shadow( 0 0 1px ${colors.mediumGray})`, `drop-shadow( 0 0 4px ${colors.mediumGray})`)
       return (t) => i(t)
     })
   g.selectAll('text.method-signature')
@@ -425,7 +428,7 @@ function joinIfStatements (
       .append('text')
       .classed('boolean', true)
       .attr('y', EL.header.height * 0.4)
-      .attr('fill', 'cornflowerblue')
+      .attr('fill', colors.actionBlue)
       .attr('font-size', '0.6em'))
     .text((_d, idx) => {
       if (idx === 0) {
@@ -900,7 +903,7 @@ function joinTryCatchFinallies (selection: BeforJoinSelection<TryCatchFinally>) 
       .classed('try', true)
       .attr('x', 0)
       .attr('y', 2)
-      .attr('fill', 'cornflowerblue')
+      .attr('fill', colors.actionBlue)
       .attr('font-size', '0.6em')
       .attr('dominant-baseline', 'hanging')
       .text('try'))
@@ -927,7 +930,7 @@ function joinTryCatchFinallies (selection: BeforJoinSelection<TryCatchFinally>) 
       .append('text')
       .classed('finally', true)
       .attr('x', 0)
-      .attr('fill', 'cornflowerblue')
+      .attr('fill', colors.actionBlue)
       .attr('font-size', '0.6em')
       .attr('dominant-baseline', 'hanging')
       .text('finally'))
@@ -942,7 +945,7 @@ function joinTryCatchFinallies (selection: BeforJoinSelection<TryCatchFinally>) 
       .append('text')
       .classed('catch', true)
       .attr('y', 2)
-      .attr('fill', 'cornflowerblue')
+      .attr('fill', colors.actionBlue)
       .attr('font-size', '0.6em')
       .attr('dominant-baseline', 'hanging')
       .text('catch'))
@@ -1007,7 +1010,7 @@ function joinCatchClauses (selection: BeforJoinSelection<CatchClause>, collapse:
     u => {
       u.transition()
         .attrTween('fill', function(d) {
-          return d3.interpolateRgb('rgba(0,0,0,0)', d.meta.active ? ACTIVE_COLOR : 'rgba(0,0,0,0)')
+          return d3.interpolateRgb(TRANSPARENT, d.meta.active ? ACTIVE_COLOR : TRANSPARENT)
         })
       return u
     })
@@ -1025,7 +1028,7 @@ function joinCatchClauses (selection: BeforJoinSelection<CatchClause>, collapse:
       })
     )
     .attr('x', d => d.box.centerX)
-    .attr('fill', d => d.meta.collapsed ? 'grey' : 'black')
+    .attr('fill', d => d.meta.collapsed ? colors.mediumGray : 'black')
     .text(d => d.meta.collapsed ? '{…}' : d.data.parameter)
 
   addArrow(g, d => {
@@ -1390,7 +1393,7 @@ function renderRichText<T extends Conditional | Statement> (
     .data(d => [d])
     .join(e => e.append('text')
       .classed('cap', true)
-      .attr('fill', 'grey')
+      .attr('fill', colors.mediumGray)
       .attr('x', d => {
         const width = textWidth(fullTextFn(d))
         if (width > ELEMENT.Statement.maxWidth && !fullWidthManager.hasFullWidth(d.data.uuid)) {
@@ -1430,7 +1433,7 @@ function _addDebugInformation<T extends AstElement> (selection: BeforJoinSelecti
     .data(d => [d])
     .join(e => e.append('rect')
       .attr('stroke', `rgb(${Math.round(Math.random() * 200) + 50},${Math.round(Math.random() * 200) + 50},${Math.round(Math.random() * 200) + 50})`)
-      .attr('fill', 'rgba(0,0,0,0.2)')
+      .attr('fill', colors.softShadow)
       .attr('x', 0)
       .attr('y', 0))
     .attr('width', d => d.box.width)

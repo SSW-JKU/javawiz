@@ -1,0 +1,33 @@
+stream 1
+  lanes
+    of | int |
+    takeWhile | int | (n)->n < 3
+    forEach | void | System.out::println
+  playback
+    step 1: of@1 START int "1"
+    step 2: takeWhile@1 OUT int "1"
+    step 3: forEach@1 END void "forEach"
+    step 4: of@2 START int "2"
+    step 5: takeWhile@2 OUT int "2"
+    step 6: forEach@2 END void "forEach"
+    step 7: of@3 START int "3"
+    step 8: takeWhile@3 IN int "3"
+    link from step 2: of@1 -> takeWhile@1
+    link from step 3: takeWhile@1 -> forEach@1
+    link from step 5: of@2 -> takeWhile@2
+    link from step 6: takeWhile@1 -> forEach@2
+    link from step 6: takeWhile@2 -> forEach@2
+    link from step 8: of@3 -> takeWhile@3
+  final
+    of@1 START int "1"
+    of@2 START int "2"
+    of@3 START int "3"
+    takeWhile@1 OUT int "1"
+    takeWhile@2 OUT int "2"
+    takeWhile@3 IN int "3"
+    forEach@2 END void "forEach"
+    link of@1 -> takeWhile@1
+    link takeWhile@1 -> forEach@2
+    link of@2 -> takeWhile@2
+    link takeWhile@2 -> forEach@2
+    link of@3 -> takeWhile@3

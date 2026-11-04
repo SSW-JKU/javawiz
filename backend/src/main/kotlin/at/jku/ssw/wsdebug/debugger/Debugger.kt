@@ -10,6 +10,13 @@ val MAX_STACK_DEPTH_EXCEEDED_MESSAGE = "JavaWiz maximum stack depth (${MAX_STACK
 class Debugger(val vm: VirtualMachine) {
     private var latestStepTask: DebuggerStepTask? = null
 
+    /**
+     * Whether the latest step ended because the program was unresponsive. The program then still runs and has not sent
+     * its next event yet, so the next step must wait for that event without resuming the VM first (see
+     * [inputAndContinueInterruptedStep] for why resuming would be wrong).
+     */
+    private var continuePendingStep = false
+
     init {
         vm.launchAndSetup()
     }
@@ -20,15 +27,18 @@ class Debugger(val vm: VirtualMachine) {
 
     fun step(task: DebuggerStepTask, resumeVM: Boolean = true): StepResult {
         latestStepTask = task
+        val resume = resumeVM && !continuePendingStep
+        continuePendingStep = false
 
         val traceStates = mutableListOf<TraceState>()
         var intermediateStepResult: StepResult
 
-        intermediateStepResult = if (resumeVM) vm.resumeAndSingleStep() else vm.handleSingleStep() ?: vm.resumeAndSingleStep()
+        intermediateStepResult = if (resume) vm.resumeAndSingleStep() else vm.handleSingleStep() ?: vm.resumeAndSingleStep()
         traceStates += intermediateStepResult.traceStates
 
         while (vm.isRunning() &&
             !intermediateStepResult.isWaitingForInput &&
+            !intermediateStepResult.isUnresponsive &&
             intermediateStepResult.traceStates.isNotEmpty() &&
             !task.targetReached(traceStates.last())
         ) {
@@ -39,8 +49,10 @@ class Debugger(val vm: VirtualMachine) {
         // TODO: Find out why we kill the debuggee
         // It should automatically end once we reach the end of the program...
 
+        continuePendingStep = intermediateStepResult.isUnresponsive
+
         // Stop the VM when we ran to end
-        if (task is RunToEndTask && !intermediateStepResult.isWaitingForInput) {
+        if (task is RunToEndTask && !intermediateStepResult.isWaitingForInput && !intermediateStepResult.isUnresponsive) {
             // The following fails if the VM is already disconnected
             try {
                 vm.exit(1)
@@ -49,7 +61,12 @@ class Debugger(val vm: VirtualMachine) {
             }
         }
 
-        return StepResult(traceStates, intermediateStepResult.isWaitingForInput, intermediateStepResult.isVMRunning)
+        return StepResult(
+            traceStates,
+            intermediateStepResult.isWaitingForInput,
+            intermediateStepResult.isVMRunning,
+            intermediateStepResult.isUnresponsive
+        )
     }
 
     fun inputAndContinueInterruptedStep(s: String): StepResult? {

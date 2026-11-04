@@ -80,7 +80,7 @@ export function getLocalOrStaticsToHeapItemHoverInfos (sanitizedIdentifier: stri
     }
   }
 
-  hoverInfos.push(createHoverLocal(className, method, varOrFieldName, reference))
+  hoverInfos.push(createHoverLocal(className, method, varOrFieldName, reference, methodId))
   return hoverInfos
 }
 
@@ -125,7 +125,7 @@ export function getReferencesOfHoveredHeapItem (objId: number, state: HeapVizTra
 
     for (const localVar of stackFrame.localVariables) {
       if (localVar.value instanceof HeapVizReferenceVal && localVar.value.reference === objId) {
-        hoverInfos.push(createHoverLocal(stackFrame.class, stackFrame.method, localVar.name, objId))
+        hoverInfos.push(createHoverLocal(stackFrame.class, stackFrame.method, localVar.name, objId, index))
       }
     }
   }
@@ -259,106 +259,4 @@ export function getHeapItemOrArrayHeaderBGOnHover (heapItem: IHeapVizHeapItem | 
     }
   }
   return MAIN_HEADER_BG_COLOR
-}
-
-export function isHighlightedEdge (sanitizedFrom: string, sanitizedTo: string, highlightedItems: HoverInfo[], state: HeapVizTraceState): boolean {
-  const from = desanitizeIdentifier(sanitizedFrom)
-  const to = desanitizeIdentifier(sanitizedTo)
-  const toObjId = Number(to.split(':')[0].match(/\d+/g)![0])
-
-  const objectHighlighted = highlightedItems.some(item => item.kind === 'HeapObject' && item.objId === toObjId)
-  if (!objectHighlighted) {
-    return false
-  }
-  const isLocal = from.split(':')[1].startsWith('l_')
-  const isStatic = from.split(':')[1].startsWith('s_')
-
-  if (from.startsWith('o_')) { // check if a field references a heap item
-    const splitFrom = from.split(':')
-    const fromObjId = Number(splitFrom[0].match(/\d+/g)![0])
-
-    if (splitFrom[1].startsWith('i_')) {
-      const index = Number(splitFrom[1].split('_')[1])
-      for (const item of highlightedItems) {
-        if (item.kind === 'ArrayCell' &&
-          item.objId === fromObjId &&
-          item.index === index) {
-          return true
-        }
-      }
-      return false
-    }
-    const field = splitFrom[1]
-
-    for (const item of highlightedItems) {
-      if (item.kind === 'Field' &&
-        item.objId === fromObjId &&
-        item.name === field &&
-        item.reference === toObjId) {
-        return true
-      }
-    }
-    return false
-  }
-  if (isLocal) { // check if a local variable or static field is referencing a heap item
-    const splitFrom = from.split('_')
-    const name = splitFrom[splitFrom.length - 1]
-    const stackFrame = state.stackAfterExecution[Number(splitFrom[1])]
-
-    for (const item of highlightedItems) {
-      if (item.kind === 'Local' &&
-        item.class === stackFrame.class &&
-        item.method === stackFrame.method &&
-        item.name === name &&
-        item.reference === toObjId) {
-        return true
-      }
-    }
-    return false
-  }
-  if (isStatic) {
-    const splitFrom = from.split('_')
-    const name = splitFrom.slice(2).join('_')
-    const classOfStaticField = from.split('_')[1]
-    const loadedClass = state.loadedClasses.find(loadedClass => loadedClass.class === classOfStaticField)!
-
-    for (const item of highlightedItems) {
-      if (item.kind === 'Static' &&
-        item.class === loadedClass.class &&
-        item.name === name &&
-        item.reference === toObjId) {
-        return true
-      }
-    }
-    return false
-  }
-  if (from.split(':')[1].search('localvar_') === 0) {
-    const stackFrameNr = Number(from.split('_')[1])
-    const thisVar = state.stackAfterExecution.at(stackFrameNr)?.this
-    if (thisVar === undefined) {
-      return false
-    }
-
-    for (const item of highlightedItems) {
-      if (item.kind === 'ThisVar' &&
-        (thisVar.value as HeapVizReferenceVal).reference === toObjId &&
-        item.methodId === stackFrameNr &&
-        item.reference === toObjId) {
-        return true
-      }
-    }
-
-    for (const item of highlightedItems) {
-      if (item.kind === 'ThisVar' ||
-        item.kind === 'Static' ||
-        item.kind === 'Local' ||
-        item.kind === 'Field') {
-        return false
-      }
-    }
-    return (thisVar.value as HeapVizReferenceVal).reference === toObjId &&
-      highlightedItems.some(item => item.kind === 'HeapObject' && item.objId === toObjId)
-  }
-
-  return false
 }

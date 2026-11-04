@@ -25,7 +25,7 @@
       </g>
     </svg>
     <!--suppress MagicNumberJS -->
-    <NavigationBarWithSettings
+    <VizSetting
       :zoom-in="zoomIn"
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
@@ -132,7 +132,7 @@
           </tr>
         </tbody>
       </table>
-    </NavigationBarWithSettings>
+    </VizSetting>
   </div>
 </template>
 
@@ -140,10 +140,10 @@
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { BaseType, select, Selection } from 'd3-selection'
-import { zoom, zoomIdentity } from 'd3-zoom'
+import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom'
 import { transform, setTransform, levelCoordinates } from './state'
 import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import { SettingsIndex } from './types'
 import { getCoordinatesOfChange } from './utils'
 import { processIndex } from './index-processing'
@@ -157,7 +157,7 @@ import {
   createLevelCoordinates
 } from './preprocessing'
 import { CSS, SVG } from '../constants'
-import { zoomToChange } from '../zooming'
+import { getNavigationClearTransform, zoomToChange } from '../zooming'
 import { getHeapTree, removeChildren } from '../utils'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
@@ -173,9 +173,11 @@ const onlyCurrentStackFrame = ref(localStorage.getItem(LOCAL_STORAGE.onlyCurrent
   ? localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame) === 'true'
   : false)
 const highlightIndexes = ref(localStorage.getItem(LOCAL_STORAGE.highlightIndexes) ? localStorage.getItem(LOCAL_STORAGE.highlightIndexes) === 'true' : false)
+let initialPositionPending = true
 // Track handle replacement without deep-proxying imperative browser and D3 objects.
 const resizeObserver = shallowRef<ResizeObserver>(null as any)
 const zoomCall = shallowRef(zoom().on('zoom', (event) => {
+  if (event.sourceEvent) initialPositionPending = false
   setTransform(event.transform)
   select(`#${HTML.ids.arrayViz}`).attr('transform', event.transform)
 }))
@@ -231,13 +233,34 @@ function getTransition () {
     .ease(TRANSFORMATION.ease) as any
 }
 function zoomIn () {
+  initialPositionPending = false
   zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
 }
 function zoomOut () {
+  initialPositionPending = false
   zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
 }
 function zoomReset () {
-  zoomCall.value.transform(getTransition(), zoomIdentity)
+  initialPositionPending = true
+  zoomCall.value.transform(getTransition().on('end.navigation', positionInitially), zoomIdentity)
+}
+
+/** Clears the icons once content exists; later redraws preserve the user's camera. */
+function positionInitially () {
+  const node = svg.value.node() as SVGSVGElement | null
+  if (!initialPositionPending || !node?.isConnected || !node.clientWidth) return
+  // Wait for the resize observer to replace the template's placeholder viewBox;
+  // otherwise its temporary scale would turn the pixel inset into extra space.
+  if (node.viewBox.baseVal.width !== svgWidth) return
+  // Pointer labels are right-aligned inside wide foreignObjects. Measure their
+  // actual divs rather than moving the camera for unpainted label padding.
+  const content = node.querySelector(`#${HTML.ids.arrayViz}`)?.querySelectorAll('rect, line, path, foreignObject > div')
+  const left = Array.from(content ?? [], element => element.getBoundingClientRect())
+    .filter(bounds => bounds.width || bounds.height)
+    .reduce((left, bounds) => Math.min(left, bounds.left), Infinity)
+  if (!Number.isFinite(left)) return
+  initialPositionPending = false
+  zoomCall.value.transform(svg.value as any, getNavigationClearTransform(node, zoomTransform(node), left))
 }
 
 function redraw () {
@@ -289,6 +312,9 @@ function redraw () {
       HTML.ids.parentDiv,
       svgWidth,
       svg.value as Selection<BaseType, unknown, HTMLElement, any>)
+      .on('end.navigation', positionInitially)
+  } else {
+    positionInitially()
   }
 }
 
@@ -306,6 +332,7 @@ watch(highlightIndexes, () => {
 })
 
 onMounted(() => {
+  setTransform(zoomIdentity)
   // selection was empty when component was created, since template was not inserted yet
   svg.value = select(`#${HTML.ids.arraySvg}`)
 
@@ -315,6 +342,9 @@ onMounted(() => {
       const height = div.offsetHeight / div.offsetWidth * svgWidth
       if (height) {
         svg.value.attr('viewBox', `0 0 ${svgWidth} ${height}`)
+        // Retry initial positioning with the real viewport; an empty view keeps
+        // it pending until a later redraw supplies the first array.
+        if (initialPositionPending) redraw()
       }
     }
   })
@@ -325,6 +355,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   resizeObserver.value?.disconnect()
+  svg.value.interrupt()
 })
 </script>
 
@@ -423,7 +454,7 @@ onUnmounted(() => {
 }
 
 :deep(.highlighted-source-cells) {
-  stroke: cornflowerblue;
+  stroke: var(--jw-action-blue);
   stroke-width: 0.7pt;
 }
 
@@ -478,7 +509,7 @@ onUnmounted(() => {
   color: darkred;
   background-color: #fff0f4;
   border-radius: 2px;
-  border-color: gray;
+  border-color: var(--jw-medium-gray);
 }
 
 .index-examples-table tbody {

@@ -1,4 +1,5 @@
 import { easeCubic } from 'd3-ease'
+import { colors } from '@/helpers/colors'
 
 export const DATA = {
   programStart: 3
@@ -58,9 +59,9 @@ export const LAYOUT = {
     strokeWidth: 0.7,
     xOffset: -8
   },
-  mainBoxColor: '#e3ecf4',
-  altBoxColor: '#bed3e6',
-  dotColor: '#39678f',
+  mainBoxColor: colors.paleBlue,
+  altBoxColor: colors.paleBlue,
+  dotColor: colors.secondaryBlue,
   box: {
     width: 10,
     yOffset: -2,

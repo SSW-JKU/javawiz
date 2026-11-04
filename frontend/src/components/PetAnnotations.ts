@@ -1,6 +1,7 @@
 import * as d3 from 'd3'
 import lightbulbIcon from '@/assets/icons/pets/lightbulb.png'
 import questionIcon from '@/assets/icons/pets/question-sign.png'
+import { colors } from '@/helpers/colors'
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 const DEFAULT_CALLOUT_GAP = 16
@@ -159,7 +160,7 @@ export class PetAnnotationManager {
 
   public addHighlight (
     target: AnnotationTarget,
-    color = '#ffc552',
+    color: string = colors.annotationStroke,
     opacity = 0.35,
     padding = 3
   ): number {
@@ -170,7 +171,7 @@ export class PetAnnotationManager {
 
   public addSvgHighlight (
     target: SvgAnnotationTarget,
-    color = '#ffc552',
+    color: string = colors.annotationStroke,
     opacity = 0.35,
     padding = 3
   ): number {
@@ -179,7 +180,7 @@ export class PetAnnotationManager {
 
   public addHtmlHighlight (
     target: HtmlAnnotationTarget,
-    color = '#ffc552',
+    color: string = colors.annotationStroke,
     opacity = 0.35,
     padding = 3
   ): number {

@@ -63,11 +63,11 @@ function expectedMemoryVariableRow (
   value: string
 ): string {
   return `<tr>
-    <td width="30" align="right"  bgcolor="#ffffff" >
+    <td width="30" align="right" title="id=&quot;${identifier}:bytes&quot;" bgcolor="#ffffff" >
       <b>${bytes}</b>
     </td>
     <td colspan="2" width="30" align="right" title="id=&quot;${identifier}:typeandname&quot;" bgcolor="#ffffff">
-      <font color="#0000ff">
+      <font color="#007bff">
         <b>&nbsp;${type}</b>
       </font>
       <font color="#000000">${name}</font>
@@ -85,8 +85,8 @@ function expectedMemoryVariableRow (
 function expectedHeapNode (identifier: string, type: string, cssClass: string, body: string): string {
   return `${identifier}[label=<<font face="Courier" point-size="9">
     <table border="0" cellborder="1" cellspacing="0"><tr>
-      <td align="center" colspan="5" title="id=&quot;${identifier}:header&quot;" bgcolor="#A3C2DB" port="heap_object_header">
-        <b>${type}</b>
+      <td align="center" colspan="5" title="id=&quot;${identifier}:header&quot;" bgcolor="#315277" port="heap_object_header">
+        <font color="#ffffff"><b>${type}</b></font>
       </td>
     </tr>
     ${body}
@@ -101,9 +101,9 @@ function expectedRootsNode (stackRows: string): string {
       label=<
         <font face="Courier" point-size="9">
           <table border="0" cellborder="1" cellspacing="0" id="rootsTable">
-            <tr><td colspan="5" bgcolor="#A3C2DB" id="staticsHeader"><font face="Arial" point-size="12"><b>Statics</b></font></td></tr>
+            <tr><td colspan="5" bgcolor="#315277" id="staticsHeader"><font face="Arial" point-size="12" color="#ffffff"><b>Statics</b></font></td></tr>
             <tr><td colspan="5" border="0" height="15"></td></tr>
-            <tr><td colspan="5" bgcolor="#A3C2DB" id="stackHeader"><font face="Arial" point-size="12"><b>Stack</b></font></td></tr>
+            <tr><td colspan="5" bgcolor="#315277" id="stackHeader"><font face="Arial" point-size="12" color="#ffffff"><b>Stack</b></font></td></tr>
             ${stackRows}
           </table></font>
       >
@@ -381,11 +381,11 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory primitive variable row',
       actual: memoryVariable.render(),
       expected: `<tr>
-        <td width="30" align="right"  bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;roots:l_0_count:bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
         <td colspan="2" width="30" align="right" title="id=&quot;roots:l_0_count:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#0000ff">
+          <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
           <font color="#000000">count</font>
@@ -405,7 +405,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       actual: compactNullVariable.render(),
       expected: `<tr>
         <td colspan="3" width="30" align="right" title="id=&quot;roots:l_0_item:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#0000ff">
+          <font color="#007bff">
             <b>&nbsp;Object</b>
           </font>
           <font color="#000000">item</font>
@@ -423,18 +423,18 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory stack frame with primitive local',
       actual: stackFrame.render(),
       expected: `<tr>
-        <td bgcolor="#e3ecf4" colspan="5" title="id=&quot;stackframe_0:method&quot;">
+        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_0:method&quot;">
           <font face="Arial">
             <b>Example.main()</b>
           </font>
         </td>
       </tr>
       <tr>
-        <td width="30" align="right"  bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;roots:l_0_count:bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
         <td colspan="2" width="30" align="right" title="id=&quot;roots:l_0_count:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#0000ff">
+          <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
           <font color="#000000">count</font>
@@ -453,7 +453,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory empty stack frame',
       actual: emptyStackFrame.render(),
       expected: `<tr>
-        <td bgcolor="#e3ecf4" colspan="5" title="id=&quot;stackframe_1:method&quot;">
+        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_1:method&quot;">
           <font face="Arial"><b>Example.empty()</b></font>
         </td>
       </tr>
@@ -464,7 +464,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory stack frame with mixed locals',
       actual: mixedStackFrame.render(),
       expected: `<tr>
-        <td bgcolor="#e3ecf4" colspan="5" title="id=&quot;stackframe_2:method&quot;">
+        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_2:method&quot;">
           <font face="Arial"><b>Example.mixed()</b></font>
         </td>
       </tr>
@@ -476,13 +476,13 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
     {
       name: 'memory loaded class with static primitive',
       actual: loadedClass.render(),
-      expected: `<tr><td bgcolor="#e3ecf4" colspan="5"><font face="Arial"><b>Example </b></font></td></tr>
+      expected: `<tr><td bgcolor="#c8d8e8" colspan="5"><font face="Arial"><b>Example </b></font></td></tr>
       <tr>
-        <td width="30" align="right"  bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;roots:s_Example_count:bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
         <td colspan="2" width="30" align="right" title="id=&quot;roots:s_Example_count:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#0000ff">
+          <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
           <font color="#000000">count</font>
@@ -505,11 +505,11 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td colspan="4" width="30">Header</td>
       </tr>
       <tr>
-        <td width="30" align="right"  bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;o_1:count:bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
         <td colspan="2" width="30" align="right" title="id=&quot;o_1:count:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#0000ff">
+          <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
           <font color="#000000">count</font>
@@ -573,7 +573,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td>
       </tr><tr>
         <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
-        <td colspan="2" width="30" title="id=&quot;o_4:i_0:index&quot;" bgcolor="#e3ecf4">
+        <td colspan="2" width="30" title="id=&quot;o_4:i_0:index&quot;" bgcolor="#c8d8e8">
           <font color="#000000">
             <font>[0]</font>
           </font>
@@ -632,13 +632,13 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td>
       </tr><tr>
         <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
-        <td colspan="2" width="30" title="id=&quot;o_10:i_0:index&quot;" bgcolor="#e3ecf4"><font color="#000000"><font>[0]</font></font></td>
+        <td colspan="2" width="30" title="id=&quot;o_10:i_0:index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[0]</font></font></td>
         <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_0:pseudo&quot;" port="i_0" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
         <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_0:value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
       </tr>
       <tr>
         <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
-        <td colspan="2" width="30" title="id=&quot;o_10:i_1:index&quot;" bgcolor="#e3ecf4"><font color="#000000"><font>[1]</font></font></td>
+        <td colspan="2" width="30" title="id=&quot;o_10:i_1:index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[1]</font></font></td>
         <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_1:pseudo&quot;" port="i_1" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
         <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_1:value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
       </tr>
@@ -696,7 +696,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       </tr>
       <tr>
         <td width="30" align="right" bgcolor="#ffffff">32</td>
-        <td width="30" colspan="4" title="id=&quot;o_6:value&quot;" bgcolor="#e3ecf4">
+        <td width="30" colspan="4" title="id=&quot;o_6:value&quot;" bgcolor="#c8d8e8">
           <font color="#000000" face="Arial">
             <font>"Tony"</font>
           </font>
@@ -712,7 +712,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory compact long string',
       actual: longHeapString.render(),
       expected: `<tr><td width="30" align="right"><b>16</b></td><td colspan="4" width="30">Header</td></tr>
-      <tr><td width="30" align="right" bgcolor="#ffffff">48</td><td width="30" colspan="4" title="id=&quot;o_13:value&quot;" bgcolor="#e3ecf4">
+      <tr><td width="30" align="right" bgcolor="#ffffff">48</td><td width="30" colspan="4" title="id=&quot;o_13:value&quot;" bgcolor="#c8d8e8">
         <font color="#000000" face="Arial"><font>"Main Street 7"</font></font>
       </td></tr>
       <tr><td width="30" align="right"><b>64</b>&nbsp;(+0)</td><td colspan="4" width="30" align="right"><b>64</b></td></tr>`,
@@ -725,9 +725,9 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td width="30" align="right"><b>16</b></td><td colspan="4" width="30">Header</td>
       </tr>
       <tr>
-        <td width="30" align="right"  bgcolor="#ffffff" ><b>8</b></td>
+        <td width="30" align="right" title="id=&quot;o_11:value:bytes&quot;" bgcolor="#ffffff" ><b>8</b></td>
         <td colspan="2" width="30" align="right" title="id=&quot;o_11:value:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#0000ff"><b>&nbsp;byte[]</b></font><font color="#000000">value</font>
+          <font color="#007bff"><b>&nbsp;byte[]</b></font><font color="#000000">value</font>
         </td>
         <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_11:value:pseudo&quot;" port="value" sides="LTB" bgcolor="#ffffff"><font color="#ffffff">xx</font></td>
         <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_11:value:value&quot;" sides="RTB" bgcolor="#ffffff"><b><font color="white">xx</font></b></td>
@@ -744,14 +744,14 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
     {
       name: 'complete roots table with empty stack frame',
       actual: rootsNode([emptyStackFrame]),
-      expected: expectedRootsNode(`<tr><td bgcolor="#e3ecf4" colspan="5" title="id=&quot;stackframe_1:method&quot;"><font face="Arial"><b>Example.empty()</b></font></td></tr>
+      expected: expectedRootsNode(`<tr><td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_1:method&quot;"><font face="Arial"><b>Example.empty()</b></font></td></tr>
         <tr><td sides="BL" align="right"><font><b align="right">0</b></font></td><td sides="BR" colspan="4"></td></tr>`),
       graphviz: false
     },
     {
       name: 'complete roots table with mixed stack frame',
       actual: rootsNode([mixedStackFrame]),
-      expected: expectedRootsNode(`<tr><td bgcolor="#e3ecf4" colspan="5" title="id=&quot;stackframe_2:method&quot;"><font face="Arial"><b>Example.mixed()</b></font></td></tr>
+      expected: expectedRootsNode(`<tr><td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_2:method&quot;"><font face="Arial"><b>Example.mixed()</b></font></td></tr>
         ${expectedMemoryVariableRow('roots:l_2_count', 'count', 'int', 4, '7')}
         ${expectedMemoryVariableRow('roots:l_2_flag', 'flag', 'boolean', 1, 'true')}
         <tr><td sides="BL" align="right"><font><b align="right">8</b></font></td><td sides="BR" colspan="4"></td></tr>`),
@@ -762,8 +762,8 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       actual: compactEmptyNode.renderNode(),
       expected: `o_8[label=<<font face="Courier" point-size="9">
         <table border="0" cellborder="1" cellspacing="0"><tr>
-          <td align="center" colspan="5" title="id=&quot;o_8:header&quot;" bgcolor="#A3C2DB" port="heap_object_header">
-            <b>Example</b>
+          <td align="center" colspan="5" title="id=&quot;o_8:header&quot;" bgcolor="#315277" port="heap_object_header">
+            <font color="#ffffff"><b>Example</b></font>
           </td>
         </tr>
         </table>  </font>> , class="heapvizheapobject"];`,

@@ -1,0 +1,38 @@
+stream 1
+  lanes
+    of | java.lang.String |
+    map | java.lang.String | (s)->s.toUpperCase()
+    collect | java.lang.String | Collectors.joining(", ")
+  playback
+    step 1: of@1 START java.lang.String "a"
+    step 2: map@1 OUT java.lang.String "A"
+    step 3: collect@1 END java.lang.String "A"
+    step 4: of@2 START java.lang.String "b"
+    step 5: map@2 OUT java.lang.String "B"
+    step 6: collect@2 END java.lang.String "A, B"
+    step 7: of@3 START java.lang.String "c"
+    step 8: map@3 OUT java.lang.String "C"
+    step 9: collect@3 END java.lang.String "A, B, C"
+    link from step 2: of@1 -> map@1
+    link from step 3: map@1 -> collect@1
+    link from step 5: of@2 -> map@2
+    link from step 6: map@1 -> collect@2
+    link from step 6: map@2 -> collect@2
+    link from step 8: of@3 -> map@3
+    link from step 9: map@1 -> collect@3
+    link from step 9: map@2 -> collect@3
+    link from step 9: map@3 -> collect@3
+  final
+    of@1 START java.lang.String "a"
+    of@2 START java.lang.String "b"
+    of@3 START java.lang.String "c"
+    map@1 OUT java.lang.String "A"
+    map@2 OUT java.lang.String "B"
+    map@3 OUT java.lang.String "C"
+    collect@3 END java.lang.String "A, B, C"
+    link of@1 -> map@1
+    link map@1 -> collect@3
+    link of@2 -> map@2
+    link map@2 -> collect@3
+    link of@3 -> map@3
+    link map@3 -> collect@3

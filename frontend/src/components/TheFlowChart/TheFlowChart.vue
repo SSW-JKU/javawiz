@@ -1,6 +1,6 @@
 <template>
   <div style="position: relative;height: 100%;">
-    <NavigationBarWithSettings
+    <VizSetting
       :zoom-in="zoomIn"
       :zoom-out="zoomOut"
       :zoom-reset="zoomReset"
@@ -14,7 +14,7 @@
         @update="init"
         @update:show-values="v => { showValues = v; init(); }"
         @update:follow-active="v => { followActive = v; init(); }" />
-    </NavigationBarWithSettings>
+    </VizSetting>
 
     <div
       style="height: 100%;">
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import * as d3 from 'd3'
 import {
   InlinedFnMap,
@@ -70,12 +70,13 @@ import {
 } from './meta-utils'
 import { createInlineMethodToggle } from './toggle'
 import FlowChartSettings from './FlowChartSettings.vue'
-import NavigationBarWithSettings from '@/components/NavigationBarWithSettings.vue'
+import VizSetting from '@/components/VizSetting.vue'
 import { FullWidthManager } from './FullWidthManager'
 import { AstElement, AstFile } from '@/dto/AbstractSyntaxTree'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/helpers/constants'
+import { getNavigationClearTransform } from '@/components/DataStructureVisualizations/zooming'
 
 const SIZE = 50000
 const CENTER = SIZE / 2
@@ -108,6 +109,9 @@ const prevPosX = ref<number>(0)
 const prevCenterX = ref<number>(CENTER)
 
 const prevScale = ref<number>(1)
+let initialPositionPending = true
+let resizeObserver: ResizeObserver | undefined
+let svgElement: SVGSVGElement | null = null
 
 const showFunctionSelectOverlay = ref<boolean>(false)
 const functionSelectOptions = ref<string[]>([])
@@ -311,20 +315,37 @@ function getTransition () {
 }
 
 /**
- * Reset the zoom by setting the zoom to the center of the screen
+ * Reset the zoom to the center, shifting wide charts clear of the icons afterward.
  */
 function zoomReset () {
   const svg = d3.select<SVGSVGElement, unknown>('#flowchart')
   const realWidth = svg.node()?.getBoundingClientRect().width || 0
+  initialPositionPending = true
+  if (!realWidth) return
   const x = -CENTER + realWidth / 2
-  zoomBehavior.transform(getTransition(), d3.zoomIdentity.translate(x, 0))
+  zoomBehavior.transform(getTransition().on('end.navigation', positionInitially), d3.zoomIdentity.translate(x, 0))
+}
+
+/** Keeps the starting chart clear of the icons without constraining later pan/zoom. */
+function positionInitially () {
+  const svg = d3.select<SVGSVGElement, unknown>(svgElement!)
+  const node = svg.node()
+  const chart = svg.select<SVGGElement>('.chart').node()
+  if (!initialPositionPending || !node?.isConnected || !node.clientWidth || !chart) return
+  const bounds = chart.getBoundingClientRect()
+  if (!bounds.width && !bounds.height) return
+  initialPositionPending = false
+  resizeObserver?.disconnect()
+  zoomBehavior.transform(svg, getNavigationClearTransform(node, d3.zoomTransform(node), bounds.left))
 }
 
 function zoomIn () {
+  initialPositionPending = false
   zoomBehavior.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
 }
 
 function zoomOut () {
+  initialPositionPending = false
   zoomBehavior.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
 }
 
@@ -339,6 +360,7 @@ function init () {
 const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
   .scaleExtent([0.3, 3])
   .on('zoom', (e) => {
+    if (e.sourceEvent) initialPositionPending = false
     prevScale.value = e.transform.k
 
     d3.select('#flowchart g.chart')
@@ -349,8 +371,19 @@ onMounted(() => {
   init()
   zoomReset()
   const chartRoot = d3.select<SVGSVGElement, unknown>('#flowchart')
+  svgElement = chartRoot.node()
   chartRoot.call(zoomBehavior)
     .on('dblclick.zoom', () => zoomReset())
+  // A pane can mount before its first nonzero size is known. Retry only while
+  // initial positioning is pending, so later resizing preserves manual panning.
+  resizeObserver = new ResizeObserver(() => {
+    if (initialPositionPending) zoomReset()
+  })
+  resizeObserver.observe(chartRoot.node()!)
+})
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  d3.select(svgElement).interrupt()
 })
 watch(currentFileUri, init)
 

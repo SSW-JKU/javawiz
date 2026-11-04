@@ -170,12 +170,12 @@ function changeStatementCap () {
 }
 
 .if-statement-selection:hover{
-    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+    box-shadow: var(--jw-soft-shadow) 0px 8px 24px;
 }
 
 .if-statement-selection .boolean{
-    border: 1px solid cornflowerblue;
-    color: cornflowerblue;
+    border: 1px solid var(--jw-action-blue);
+    color: var(--jw-action-blue);
     border-radius: 3px;
     height: 64px;
     width: 64px;

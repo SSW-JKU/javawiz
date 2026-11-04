@@ -4,6 +4,7 @@ import {
   FONT_FACE_CLUSTER_TITLE,
   FONT_FACE_TABLES,
   MAIN_HEADER_BG_COLOR,
+  MAIN_HEADER_FONT_COLOR,
   TABLE_FORMAT
 } from './constants'
 import type { HeapVizTraceState } from './Types/HeapVizTraceState'
@@ -22,7 +23,7 @@ export function renderRootsNode (traceState: RootsTraceState): string {
                <table ${TABLE_FORMAT} id="rootsTable">
                  <tr>
                    <td colspan="5" bgcolor="${MAIN_HEADER_BG_COLOR}" id="staticsHeader">
-                     <font face="${FONT_FACE_CLUSTER_TITLE}" point-size="${CLUSTER_TITLE_FONT_SIZE}">
+                     <font face="${FONT_FACE_CLUSTER_TITLE}" point-size="${CLUSTER_TITLE_FONT_SIZE}" color="${MAIN_HEADER_FONT_COLOR}">
                        <b>Statics</b>
                      </font>
                    </td>
@@ -35,7 +36,7 @@ export function renderRootsNode (traceState: RootsTraceState): string {
                     </tr>
                   <tr>
                    <td colspan="5" bgcolor="${MAIN_HEADER_BG_COLOR}" id="stackHeader">
-                     <font face="${FONT_FACE_CLUSTER_TITLE}" point-size="${CLUSTER_TITLE_FONT_SIZE}">
+                     <font face="${FONT_FACE_CLUSTER_TITLE}" point-size="${CLUSTER_TITLE_FONT_SIZE}" color="${MAIN_HEADER_FONT_COLOR}">
                       <b>Stack</b>
                      </font>
                    </td>

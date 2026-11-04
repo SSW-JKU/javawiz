@@ -13,6 +13,6 @@
   margin-right: 8px;
   width: 1px;
   height: 35px;
-  background-color: rgba(200, 200, 200, 0.45);
+  background-color: var(--jw-medium-gray);
   }
 </style>
