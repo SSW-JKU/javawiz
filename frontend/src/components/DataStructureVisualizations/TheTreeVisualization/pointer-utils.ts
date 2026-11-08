@@ -8,8 +8,8 @@ export function getPointerCoordinates (pointer: TreeNodePointer, nodeToPointerDi
   return [
     calculateXCoordinate(pointer.nodeIndex, pointer.nodeLevel, pointer.treeLevel),
     (calculateYCoordinate(pointer.nodeLevel, pointer.treeLevel) +
-      pointer.index * ((pointer.node && nodeToPointerDistance && nodeToPointerDistance.has(pointer.node))
-        ? nodeToPointerDistance.get(pointer.node)!.distance
+      pointer.index * ((pointer.target && nodeToPointerDistance && nodeToPointerDistance.has(pointer.target))
+        ? nodeToPointerDistance.get(pointer.target)!.distance
         : LAYOUT.pointers.distance) +
       LAYOUT.pointers.yOffset)
   ]

@@ -1,7 +1,7 @@
 import { BaseType, Selection } from 'd3-selection'
 import { ChildPointer, TreeNode, TreeNodePointer } from './types'
 import { HTML, LAYOUT } from './constants'
-import { HeapObject, LocalVar } from '@/dto/TraceState'
+import { HeapObject } from '@/dto/TraceState'
 import { getNodeCoordinates, joinFieldTexts } from './node-utils'
 import { childLineAttributes, getChildPointerCoordinates, updateChildPointerAttributes } from './child-pointer-utils'
 import { getPointerCoordinates, getPointerLength, getPointerTextWidth, getPointerTextXOffset } from './pointer-utils'
@@ -12,8 +12,8 @@ import { getPointerDescription } from '../description-utils'
 import { isFieldChanged } from '../heap-tree-node-utils'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverHeapObject, HoverInfo } from '@/hover/types'
-import { createHoverField, createHoverLocal } from '@/hover/hoverinfo-builder'
-import { HeapTreeNode } from '../heapBFS'
+import { createHoverField } from '@/hover/hoverinfo-builder'
+import { createRootVariableHover, idOfOwningHeapObject, isField } from '../pointer-hover'
 import { getTreeNodeHoverInfo, isHighlighted, isHighlightedChildPointer, isHighlightedRef, onHover } from './hover'
 import { TRANSFORMATION } from '@/helpers/constants'
 
@@ -258,11 +258,11 @@ export function drawPointers (
   // count how many pointers point to each node
   const nodeToPointerDistance = new Map<TreeNode, { count: number, distance: number }>()
   nodePointers.forEach(pointer => {
-    if (pointer.node) {
-      if (nodeToPointerDistance.has(pointer.node)) {
-        nodeToPointerDistance.get(pointer.node)!.count++
+    if (pointer.target) {
+      if (nodeToPointerDistance.has(pointer.target)) {
+        nodeToPointerDistance.get(pointer.target)!.count++
       } else {
-        nodeToPointerDistance.set(pointer.node, { count: 1, distance: LAYOUT.pointers.distance })
+        nodeToPointerDistance.set(pointer.target, { count: 1, distance: LAYOUT.pointers.distance })
       }
     }
   })
@@ -273,37 +273,23 @@ export function drawPointers (
     }
   })
   svg.select(`#${HTML.ids.nodePointers}`)
-    .selectAll('g')
-    .data(nodePointers, (d: any) => d?.name + d?.methodOrParentId)
+    // Typing the selection lets D3 type `d` in the key function and all callbacks below as TreeNodePointer.
+    .selectAll<SVGGElement, TreeNodePointer>('g')
+    .data(nodePointers, d => d.sourceVariableIdentifier)
     .join(
       entered => {
         const group = entered.append('g')
           .on('mouseenter', (_event, pointer) => {
-            const node = pointer.node?.node
-            const pointerId = Number(pointer.methodOrParentId)
+            const node = pointer.target?.node
             const currNode = node?.element as HeapObject
 
             const hoverInfos = getTreeNodeHoverInfo(currNode)
 
             if (currNode) {
-              if (pointerId) {
-                // add the HoverInfo that a pointer is hovered
-                hoverInfos.push(createHoverField(pointerId, pointer.name, currNode.id))
-              }
-
-              // add the local variables that are referencing the currently hovered list node as a HoverInfo if any
-              // if the pointerId is NaN then the pointer is a local variable
-              const locals = node?.parents as HeapTreeNode[]
-              if (isNaN(pointerId) && locals) {
-                for (let i = 0; i < locals.length; i++) {
-                  const local = locals[i].element as LocalVar
-                  const reference = (local.value && 'reference' in local.value) ? local.value.reference : -1
-                  if (local.method === (pointer.parent as any).element.method && reference === currNode.id) {
-                    hoverInfos.push(createHoverLocal(local.class, local.method.split('(')[0], local.name, reference))
-                    break
-                  }
-                }
-              }
+              // add the hovered pointer: a field of the tree object or a variable
+              hoverInfos.push(isField(pointer.source)
+                ? createHoverField(idOfOwningHeapObject(pointer.source), pointer.name, currNode.id)
+                : createRootVariableHover(pointer.source, currNode.id))
             }
 
             onHover(hoverInfos)
@@ -311,7 +297,7 @@ export function drawPointers (
           .on('mouseleave', () => HoverSynchronizer.clear())
           .classed(HTML.classes.changed, true)
           .attr('transform', d => `translate(${getPointerCoordinates(d, nodeToPointerDistance)})`)
-          .attr('id', d => `${HTML.ids.prefixes.pointer}-${d.name}-${d.methodOrParentId}`)
+          .attr('id', d => `${HTML.ids.prefixes.pointer}-${d.sourceVariableIdentifier}`)
         blendInAnimation(group)
         // normal pointer line, always visible
         group.append('line')

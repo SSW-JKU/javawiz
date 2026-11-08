@@ -1,3 +1,9 @@
+/**
+ * Identifiers for the elements of a trace state: heap items, array elements, object fields,
+ * stack locals and static fields, plus the cells and edges the memory view renders for them.
+ * The memory view and the data-structure views share them, so the same variable has the same
+ * identifier everywhere, for example `roots:l_0_arr` for the local `arr` in `main`.
+ */
 import type { HeapArrayElementVar, HeapItem, LoadedClass, StackFrame, TraceState, Var } from '@/dto/TraceState'
 
 /*
@@ -10,6 +16,20 @@ export function sanitizeIdentifier (name: string) {
 
 export function desanitizeIdentifier (identifier: string) {
   return identifier.replaceAll('_DOLLAR_SIGN_REPLACEMENT_', '$').replaceAll('_DOT_CHARACTER_REPLACEMENT_', '.')
+}
+
+/**
+ * Escapes an identifier for use inside a quoted CSS attribute selector such as `[id="…"]`.
+ * Identifiers contain `:`, which a `#id` selector would read as a pseudo-class, so lookups
+ * by identifier use attribute selectors instead.
+ */
+export function escapeIdForAttributeSelector (id: string): string {
+  return id.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+/** CSS selector for the element with exactly this id, e.g. `[id="list-p-roots:l_0_head"]`. */
+export function idAttributeSelector (id: string): string {
+  return `[id="${escapeIdForAttributeSelector(id)}"]`
 }
 
 export function heapItemIdentifier (heapItem: Pick<HeapItem, 'id'>): string {
@@ -30,6 +50,18 @@ export function stackLocalIdentifier (stackFrameNumber: number, localVar: Pick<V
 
 export function staticFieldIdentifier (loadedClass: Pick<LoadedClass, 'class'>, staticField: Pick<Var, 'name'>): string {
   return `roots:s_${sanitizeIdentifier(loadedClass.class)}_${sanitizeIdentifier(staticField.name)}`
+}
+
+/**
+ * Identifier of a root variable: a static field when there is no stack frame, otherwise a local
+ * variable in stack frame `stackFrameNumber` (0 = `main`). This matches the root nodes built by
+ * the data-structure views, e.g. `rootVariableIdentifier(arr, 0)` → `roots:l_0_arr` and
+ * `rootVariableIdentifier(head, undefined)` → `roots:s_StaticList_head`.
+ */
+export function rootVariableIdentifier (variable: Var, stackFrameNumber: number | undefined): string {
+  return stackFrameNumber === undefined || stackFrameNumber === null
+    ? staticFieldIdentifier(variable, variable)
+    : stackLocalIdentifier(stackFrameNumber, variable)
 }
 
 function isSameVar (left: Var, right: Var): boolean {

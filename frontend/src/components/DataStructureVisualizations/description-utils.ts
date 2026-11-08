@@ -2,11 +2,12 @@ import { HeapTreeNode } from './heapBFS'
 import { LocalVar, StaticVar } from '@/dto/TraceState'
 
 /**
- * returns description of pointer containing its name and information of its parent
- * @param pointer the pointer to get the description of
+ * returns description of pointer containing its name and where it is stored
+ * @param pointer the pointer to get the description of; `source` is the heap-tree node that stores the pointer
+ *   (a local or static variable, or the object whose field holds it)
  */
-export function getPointerDescription (pointer: { name: string, parent: HeapTreeNode }) {
-  return pointer.name + getParentDescription(pointer.parent)
+export function getPointerDescription (pointer: { name: string, source: HeapTreeNode }) {
+  return pointer.name + getParentDescription(pointer.source)
 }
 
 /**

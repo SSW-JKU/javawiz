@@ -1,5 +1,6 @@
 import { HeapTreeNode } from '../heapBFS'
-import { ArrayAccessTarget, ArrayAccessValue, HeapArray, IndexExpression, LocalVar, PrimitiveVal, ProcessedTraceState, StackFrame, Var, VariableTarget } from '@/dto/TraceState'
+import { ArrayAccessTarget, ArrayAccessValue, HeapArray, IndexExpression, PrimitiveVal, ProcessedTraceState, StackFrame, Var, VariableTarget } from '@/dto/TraceState'
+import { rootVariableIdentifier } from '@/identifiers/trace-identifiers'
 import {
   ArrayIndex,
   ArrayNode,
@@ -17,7 +18,7 @@ import { addIndex, getIndexCoordinates } from './index-utils'
 import { BaseType, Selection } from 'd3-selection'
 import { getAnimationArray, visualizeValueCopy } from './animation'
 import { checkIndexCoverage, getDisplayString } from './index-processing'
-import { REGEX as COMMON_REGEX, SVG } from '../constants'
+import { SVG } from '../constants'
 import { blendOutAnimation } from '../animations'
 import type { Ref } from 'vue'
 
@@ -122,8 +123,9 @@ export function createArrayAndPointerStructure (heapTree: HeapTreeNode, componen
         name: node.name,
         level: index - ignored,
         isNull: (node.element as Var).value.kind === 'NullVal',
-        methodOrParentId: (node.element as LocalVar).method.replace(COMMON_REGEX.illegalCssSelector, '') + node.stackFrameDepth,
-        parent: node,
+        // Same identifier as in the memory view, e.g. `roots:l_0_arr`.
+        sourceVariableIdentifier: rootVariableIdentifier(node.element as Var, node.stackFrameDepth),
+        source: node,
         changed: (node.element as Var).changed
       })
     })

@@ -28,7 +28,7 @@ import {
 import { HeapVizReferenceVal } from './Types/HeapVizReferenceVal'
 
 import { HeapVizStackFrame } from './Types/HeapVizStackFrame'
-import { desanitizeIdentifier } from './identifiers'
+import { desanitizeIdentifier } from '@/identifiers/trace-identifiers'
 
 export function getLocalOrStaticsToHeapItemHoverInfos (sanitizedIdentifier: string, state: HeapVizTraceState): HoverInfo[] {
   const identifier = desanitizeIdentifier(sanitizedIdentifier)

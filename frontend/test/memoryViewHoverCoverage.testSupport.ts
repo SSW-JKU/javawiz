@@ -16,7 +16,7 @@ import { HeapVizChart } from '@/components/TheHeapVisualization/HeapVizChart'
 import { HeapVizTraceState } from '@/components/TheHeapVisualization/Types/HeapVizTraceState'
 import { MemoryViewRenderContext } from '@/components/TheHeapVisualization/MemoryViewRenderContext'
 import { getLocalOrStaticsToHeapItemHoverInfos, getMethodHoverInfos } from '@/components/TheHeapVisualization/hover'
-import { identifierFromSvgCellIdentifier } from '@/components/TheHeapVisualization/identifiers'
+import { identifierFromSvgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 interface HeapVizChartInternals {
   readonly renderContext: MemoryViewRenderContext

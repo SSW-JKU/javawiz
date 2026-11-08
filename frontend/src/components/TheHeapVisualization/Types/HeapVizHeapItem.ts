@@ -12,7 +12,7 @@ import {
   MIN_WIDTH,
   TABLE_FORMAT
 } from '../constants'
-import { injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '../identifiers'
+import { injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 export interface IHeapVizHeapItem {
   getCssClasses(): unknown;

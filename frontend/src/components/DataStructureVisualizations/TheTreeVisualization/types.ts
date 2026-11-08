@@ -33,21 +33,27 @@ export interface ChildPointer {
 }
 
 /**
- * interface for pointers to nodes
- * name: name of the pointer
- * node: TreeNode which the pointer references, may be null if pointer is null
- * index: this pointers index at the node it's referencing (pointers pointing to the same node are ordered and offset)
+ * A pointer drawn as an arrow from where it is stored (its source) to the tree node it references (its target).
+ * Example: for `static Node root;`, the source is the static field `root` and the target is the tree node of
+ * the referenced object.
+ *
+ * name: name of the variable or field that stores the pointer, shown as the arrow's label
+ * sourceVariableIdentifier: identifier of that variable or field, the same as in the memory view: a local variable
+ *   (`roots:l_0_cur`), a static field (`roots:s_StaticTree_root`) or a field of the tree object (`o_12:root`)
+ * source: heap-tree node that stores the pointer: the root variable, or the tree object whose field holds it
+ * target: tree node the pointer references; undefined if the pointer is null
+ * index: this pointer's index at the node it's referencing (pointers to the same node are ordered and offset)
  * isNull: true iff pointer is null
- * nodeIndex: shortcut for the node's index, should be the same as node.index if node is not null
- * nodeLevel: shortcut for the node's level, should be the same as node.level if node is not null
- * inTree: true iff referenced node is in tree
+ * nodeIndex: shortcut for the target's index, the same as target.index if target is not undefined
+ * nodeLevel: shortcut for the target's level, the same as target.level if target is not undefined
+ * treeLevel: shortcut for the target's tree level
  * changed: true iff pointer has changed in the last step
  */
 export interface TreeNodePointer {
   name: string,
-  methodOrParentId: string,
-  parent: HeapTreeNode,
-  node?: TreeNode,
+  sourceVariableIdentifier: string,
+  source: HeapTreeNode,
+  target?: TreeNode,
   index: number,
   isNull: boolean,
   nodeIndex: number,

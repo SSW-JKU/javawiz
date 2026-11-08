@@ -1,10 +1,11 @@
 import { ChildPointer, TreeNode, TreeNodePointer } from './types'
-import { HeapObject, LocalVar, ReferenceVal, Var } from '@/dto/TraceState'
+import { HeapObject, ReferenceVal, Var } from '@/dto/TraceState'
+import { heapObjectFieldIdentifier, idAttributeSelector, rootVariableIdentifier } from '@/identifiers/trace-identifiers'
 import { hasSuccessorPointerChanged } from './child-pointer-utils'
 import { HeapTreeNode } from '../heapBFS'
 import { HTML, LAYOUT } from './constants'
 import { select } from 'd3-selection'
-import { REGEX, SVG } from '../constants'
+import { SVG } from '../constants'
 import { moveElemInArray } from '../utils'
 import { getVariablePointers } from '../preprocessing-utils'
 import { getFieldIndex, setChangesInFields } from '../heap-tree-node-utils'
@@ -181,9 +182,9 @@ export function createPointerStructure (
       (node.node?.element as HeapObject).id)
       .forEach((pointer, index) => nodePointers.push({
         name: pointer.name,
-        methodOrParentId: (pointer.element as LocalVar).method.replace(REGEX.illegalCssSelector, '') + (pointer.stackFrameDepth ?? ''),
-        parent: pointer,
-        node,
+        sourceVariableIdentifier: rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth),
+        source: pointer,
+        target: node,
         index,
         isNull: false,
         nodeIndex: node.index,
@@ -197,7 +198,7 @@ export function createPointerStructure (
   const parentPointer = nodePointers.find(pointer => pointer.name === component.parentName)
   if (parentPointer) {
     const otherPointers = nodePointers
-      .filter(pointer => pointer.node === parentPointer.node && pointer.name !== component.parentName)
+      .filter(pointer => pointer.target === parentPointer.target && pointer.name !== component.parentName)
     parentPointer.index = 0
     otherPointers.forEach((pointer, index) => {
       pointer.index = index + 1
@@ -219,7 +220,7 @@ export function createPointerStructure (
           const fieldReference = field.value.reference
           // increment indices of all other pointers to same node, so list-pointers are displayed first
           nodePointers.filter(pointer =>
-            (pointer.node?.node?.element as HeapObject | undefined)?.id === fieldReference)
+            (pointer.target?.node?.element as HeapObject | undefined)?.id === fieldReference)
             .forEach(pointer => {
               pointer.index++
             })
@@ -229,9 +230,9 @@ export function createPointerStructure (
           if (node) {
             nodePointers.push({
               name: field.name,
-              methodOrParentId: String(dataStructure.id),
-              parent: heapNode,
-              node,
+              sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
+              source: heapNode,
+              target: node,
               index: 0,
               isNull: false,
               nodeIndex: node.index,
@@ -243,8 +244,8 @@ export function createPointerStructure (
         } else if (field.value.kind === 'NullVal') {
           nodePointers.push({
             name: field.name,
-            methodOrParentId: String(dataStructure.id),
-            parent: heapNode,
+            sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
+            source: heapNode,
             index: nrOfNullPointers,
             isNull: true,
             nodeIndex: LAYOUT.pointers.null.index,
@@ -264,8 +265,9 @@ export function createPointerStructure (
   pointers
     .filter(pointer => (pointer.element as Var).value.kind === 'NullVal')
     .forEach(pointer => {
-      const methodOrParentId = (pointer.element as LocalVar).method.replace(REGEX.illegalCssSelector, '') + (pointer.stackFrameDepth ?? '')
-      const pointerSelection = select(`#${HTML.ids.prefixes.pointer}-${pointer.name}-${methodOrParentId}`)
+      const sourceVariableIdentifier = rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth)
+      // Identifiers contain `:`, so the previous pointer is found with an attribute selector.
+      const pointerSelection = select(idAttributeSelector(`${HTML.ids.prefixes.pointer}-${sourceVariableIdentifier}`))
       const nodeLevel = pointerSelection.empty() || !pointerSelection.datum() ? 0 : ((pointerSelection.datum() as TreeNodePointer).nodeLevel)
       const treeLevel = pointerSelection.empty() || !pointerSelection.datum() ? 0 : ((pointerSelection.datum() as TreeNodePointer).treeLevel)
       if (nodeLevel && !indexMap.has(nodeLevel)) {
@@ -275,8 +277,8 @@ export function createPointerStructure (
       }
       nodePointers.push({
         name: (pointer.element as Var).name as string,
-        methodOrParentId,
-        parent: pointer,
+        sourceVariableIdentifier,
+        source: pointer,
         index: indexMap.get(nodeLevel),
         isNull: true,
         nodeIndex: LAYOUT.pointers.null.index,

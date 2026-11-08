@@ -17,7 +17,7 @@ import type { HeapArrayElementVar, HeapItem, TraceState, Var } from '@/dto/Trace
 import type { HeapVizHeapArrayElementVar } from './Types/HeapVizHeapArrayElementVar'
 import type { IHeapVizHeapItem } from './Types/HeapVizHeapItem'
 import type { HeapVizVar } from './Types/HeapVizVar'
-import { heapArrayElementIdentifier, heapItemIdentifier, rawVarIdentifier } from './identifiers'
+import { escapeIdForAttributeSelector, heapArrayElementIdentifier, heapItemIdentifier, idAttributeSelector, rawVarIdentifier } from '@/identifiers/trace-identifiers'
 
 export interface Point {
   readonly x: number
@@ -91,10 +91,6 @@ function decodeHtmlEntities (value: string): string {
   if (!HTML_ENTITY_TEXTAREA) return value
   HTML_ENTITY_TEXTAREA.innerHTML = value
   return HTML_ENTITY_TEXTAREA.value
-}
-
-function escapeIdForAttributeSelector (id: string): string {
-  return id.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
 function boundingBoxCornersForRect (rect: DOMRect): BoundingBoxCorners {
@@ -209,8 +205,7 @@ export function processInjectedTitles (root: Element): void {
  * special characters (`:`, `_`, `.`) are handled correctly.
  */
 export function findHeapElementById (id: string, root: Element | Document = document): Element | null {
-  const escaped = escapeIdForAttributeSelector(id)
-  return root.querySelector(`[id="${escaped}"]`)
+  return root.querySelector(idAttributeSelector(id))
 }
 
 /**

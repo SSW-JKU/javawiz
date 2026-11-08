@@ -1,10 +1,11 @@
 import { HeapTreeNode } from '../heapBFS'
 import { ListNode, ListNodePointer, NextPointer, ReferenceNode } from './types'
-import { HeapObject, LocalVar, ReferenceVal, Var } from '@/dto/TraceState'
+import { HeapObject, ReferenceVal, Var } from '@/dto/TraceState'
+import { heapObjectFieldIdentifier, idAttributeSelector, rootVariableIdentifier } from '@/identifiers/trace-identifiers'
 import { hasNextPointerChanged } from './pointer-utils'
 import { BaseType, Selection } from 'd3-selection'
 import { HTML, LAYOUT } from './constants'
-import { REGEX, SVG } from '../constants'
+import { SVG } from '../constants'
 import { moveElemInArray } from '../utils'
 import { getVariablePointers } from '../preprocessing-utils'
 import { getFieldIndex, setChangesInFields } from '../heap-tree-node-utils'
@@ -202,9 +203,9 @@ export function createPointerStructure (
       .map((pointer, index) => {
         return {
           name: pointer.name,
-          methodOrParentId: (pointer.element as LocalVar).method.replace(REGEX.illegalCssSelector, '') + (pointer.stackFrameDepth ?? ''),
-          parent: pointer,
-          node,
+          sourceVariableIdentifier: rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth),
+          source: pointer,
+          target: node,
           index,
           isNull: false,
           nodeIndex: node.index,
@@ -218,7 +219,7 @@ export function createPointerStructure (
   const prevPointer = nodePointers.find(pointer => pointer.name === component.prevName)
   if (prevPointer) {
     const otherPointers = nodePointers
-      .filter(pointer => pointer.node === prevPointer.node && pointer !== prevPointer)
+      .filter(pointer => pointer.target === prevPointer.target && pointer !== prevPointer)
     prevPointer.index = 0
     otherPointers.forEach((pointer, index) => {
       pointer.index = index + 1
@@ -241,7 +242,7 @@ export function createPointerStructure (
           const fieldReference = field.value.reference
           // increment indices of all other pointers to same node, so list-pointers are displayed first
           nodePointers.filter(pointer =>
-            (pointer.node?.node?.element as HeapObject | undefined)?.id === fieldReference)
+            (pointer.target?.node?.element as HeapObject | undefined)?.id === fieldReference)
             .forEach(pointer => {
               pointer.index++
             })
@@ -251,9 +252,9 @@ export function createPointerStructure (
           if (node) {
             nodePointers.push({
               name: field.name,
-              methodOrParentId: String(dataStructure.id),
-              parent: heapNode,
-              node: node as ListNode,
+              sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
+              source: heapNode,
+              target: node as ListNode,
               index: 0,
               isNull: false,
               nodeIndex: node.index,
@@ -264,8 +265,8 @@ export function createPointerStructure (
         } else if (field.value.kind === 'NullVal') {
           nodePointers.push({
             name: field.name,
-            methodOrParentId: String(dataStructure.id),
-            parent: heapNode,
+            sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
+            source: heapNode,
             index: frontIndex,
             isNull: true,
             nodeIndex: -1,
@@ -283,15 +284,16 @@ export function createPointerStructure (
   pointers
     .filter(pointer => (pointer.element as Var).value.kind === 'NullVal')
     .forEach(pointer => {
-      const methodOrParentId = (pointer.element as LocalVar).method.replace(REGEX.illegalCssSelector, '') + (pointer.stackFrameDepth ?? '')
-      const pointerSelection = svg.select(`#${HTML.ids.prefixes.pointer}-${pointer.name}-${methodOrParentId}`)
+      const sourceVariableIdentifier = rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth)
+      // Identifiers contain `:`, so the previous pointer is found with an attribute selector.
+      const pointerSelection = svg.select(idAttributeSelector(`${HTML.ids.prefixes.pointer}-${sourceVariableIdentifier}`))
       const nodeIndex = pointerSelection.empty()
         ? undefined
         : ((pointerSelection.datum() as ListNodePointer).nodeIndex)
       nodePointers.push({
         name: (pointer.element as Var).name as string,
-        methodOrParentId,
-        parent: pointer,
+        sourceVariableIdentifier,
+        source: pointer,
         index: (nodes.length === 0 || pointerSelection.empty() || nodeIndex === -1)
           ? frontIndex++
           : backIndex++,

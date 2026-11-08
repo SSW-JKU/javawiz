@@ -77,8 +77,8 @@ export function getCoordinatesOfChange (
     // get coordinates of the first changed pointer
     const changedPointer = changedPointers[0]
     // changed pointer is from tree
-    coordinates = changedPointer.node
-      ? getNodeCoordinates(changedPointer.node)
+    coordinates = changedPointer.target
+      ? getNodeCoordinates(changedPointer.target)
       : getPointerCoordinates(changedPointer)
   } else {
     // check if successor-pointer was changed, if no node pointer changed

@@ -3,25 +3,31 @@ import { HoverInfo } from '@/hover/types'
 import { ListNode, ListNodePointer, ReferenceNode, NextPointer } from './types'
 import { createHoverField, createHoverHeapObject } from '@/hover/hoverinfo-builder'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
+import { isSameRootVariable } from '../pointer-hover'
+
+/** Tells a pointer apart from a list node; both are passed to `isHighlighted`. */
+function isListNodePointer (nodeOrPointer: ListNode | ListNodePointer): nodeOrPointer is ListNodePointer {
+  return 'sourceVariableIdentifier' in nodeOrPointer
+}
 
 export function isHighlighted (hoveredInfos: HoverInfo[], nodeOrPointer: ListNode | ListNodePointer, fieldIndex: number = -1): boolean {
-  if (nodeOrPointer === undefined || nodeOrPointer.node === undefined) return false
+  if (nodeOrPointer === undefined) return false
+  // a null pointer has no target, and a list node without heap node shows nothing to highlight
+  if (isListNodePointer(nodeOrPointer) ? nodeOrPointer.target === undefined : nodeOrPointer.node === undefined) return false
   let nodeOrPointerIsHighlighted = false
 
   for (const hInfo of hoveredInfos) {
     if (hInfo.kind === 'Field' || hInfo.kind === 'Local' || hInfo.kind === 'Static') {
       // check if a pointer is highlighted
-      if ('isListPointer' in nodeOrPointer) {
-        const pointerNode = (nodeOrPointer as ListNodePointer).node?.node?.element as HeapObject
+      if (isListNodePointer(nodeOrPointer)) {
+        const pointerNode = nodeOrPointer.target?.node?.element as HeapObject
 
-        nodeOrPointerIsHighlighted = pointerNode.id === hInfo.reference && nodeOrPointer.name === hInfo.name
-        if (hInfo.kind === 'Local') {
-          nodeOrPointerIsHighlighted &&= nodeOrPointer.methodOrParentId.startsWith(hInfo.method)
-        }
+        nodeOrPointerIsHighlighted = pointerNode.id === hInfo.reference && nodeOrPointer.name === hInfo.name &&
+          isSameRootVariable(nodeOrPointer.source, hInfo)
 
         if (nodeOrPointerIsHighlighted) return true
       } else if (hInfo.kind === 'Field') { // check if the next field of a list node is highlighted
-        const currNode = nodeOrPointer.node.element as HeapObject
+        const currNode = nodeOrPointer.node!.element as HeapObject
         if (fieldIndex !== -1) {
           const nodeField = currNode.fields[fieldIndex]
           if (currNode.id === hInfo.objId && nodeField.name === hInfo.name) return true

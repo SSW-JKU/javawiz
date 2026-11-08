@@ -9,6 +9,7 @@ import at.jku.ssw.wsdebug.compilation.instrumentation.VariableTarget
 import at.jku.ssw.wsdebug.debugger.MAX_STACK_DEPTH_EXCEEDED_MESSAGE
 import at.jku.ssw.wsdebug.debugger.recording.HeapObject
 import at.jku.ssw.wsdebug.debugger.recording.InputBufferInfo
+import at.jku.ssw.wsdebug.debugger.recording.PrimitiveVal
 import at.jku.ssw.wsdebug.debugger.recording.TraceState
 import at.jku.ssw.wsdebug.debugger.recording.stream.MarbleDiagramData
 import at.jku.ssw.wsdebug.debugger.vm.VirtualMachine.Companion.INTERNAL_CLASS_PATTERNS
@@ -2134,6 +2135,49 @@ internal class DebugWebSocketServerTest {
         assertEquals(listOf("value"), objects.getValue("Ordinary").fields.map { it.name })
         assertTrue(objects.getValue("Stopped").fields.isEmpty())
         assertEquals(listOf("child"), objects.getValue("DataStructure").fields.map { it.name })
+    }
+
+    @ParameterizedTest
+    @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
+    fun testDefaultDataStructureClassesCollectAtomicAndListFields(testFlags: TestFlags) {
+        val source = """
+            import java.util.ArrayList;
+            import java.util.concurrent.atomic.*;
+
+            public class Defaults {
+                public static void main(String[] args) {
+                    AtomicInteger i = new AtomicInteger(5);
+                    AtomicLong l = new AtomicLong(6);
+                    AtomicBoolean b = new AtomicBoolean(true);
+                    AtomicReference<String> r = new AtomicReference<>("x");
+                    ArrayList<Integer> list = new ArrayList<>();
+                    list.add(1);
+                    System.out.println(i.get() + l.get() + list.size() + r.get() + b.get());
+                }
+            }
+        """.trimIndent()
+        // All patterns null: the backend defaults apply, exactly as the browser and IntelliJ request them.
+        val trace = fullTrace(
+            classContents = listOf(FilepathAndContent("Defaults.java", source)),
+            checkAst = false,
+            internalClassPatterns = null,
+            testFlags = testFlags,
+            heapTraversalStopPatterns = null,
+            dataStructurePatterns = null
+        )
+        val atomicTypes = listOf("AtomicInteger", "AtomicLong", "AtomicBoolean", "AtomicReference")
+            .map { "java.util.concurrent.atomic.$it" }
+        val state = trace.first { current ->
+            current.heap.filterIsInstance<HeapObject>().map { it.type }.containsAll(atomicTypes + "java.util.ArrayList")
+        }
+        val objects = state.heap.filterIsInstance<HeapObject>().associateBy { it.type }
+
+        atomicTypes.forEach { type ->
+            assertTrue(objects.getValue(type).fields.any { it.name == "value" }) { "$type has no collected value field" }
+        }
+        val atomicIntegerValue = objects.getValue("java.util.concurrent.atomic.AtomicInteger").fields.single { it.name == "value" }.value
+        assertEquals(PrimitiveVal("5"), atomicIntegerValue)
+        assertTrue(objects.getValue("java.util.ArrayList").fields.map { it.name }.containsAll(listOf("elementData", "size", "modCount")))
     }
 
     @ParameterizedTest

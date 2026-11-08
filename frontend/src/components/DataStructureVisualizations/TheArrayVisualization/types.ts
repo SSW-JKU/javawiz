@@ -59,13 +59,14 @@ export type ArrayNode = OneDimArrayNode | TwoDimArrayNode | TwoDimArrayChild
 // ==================
 
 /**
- * interface for pointers to arrays
- * array: array to point to
- * name: name of the pointer
+ * A pointer drawn as an arrow from the variable that stores it (its source) to the array it references.
+ *
+ * array: array the pointer references (the pointer's target); undefined if the pointer is null
+ * name: name of the variable that stores the pointer, shown as the arrow's label
  * level: level of pointer in visualization
  * isNull: true iff array is null
- * methodOrParentId: method or parent-id, depending on which pointer this is
- * parent: parent of this pointer
+ * sourceVariableIdentifier: identifier of that variable, the same as in the memory view (e.g. `roots:l_0_arr`)
+ * source: heap-tree node of the variable that stores the pointer
  * changed: true iff pointer has changed in the last step
  */
 export interface ArrayPointer {
@@ -73,8 +74,8 @@ export interface ArrayPointer {
   name: string
   level: number,
   isNull: boolean,
-  methodOrParentId: string,
-  parent: HeapTreeNode,
+  sourceVariableIdentifier: string,
+  source: HeapTreeNode,
   changed: boolean
 }
 

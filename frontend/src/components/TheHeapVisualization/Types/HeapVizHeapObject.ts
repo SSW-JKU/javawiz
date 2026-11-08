@@ -16,7 +16,7 @@ import { alignBytes, OBJECT_HEADER_BYTES } from '../MemorySize'
 import { HeapVizHeapItem } from './HeapVizHeapItem'
 import { HeapVizReferenceVal } from './HeapVizReferenceVal'
 import { HeapVizVar } from './HeapVizVar'
-import { heapItemIdentifier, heapObjectFieldIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '../identifiers'
+import { heapItemIdentifier, heapObjectFieldIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 export class HeapVizHeapObject extends HeapVizHeapItem<ProcessedHeapObject> {
   public fields: HeapVizVar[] // does not include static fields

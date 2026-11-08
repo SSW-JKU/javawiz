@@ -32,7 +32,7 @@ import type { DataStructureVisibilitySettings } from './DataStructureVisibility'
 import { MemoryViewRenderContext } from './MemoryViewRenderContext'
 import { processInjectedTitles } from './HeapLookup'
 import { applyHoverStyles, type HoverStyles, hoverStylesFromDot } from './HoverRecoloring'
-import { desanitizeIdentifier, identifierFromSvgCellIdentifier, SVG_CELL_SUFFIXES } from './identifiers'
+import { desanitizeIdentifier, identifierFromSvgCellIdentifier, SVG_CELL_SUFFIXES } from '@/identifiers/trace-identifiers'
 import type { HeapVizVar } from './Types/HeapVizVar'
 import { renderRootsNode } from './RootsNodeRenderer'
 

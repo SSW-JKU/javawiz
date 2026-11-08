@@ -4,7 +4,7 @@ import { HeapVizElement } from './HeapVizElement';
 import { HeapVizVal } from './HeapVizVal';
 import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
-import { heapArrayElementIdentifier } from '../identifiers'
+import { heapArrayElementIdentifier } from '@/identifiers/trace-identifiers'
 import { type EdgeStyle, referenceEdgeStyle, renderReferenceEdge } from '../ReferenceEdge'
 
 export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementVar> {

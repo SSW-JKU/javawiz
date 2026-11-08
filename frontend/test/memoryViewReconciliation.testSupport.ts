@@ -20,7 +20,7 @@ import {
   identifierFromSvgCellIdentifier,
   SVG_CELL_SUFFIXES,
   svgCellIdentifier
-} from '@/components/TheHeapVisualization/identifiers'
+} from '@/identifiers/trace-identifiers'
 
 const ordinaryClass: LoadedClass = {
   kind: 'LoadedClass',

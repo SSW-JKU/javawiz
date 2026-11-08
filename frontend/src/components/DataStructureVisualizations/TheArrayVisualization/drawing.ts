@@ -105,13 +105,14 @@ export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>,
 
 export function drawPointers (svg: Selection<BaseType, unknown, HTMLElement, any>, pointers: ArrayPointer[]) {
   svg.select(`#${HTML.ids.arrayPointers}`)
-    .selectAll(`.${HTML.classes.pointers.group}`)
-    .data(pointers, (d: any) => d?.name + d?.methodOrParentId)
+    // Typing the selection lets D3 type `d` in the key function and all callbacks below as ArrayPointer.
+    .selectAll<SVGGElement, ArrayPointer>(`.${HTML.classes.pointers.group}`)
+    .data(pointers, d => d.sourceVariableIdentifier)
     .join(
       entered => {
         const group = entered.append('g')
           .attr('transform', d => `translate(${getPointerCoordinates(d)})`)
-          .attr('id', d => `${HTML.ids.prefixes.pointers}-${d.name}-${d.methodOrParentId}`)
+          .attr('id', d => `${HTML.ids.prefixes.pointers}-${d.sourceVariableIdentifier}`)
           .classed(HTML.classes.pointers.group, true)
           .classed(HTML.classes.changed, d => d.changed)
         blendInAnimation(group)

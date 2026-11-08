@@ -34,19 +34,19 @@ interface VirtualMachine {
             "$JAVAWIZ_PACKAGE.$JAVAWIZ_CLASS"
         )
 
+        /**
+         * Default patterns for Java data structures whose fields are collected although they match
+         * [INTERNAL_CLASS_PATTERNS], so specialized visualizations can show their contents.
+         *
+         * Only concrete classes matter: fields are collected for an object's exact runtime class,
+         * which is never an interface. Nested classes are covered by their outer class (e.g.
+         * `java.util.ArrayList` also covers `ArrayList$Itr`), and arrays are always traced completely,
+         * so array types are not listed.
+         *
+         * The VS Code extension repeats this list as the default of `javawiz.dataStructurePatterns` in
+         * `vsc-extension/package.json`; `VscExtensionDefaultPatternsTest` keeps both equal.
+         */
         val DATA_STRUCTURE_CLASSES = listOf(
-            // --- Core Interfaces ---
-            "java.util.Collection",
-            "java.util.List",
-            "java.util.Set",
-            "java.util.Map",
-            "java.util.Queue",
-            "java.util.Deque",
-            "java.util.SortedSet",
-            "java.util.SortedMap",
-            "java.util.NavigableSet",
-            "java.util.NavigableMap",
-
             // --- Lists ---
             "java.util.ArrayList",
             "java.util.LinkedList",
@@ -109,7 +109,13 @@ interface VirtualMachine {
             "java.util.ImmutableCollections\$Set12",
             "java.util.ImmutableCollections\$SetN",
             "java.util.ImmutableCollections\$Map1",
-            "java.util.ImmutableCollections\$MapN"
+            "java.util.ImmutableCollections\$MapN",
+
+            // --- Atomic values (java.util.concurrent.atomic) ---
+            "java.util.concurrent.atomic.AtomicInteger",
+            "java.util.concurrent.atomic.AtomicLong",
+            "java.util.concurrent.atomic.AtomicBoolean",
+            "java.util.concurrent.atomic.AtomicReference"
         )
     }
 

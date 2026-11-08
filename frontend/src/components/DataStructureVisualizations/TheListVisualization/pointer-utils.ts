@@ -7,11 +7,11 @@ import { HeapObject } from '@/dto/TraceState'
 export function getPointerCoordinates (pointer: ListNodePointer, nodeToPointerDistance?: Map<ListNode | null, {count: number, distance: number}>): [number, number] {
   return [
     (calculateNodesXCoordinate(pointer.nodeIndex) + pointer.index *
-      (nodeToPointerDistance && nodeToPointerDistance.has(pointer.node ?? null)
-        ? nodeToPointerDistance.get(pointer.node ?? null)!.distance
+      (nodeToPointerDistance && nodeToPointerDistance.has(pointer.target ?? null)
+        ? nodeToPointerDistance.get(pointer.target ?? null)!.distance
         : 0) +
       LAYOUT.pointers.xOffset),
-    calculateNodesYCoordinate(pointer.node ? pointer.node.level : 0)
+    calculateNodesYCoordinate(pointer.target ? pointer.target.level : 0)
   ]
 }
 
@@ -27,7 +27,7 @@ export function getPointerTextYOffset (pointer: ListNodePointer) {
 
 // calculates text-width of pointer
 export function getPointerTextWidth (pointer: ListNodePointer, nodeToPointerDistance: Map<ListNode | null, {count: number, distance: number}>) {
-  return nodeToPointerDistance.get(pointer.node ?? null)!.distance
+  return nodeToPointerDistance.get(pointer.target ?? null)!.distance
 }
 
 // return true, iff next-pointer of given node has changed

@@ -5,7 +5,7 @@ import { HeapVizVal } from './HeapVizVal';
 import { shortTypeName } from '@/helpers/Common';
 import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
-import { injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '../identifiers'
+import { injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 import type { HoverInfo } from '@/hover/types'
 import { type EdgeStyle, referenceEdgeStyle, renderReferenceEdge } from '../ReferenceEdge'
 

@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -130,7 +130,7 @@
             "Out",
             "Rand"
           ],
-          "description": "Glob patterns for classes that JavaWiz will not step into and will not instrument (no condition or array-access tracking). Changing this configuration might break functionality."
+          "description": "Class patterns for classes that JavaWiz does not step into and does not track (no condition or array-access tracking). The default list is the same as in the browser and IntelliJ versions of JavaWiz. Changing this setting might break functionality."
         },
         "javawiz.heapTraversalStopPatterns": {
           "type": "array",
@@ -148,15 +148,63 @@
             "Out",
             "Rand"
           ],
-          "description": "Glob patterns for classes at which JavaWiz stops ordinary heap traversal. Classes matching dataStructurePatterns take precedence so specialized visualizations can inspect them. Changing this configuration might break functionality."
+          "description": "Class patterns for classes whose fields JavaWiz does not show, such as JDK classes. Classes matching the data structure patterns are still shown. The default list is the same as in the browser and IntelliJ versions of JavaWiz. Changing this setting might break functionality."
         },
         "javawiz.dataStructurePatterns": {
           "type": "array",
           "default": [
-            "java.util.*",
-            "java.util.concurrent.*"
+            "java.util.ArrayList",
+            "java.util.LinkedList",
+            "java.util.Vector",
+            "java.util.Stack",
+            "java.util.HashSet",
+            "java.util.LinkedHashSet",
+            "java.util.TreeSet",
+            "java.util.BitSet",
+            "java.util.EnumSet",
+            "java.util.HashMap",
+            "java.util.LinkedHashMap",
+            "java.util.TreeMap",
+            "java.util.Hashtable",
+            "java.util.Properties",
+            "java.util.WeakHashMap",
+            "java.util.IdentityHashMap",
+            "java.util.EnumMap",
+            "java.util.PriorityQueue",
+            "java.util.ArrayDeque",
+            "java.util.concurrent.ConcurrentHashMap",
+            "java.util.concurrent.CopyOnWriteArrayList",
+            "java.util.concurrent.CopyOnWriteArraySet",
+            "java.util.concurrent.ConcurrentSkipListMap",
+            "java.util.concurrent.ConcurrentSkipListSet",
+            "java.util.concurrent.ConcurrentLinkedQueue",
+            "java.util.concurrent.ConcurrentLinkedDeque",
+            "java.util.concurrent.ArrayBlockingQueue",
+            "java.util.concurrent.LinkedBlockingQueue",
+            "java.util.concurrent.LinkedBlockingDeque",
+            "java.util.concurrent.PriorityBlockingQueue",
+            "java.util.concurrent.DelayQueue",
+            "java.util.concurrent.SynchronousQueue",
+            "java.util.concurrent.LinkedTransferQueue",
+            "java.util.Arrays$ArrayList",
+            "java.util.Collections$SingletonList",
+            "java.util.Collections$SingletonSet",
+            "java.util.Collections$SingletonMap",
+            "java.util.Collections$EmptyList",
+            "java.util.Collections$EmptySet",
+            "java.util.Collections$EmptyMap",
+            "java.util.ImmutableCollections$List12",
+            "java.util.ImmutableCollections$ListN",
+            "java.util.ImmutableCollections$Set12",
+            "java.util.ImmutableCollections$SetN",
+            "java.util.ImmutableCollections$Map1",
+            "java.util.ImmutableCollections$MapN",
+            "java.util.concurrent.atomic.AtomicInteger",
+            "java.util.concurrent.atomic.AtomicLong",
+            "java.util.concurrent.atomic.AtomicBoolean",
+            "java.util.concurrent.atomic.AtomicReference"
           ],
-          "description": "Glob patterns for Java data structures whose fields are collected for specialized visualizations despite matching heapTraversalStopPatterns."
+          "description": "Class patterns for Java data structures, such as ArrayList or HashMap, whose contents JavaWiz shows although they match the heap traversal stop patterns. The default list is the same as in the browser and IntelliJ versions of JavaWiz."
         }
       }
     }

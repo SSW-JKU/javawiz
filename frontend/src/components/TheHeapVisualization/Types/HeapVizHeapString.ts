@@ -6,7 +6,7 @@ import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import { shouldShowDataStructureFields } from '../DataStructureVisibility'
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { STRING_OBJECT_BYTES, stringSize } from '../MemorySize'
-import { heapItemIdentifier, heapObjectFieldIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '../identifiers'
+import { heapItemIdentifier, heapObjectFieldIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 export class HeapVizHeapString extends HeapVizHeapItem<ProcessedHeapString> {
 

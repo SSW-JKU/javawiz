@@ -5,7 +5,7 @@ import { HeapVizElement } from './HeapVizElement';
 import { HeapVizVar } from './HeapVizVar';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { alignBytes } from '../MemorySize'
-import { injectedTitleAttributes, methodHeaderIdentifier, stackLocalIdentifier } from '../identifiers'
+import { injectedTitleAttributes, methodHeaderIdentifier, stackLocalIdentifier } from '@/identifiers/trace-identifiers'
 
 export class HeapVizStackFrame extends HeapVizElement<StackFrame> {
   public override get bgColor (): string {

@@ -48,7 +48,9 @@ function processStatics (
   loadedClasses: LoadedClass[],
   heap: HeapItem[]
 ) {
-  loadedClasses.forEach(loadedClass => {
+  // Static fields of library and helper classes (JDK, In/Out) are not part of the user's
+  // program, so the data-structure views skip them like the tabular and history views do.
+  loadedClasses.filter(loadedClass => !loadedClass.isHeapTraversalStop).forEach(loadedClass => {
     loadedClass.staticFields.forEach(variable => {
       processVar(heapBFSUtils, variable, heap, undefined, loadedClass.class)
     })

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.4.1] (released on 2026-11-08)
+* JW-699: Update website copyright year to 2026
+* JW-700: ArrayViz stays empty when a static array field is present (always in VS Code)
+* JW-701: Use the same data-structure class list in VS Code as in the browser and IntelliJ
+* JW-703: List and Tree views break stepping when a static field points to a node
+
 [2.4.0] (released on 2026-11-04)
 * JW-255: Navigation buttons overlap visualizations
 * JW-386: Replace independent d3.zoom() with d3-graphviz zoom APIs in TheHeapVisualization
@@ -49,6 +55,7 @@ All notable changes to this project will be documented in this file.
 * JW-693: IntelliJ: JavaWiz index page not shown on Linux due to browser sandboxing
 * JW-694: Document how AI assistants check IntelliJ plugin behavior in a sandbox IDE
 * JW-695: IntelliJ: Split the Debug with JavaWiz button state by where the action is shown
+* JW-698: Release JavaWiz 2.4.0
 
 [2.3.1] (released on 2026-10-27)
 * JW-260: collapse args in heap by default

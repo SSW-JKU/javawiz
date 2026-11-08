@@ -1,4 +1,4 @@
-import { edgeIdentifier } from './identifiers'
+import { edgeIdentifier } from '@/identifiers/trace-identifiers'
 
 /** Color and line width of a reference arrow, as written into the DOT edge and later into its SVG shapes. */
 export interface EdgeStyle {

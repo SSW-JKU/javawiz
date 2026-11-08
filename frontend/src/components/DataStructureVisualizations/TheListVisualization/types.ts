@@ -31,21 +31,26 @@ export interface NextPointer {
 }
 
 /**
- * interface for pointers to nodes
- * name: name of the pointer
- * node: ListNode which the pointer references, may be null if pointer is null
- * methodOrParentId: method or id of the parent of the pointer
- * index: this pointers index at the node it's referencing (pointers pointing to the same node are ordered and offset)
+ * A pointer drawn as an arrow from where it is stored (its source) to the list node it references (its target).
+ * Example: for `Node head = list.first;` in `main`, the source is the local variable `head` and the target is
+ * the list node of the referenced object.
+ *
+ * name: name of the variable or field that stores the pointer, shown as the arrow's label
+ * sourceVariableIdentifier: identifier of that variable or field, the same as in the memory view: a local variable
+ *   (`roots:l_0_head`), a static field (`roots:s_StaticList_head`) or a field of the list object (`o_12:first`)
+ * source: heap-tree node that stores the pointer: the root variable, or the list object whose field holds it
+ * target: list node the pointer references; undefined if the pointer is null
+ * index: this pointer's index at the node it's referencing (pointers to the same node are ordered and offset)
  * isNull: true iff pointer is null
- * nodeIndex: shortcut for the node's index, should be the same as node.index if node is not null
- * inList: true iff referenced node is in list
+ * nodeIndex: shortcut for the target's index, the same as target.index if target is not undefined
  * changed: true iff the pointer has changed in the last step
+ * isListPointer: true iff the pointer is a field of the list object (source is a heap object), not a variable
  */
 export interface ListNodePointer {
   name: string,
-  methodOrParentId: string,
-  parent: HeapTreeNode,
-  node?: ListNode,
+  sourceVariableIdentifier: string,
+  source: HeapTreeNode,
+  target?: ListNode,
   index: number,
   isNull: boolean,
   nodeIndex: number,

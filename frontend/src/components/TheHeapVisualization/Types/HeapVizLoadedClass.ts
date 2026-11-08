@@ -6,7 +6,7 @@ import { HeapVizVar } from './HeapVizVar';
 import { shouldShowClassStatics } from '../DataStructureVisibility'
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { CLASS_BYTES } from '../MemorySize'
-import { staticFieldIdentifier } from '../identifiers'
+import { staticFieldIdentifier } from '@/identifiers/trace-identifiers'
 
 export class HeapVizLoadedClass extends HeapVizRenderableElement<LoadedClass> {
   class: string;

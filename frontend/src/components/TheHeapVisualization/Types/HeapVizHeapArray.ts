@@ -6,7 +6,7 @@ import { HeapVizPrimitiveVal } from './HeapVizPrimitiveVal';
 import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { ARRAY_LENGTH_BYTES, OBJECT_HEADER_BYTES, alignBytes } from '../MemorySize'
-import { heapItemIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '../identifiers'
+import { heapItemIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 export class HeapVizHeapArray extends HeapVizHeapItem<ProcessedHeapArray> {
 
