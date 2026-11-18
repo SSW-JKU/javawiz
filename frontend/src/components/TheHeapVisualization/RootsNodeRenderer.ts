@@ -5,11 +5,15 @@ import {
   FONT_FACE_TABLES,
   MAIN_HEADER_BG_COLOR,
   MAIN_HEADER_FONT_COLOR,
+  MAIN_HEADER_HEIGHT,
   TABLE_FORMAT
 } from './constants'
 import type { HeapVizTraceState } from './Types/HeapVizTraceState'
 
 type RootsTraceState = Pick<HeapVizTraceState, 'loadedClassesAfterExecution' | 'stackAfterExecution'>
+
+/** Port of the Stack header cell. The Memory View ties the Heap box to it, so both bars line up. */
+export const STACK_HEADER_PORT = 'stack_header'
 
 /** Renders the complete shared five-column Statics/Stack table. */
 export function renderRootsNode (traceState: RootsTraceState): string {
@@ -22,7 +26,7 @@ export function renderRootsNode (traceState: RootsTraceState): string {
              <font face="${FONT_FACE_TABLES}" point-size="${CONTENT_FONT_SIZE}">
                <table ${TABLE_FORMAT} id="rootsTable">
                  <tr>
-                   <td colspan="5" bgcolor="${MAIN_HEADER_BG_COLOR}" id="staticsHeader">
+                   <td colspan="5" bgcolor="${MAIN_HEADER_BG_COLOR}" height="${MAIN_HEADER_HEIGHT}" id="staticsHeader">
                      <font face="${FONT_FACE_CLUSTER_TITLE}" point-size="${CLUSTER_TITLE_FONT_SIZE}" color="${MAIN_HEADER_FONT_COLOR}">
                        <b>Statics</b>
                      </font>
@@ -35,7 +39,7 @@ export function renderRootsNode (traceState: RootsTraceState): string {
                     <td colspan="5" border="0" height="15"></td>
                     </tr>
                   <tr>
-                   <td colspan="5" bgcolor="${MAIN_HEADER_BG_COLOR}" id="stackHeader">
+                   <td colspan="5" bgcolor="${MAIN_HEADER_BG_COLOR}" height="${MAIN_HEADER_HEIGHT}" id="stackHeader" port="${STACK_HEADER_PORT}">
                      <font face="${FONT_FACE_CLUSTER_TITLE}" point-size="${CLUSTER_TITLE_FONT_SIZE}" color="${MAIN_HEADER_FONT_COLOR}">
                       <b>Stack</b>
                      </font>

@@ -1,4 +1,4 @@
-import { UNCHANGED_VAR_TAG, SUB_HEADER_BG_COLOR, UNCHANGED_VAR_COLOR } from '../constants';
+import { CHANGED_VAR_COLOR, CHANGED_VAR_TAG, UNCHANGED_VAR_TAG, SUB_HEADER_BG_COLOR, UNCHANGED_VAR_COLOR } from '../constants';
 import { useHeapVizMetaStore } from '@/store/HeapVizMetaStore';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { OBJECT_HEADER_BYTES } from '../MemorySize'
@@ -17,15 +17,18 @@ export abstract class HeapVizRenderableElement<T> {
     return OBJECT_HEADER_BYTES
   }
 
-  public isHighlighted: boolean = false;
+  /** True if the value changed in the last step. The element's text is then drawn red and bold. */
+  public changed: boolean = false;
   private _isVisible: boolean = true;
   protected heapVizMetaStore = useHeapVizMetaStore()
 
   public get isVisible (): boolean { return this._isVisible; }
   public set isVisible (value: boolean) { this._isVisible = value; }
   public get kind (): string { return this.constructor.name; }
-  public get highlightColor (): string { return UNCHANGED_VAR_COLOR.toLowerCase(); } // TODO
-  public get tag (): string { return UNCHANGED_VAR_TAG; }
+  /** The text color of this element: red if it changed in the last step, black otherwise. */
+  public get textColor (): string { return this.changed ? CHANGED_VAR_COLOR : UNCHANGED_VAR_COLOR; }
+  /** The DOT tag around this element's text: `b` (bold) if it changed in the last step, a neutral `font` otherwise. */
+  public get textTag (): string { return this.changed ? CHANGED_VAR_TAG : UNCHANGED_VAR_TAG; }
   public get tooltip (): string { return this.constructor.name; }
   public get bgColor (): string { return SUB_HEADER_BG_COLOR.toLowerCase(); }
   public renderDetails (): string {

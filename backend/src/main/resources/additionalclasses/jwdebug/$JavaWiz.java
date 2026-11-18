@@ -22,7 +22,7 @@ public class $JavaWiz {
     /*
      * Stream executions
      *
-     * StreamViz draws each run of a stream pipeline as one execution. activeStreamFrames holds the executions that are
+     * The Stream View draws each run of a stream pipeline as one execution. activeStreamFrames holds the executions that are
      * running right now. The top one is active, and the debugger records every traced event in it.
      *
      * Most streams run where they are written: their terminal operation (sum, count, toList, ...) consumes them before
@@ -69,7 +69,7 @@ public class $JavaWiz {
 
     /**
      * Traces the elements of one stream source. Each evaluation of an instrumented source expression creates its own
-     * tracer, so StreamViz can tell the next element of a running stream from the first element of a new stream that a
+     * tracer, so the Stream View can tell the next element of a running stream from the first element of a new stream that a
      * callback created, for example a stream inside a sorted comparator. It implements all four consumer types so that
      * one {@code .peek(...)} fits Stream, IntStream, LongStream, and DoubleStream.
      */
@@ -540,7 +540,7 @@ public class $JavaWiz {
     }
 
     /**
-     * Wraps a collector so that StreamViz sees the accumulator state after every element.
+     * Wraps a collector so that the Stream View sees the accumulator state after every element.
      * Each call is traced, even when the state did not change (for example a rejected element in
      * Collectors.filtering), so every element that reached collect is linked to the collect marble.
      */

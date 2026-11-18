@@ -1,8 +1,9 @@
 name: Backend Tests
 
 on:
-  # Test every pushed commit and tag, every published release, and allow manual runs.
+  # Test every pushed commit and tag, pull requests, published releases, and allow manual runs.
   push:
+  pull_request:
   release:
     types: [published]
   workflow_dispatch:
@@ -12,11 +13,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'release' }}
 
-# Reading the repository is enough for the build. Writing checks lets the workflow show
-# test results and failures directly on GitHub.
+# Reading the repository is enough. Test results are shown as annotations and in the job summary,
+# which needs no write access, so pull requests from forks work the same way.
 permissions:
   contents: read
-  checks: write
 
 jobs:
   backend-tests:
@@ -72,13 +72,13 @@ jobs:
           retention-days: 90
           compression-level: 9
 
-      # Turn the JUnit XML into a readable GitHub summary with annotations for failed tests.
+      # Turn the JUnit XML into a readable summary with annotations for failed tests.
       - name: Publish test results
         if: ${{ !cancelled() }}
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: backend/build/test-results/**/TEST-*.xml
-          check_name: Backend tests (${{ matrix.os }})
+          annotate_only: true
           detailed_summary: true
           fail_on_parse_error: true
           require_tests: true

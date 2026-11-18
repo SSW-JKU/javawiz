@@ -1,17 +1,17 @@
-import { levelCoordinates } from './state'
-import { ArrayIndex, ArrayNode, ArrayPointer, TempVariable } from './types'
+import { rowYCoordinates } from './state'
+import { IndexLabel, ArrayBox, VariableToArrayPointer, TemporaryVariableBox } from './types'
 import { getArrayCoordinates, getArrayLength } from './array-utils'
 import { getPointerCoordinates } from './pointer-utils'
 import { getIndexCoordinates } from './index-utils'
 import { LAYOUT } from './constants'
-import { HeapTreeNode } from '../heapBFS'
+import { DataStructureGraphNode } from '../dataStructureGraph'
 import { HeapArray } from '@/dto/TraceState'
 
-import { getNodeString } from '../heap-tree-node-utils'
+import { getNodeString } from '../data-structure-graph-node-utils'
 
-// get level's Y coordinate
-export function getLevelYCoordinate (index: number) {
-  return levelCoordinates.value[index]
+// returns the y coordinate of a row
+export function getRowYCoordinate (row: number) {
+  return rowYCoordinates.value[row]
 }
 
 // calculates displayed text width
@@ -25,59 +25,61 @@ export function getTextWidth (text: string, type: 'index' | 'value') {
 }
 
 // adds the cell's width of the parent and a property to check if a string has changed
-export function addCellWidthAndStringChanged (parent: ArrayNode) {
-  return (parent.children as HeapTreeNode[]).map((child, i) => {
-    const toReturn = { ...child, cellWidth: parent.cellWidth, stringChanged: false }
-    if (child.element?.kind === 'HeapString') {
-      toReturn.stringChanged = (parent.element as HeapArray).elements[i].changed
+export function addCellWidthAndStringChanged (arrayBox: ArrayBox) {
+  return (arrayBox.childDataStructureGraphNodes as DataStructureGraphNode[]).map((child, i) => {
+    const toReturn = { ...child, cellWidth: arrayBox.cellWidth, stringChanged: false }
+    if (child.traceElement?.kind === 'HeapString') {
+      toReturn.stringChanged = (arrayBox.traceElement as HeapArray).elements[i].changed
     }
     return toReturn
   })
 }
 
-// returns coordinates and cell width of array node or temp variable
-export function getCoordinatesAndWidth (arrayOrVar: ArrayNode | TempVariable, arrayCopy: boolean, index: number | undefined) {
-  const coordinates = arrayOrVar.kind === 'TempVariable' ? arrayOrVar.coordinates : getArrayCoordinates(arrayOrVar)
-  if (!arrayCopy && index && arrayOrVar.kind !== 'TempVariable') {
-    coordinates[0] += index * arrayOrVar.cellWidth
+// returns the coordinates and cell width of an array box or temporary variable box
+export function getCoordinatesAndWidth (arrayBoxOrTemporaryVariableBox: ArrayBox | TemporaryVariableBox, isWholeArrayCopy: boolean, index: number | undefined) {
+  const coordinates = arrayBoxOrTemporaryVariableBox.kind === 'TemporaryVariableBox'
+    ? arrayBoxOrTemporaryVariableBox.coordinates
+    : getArrayCoordinates(arrayBoxOrTemporaryVariableBox)
+  if (!isWholeArrayCopy && index && arrayBoxOrTemporaryVariableBox.kind !== 'TemporaryVariableBox') {
+    coordinates[0] += index * arrayBoxOrTemporaryVariableBox.cellWidth
   }
-  let width = arrayOrVar.cellWidth
-  if (arrayCopy && arrayOrVar.kind !== 'TempVariable') {
-    width *= getArrayLength(arrayOrVar)
+  let width = arrayBoxOrTemporaryVariableBox.cellWidth
+  if (isWholeArrayCopy && arrayBoxOrTemporaryVariableBox.kind !== 'TemporaryVariableBox') {
+    width *= getArrayLength(arrayBoxOrTemporaryVariableBox)
   }
   return { coordinates, width }
 }
 
 // gets the coordinates of a change
-export function getCoordinatesOfChange (pointers: ArrayPointer[], indexes: ArrayIndex[]) {
+export function getCoordinatesOfChange (variableToArrayPointers: VariableToArrayPointer[], indexLabels: IndexLabel[]) {
   let coordinates: [number, number] | undefined
 
-  const changedPointer = pointers.find(pointer => pointer.changed)
+  const changedPointer = variableToArrayPointers.find(pointer => pointer.changed)
   if (changedPointer) {
-    if (changedPointer.array) {
-      coordinates = getArrayCoordinates(changedPointer.array)
+    if (changedPointer.targetArrayBox) {
+      coordinates = getArrayCoordinates(changedPointer.targetArrayBox)
     } else {
       coordinates = getPointerCoordinates(changedPointer)
     }
   } else {
-    const changedIndex = indexes.find(index => index.changed)
-    if (changedIndex) {
-      coordinates = getIndexCoordinates(changedIndex)
+    const changedIndexLabel = indexLabels.find(index => index.changed)
+    if (changedIndexLabel) {
+      coordinates = getIndexCoordinates(changedIndexLabel)
     }
   }
 
   return coordinates
 }
 
-// returns the cell width of a heap tree node
-export function getCellWidth (node: HeapTreeNode, minCellWidth: number) {
+// returns the cell width of a data-structure graph node
+export function getCellWidth (dataStructureGraphNode: DataStructureGraphNode, minCellWidth: number) {
   return Math.min(minCellWidth * LAYOUT.arrays.cells.widthMultiplier.max, Math.max(minCellWidth,
     // differentiate between array/string nodes and nodes with primitive vars
-    node.children.length > 0
+    dataStructureGraphNode.childDataStructureGraphNodes.length > 0
       ? Math.max(
-        ...(node.children
+        ...(dataStructureGraphNode.childDataStructureGraphNodes
           .map(child => getTextWidth(getNodeString(child), 'value')))
       )
-      : getTextWidth(getNodeString(node), 'value')
+      : getTextWidth(getNodeString(dataStructureGraphNode), 'value')
   ))
 }

@@ -1,35 +1,35 @@
-import type { HeapTreeNode } from './heapBFS'
+import type { DataStructureGraphNode } from './dataStructureGraph'
 import type { HeapObject, Var } from '../../dto/TraceState'
 
 /**
  * Returns heap objects whose exact runtime type is selected, ordered by object ID.
- * @param heapNodes nodes to filter
+ * @param heapContentDataStructureGraphNodes data-structure graph nodes to filter
  * @param selectedTypes exact runtime types to include
  */
-export function getNodesOfTypes (heapNodes: HeapTreeNode[], selectedTypes: ReadonlySet<string>) {
-  return heapNodes.filter(heapNode => heapNode.element?.kind === 'HeapObject' && selectedTypes.has(heapNode.element.type)).sort((a, b) =>
-    (a.element as HeapObject).id - (b.element as HeapObject).id)
+export function getNodesOfTypes (heapContentDataStructureGraphNodes: DataStructureGraphNode[], selectedTypes: ReadonlySet<string>) {
+  return heapContentDataStructureGraphNodes.filter(heapNode => heapNode.traceElement?.kind === 'HeapObject' && selectedTypes.has(heapNode.traceElement.type)).sort((a, b) =>
+    (a.traceElement as HeapObject).id - (b.traceElement as HeapObject).id)
 }
 
 /**
  * Returns root variables that point to selected runtime node types, plus selected null variables.
- * @param heapTree heapNodes to filter
+ * @param rootDataStructureGraphNode root of the data-structure graph, whose children are the root variables
  * @param selectedTypes exact node types to include
  */
-export function getVariablePointers (heapTree: HeapTreeNode, selectedTypes: ReadonlySet<string>) {
-  return heapTree
-    .children
+export function getVariablePointers (rootDataStructureGraphNode: DataStructureGraphNode, selectedTypes: ReadonlySet<string>) {
+  return rootDataStructureGraphNode
+    .childDataStructureGraphNodes
     .filter(child => {
-      if (child.element?.kind !== 'Var') {
+      if (child.traceElement?.kind !== 'Var') {
         return false
       }
-      const variable = child.element as Var
+      const variable = child.traceElement as Var
       if (variable.value.kind === 'NullVal') {
         return selectedTypes.has(variable.type)
       }
       return variable.value.kind === 'ReferenceVal' &&
-        child.children[0]?.element?.kind === 'HeapObject' &&
-        selectedTypes.has(child.children[0].element.type)
+        child.childDataStructureGraphNodes[0]?.traceElement?.kind === 'HeapObject' &&
+        selectedTypes.has(child.childDataStructureGraphNodes[0].traceElement.type)
     })
 }
 
@@ -38,25 +38,25 @@ export interface MissingFieldsByClass {
   fieldNames: string[]
 }
 
-/** Finds required fields missing from any participating heap-object class. */
+/** Finds required fields missing from the classes of the given list or tree node objects. */
 export function findMissingFieldsByClass (
-  heapNodes: readonly HeapTreeNode[],
+  nodeObjectDataStructureGraphNodes: readonly DataStructureGraphNode[],
   requiredFieldNames: readonly string[]
 ): MissingFieldsByClass[] {
   const missingByClass = new Map<string, Set<string>>()
 
-  heapNodes.forEach(heapNode => {
-    if (heapNode.element?.kind !== 'HeapObject') {
+  nodeObjectDataStructureGraphNodes.forEach(heapNode => {
+    if (heapNode.traceElement?.kind !== 'HeapObject') {
       return
     }
-    const availableFields = new Set(heapNode.element.fields.map(field => field.name))
+    const availableFields = new Set(heapNode.traceElement.fields.map(field => field.name))
     const missingFields = requiredFieldNames.filter(fieldName => !availableFields.has(fieldName))
     if (missingFields.length === 0) {
       return
     }
-    const classMissingFields = missingByClass.get(heapNode.element.type) ?? new Set<string>()
+    const classMissingFields = missingByClass.get(heapNode.traceElement.type) ?? new Set<string>()
     missingFields.forEach(fieldName => classMissingFields.add(fieldName))
-    missingByClass.set(heapNode.element.type, classMissingFields)
+    missingByClass.set(heapNode.traceElement.type, classMissingFields)
   })
 
   return [...missingByClass].map(([className, fieldNames]) => ({

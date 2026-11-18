@@ -26,9 +26,9 @@
       Tools
     </p>
     The selection buttons in the panels reveal JavaWiz's ten visualization views:
-    Flow Chart, Memory, Tabular View, Arrays, Linked Lists, Binary Trees, Sequence Diagrams, Input,
-    Streams, and History View.<br>
-    The History View lists calls and assignments across the complete execution trace. It can filter or search
+    Flowchart View, Memory View, Tabular View, Array View, List View, Tree View, Sequence Diagram View,
+    Input View, Stream View, and Event History View.<br>
+    The Event History View lists calls and assignments across the complete execution trace. It can filter or search
     those entries and jump directly to matching program states.<br>
     <!-- TODO Add screenshot here -->
     To close a tool, press ❌.<br>

@@ -31,14 +31,19 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.net.ServerSocket
+import java.net.Socket
+import java.util.concurrent.TimeUnit
 import javax.swing.JTextPane
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
  * Checks the messages the JavaWiz frontend sends to the plugin and their effects on editors and the
- * I/O tool window. Messages are passed straight to [Communication.processFrontendMessage], so the
- * test covers the protocol handling and the real project service without starting the WebSocket server.
+ * I/O tool window. Messages are passed straight to [Communication.processFrontendMessage], so most
+ * tests cover the protocol handling and the real project service without starting the WebSocket
+ * server. [testWebSocketServerStartsAndStops] starts the server once to check that it runs at all.
  */
 internal class CommunicationTest :
   LightJavaCodeInsightFixtureTestCase5(LightJavaCodeInsightFixtureTestCase.JAVA_25) {
@@ -73,6 +78,31 @@ internal class CommunicationTest :
   @AfterEach
   fun clearLaunchFile() {
     service.launchFile = null
+  }
+
+  /**
+   * Starts the real WebSocket server on a free port, connects to it, and stops it again. The test
+   * JVM uses the IDE's own kotlinx-coroutines, as the installed plugin does, so this fails if the
+   * bundled Ktor version cannot run on them. For example, Ktor 2 calls coroutines internals that
+   * newer IDEs no longer have, and creating the server then throws NoSuchMethodError.
+   */
+  @Test
+  fun testWebSocketServerStartsAndStops() {
+    val communication = Communication(fixture.project)
+    // Port 0 lets the operating system choose a free port; closing the socket releases it again.
+    val port = ServerSocket(0).use { it.localPort }
+
+    assertTrue(communication.start(port))
+    assertTrue(communication.readyFuture.get(10, TimeUnit.SECONDS))
+    Socket("localhost", port).close()
+
+    communication.stop()
+    // stop() shuts the server down in a background coroutine, so wait for it to finish.
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+    while (communication.isRunning && System.nanoTime() < deadline) {
+      Thread.sleep(50)
+    }
+    assertFalse(communication.isRunning)
   }
 
   @Test

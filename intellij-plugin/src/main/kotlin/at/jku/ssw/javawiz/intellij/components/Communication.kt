@@ -21,8 +21,8 @@ import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import java.time.Duration
 import java.util.concurrent.CompletableFuture
+import kotlin.time.Duration.Companion.seconds
 
 // this must not be removed: import kotlinx.serialization.encodeToString
 import kotlinx.serialization.encodeToString
@@ -32,7 +32,7 @@ class Communication(project: Project) : Component(project) {
   override var isRunning: Boolean = false
   override var readyFuture: CompletableFuture<Boolean> = CompletableFuture()
 
-  private lateinit var communicationServer: ApplicationEngine
+  private lateinit var communicationServer: EmbeddedServer<*, *>
 
   // Only the most-recent frontend connection is kept. Replacing the list with a
   // single reference eliminates stale-session writes and the "first vs. all"
@@ -94,10 +94,10 @@ class Communication(project: Project) : Component(project) {
   }
 
   private fun initializeWebSocketServer(communicationPort: Int) {
-    communicationServer = embeddedServer(Netty, port = communicationPort, module = fun Application.() {
+    communicationServer = embeddedServer(Netty, port = communicationPort) {
       install(WebSockets.Plugin) {
-        pingPeriod = Duration.ofSeconds(15)
-        timeout = Duration.ofSeconds(15)
+        pingPeriod = 15.seconds
+        timeout = 15.seconds
         maxFrameSize = Long.MAX_VALUE
         masking = false
       }
@@ -168,14 +168,14 @@ class Communication(project: Project) : Component(project) {
           }
         }
       }
-    })
+    }
 
-    communicationServer.environment.monitor.subscribe(ApplicationStopped) {
+    communicationServer.monitor.subscribe(ApplicationStopped) {
       isRunning = false
       project.service<LoggerProjectService>().log(LogSource.COMMUNICATION, "Communication server stopped.")
     }
 
-    communicationServer.environment.monitor.subscribe(ApplicationStarted) {
+    communicationServer.monitor.subscribe(ApplicationStarted) {
       isRunning = true
       readyFuture.complete(true)
       project.service<LoggerProjectService>()

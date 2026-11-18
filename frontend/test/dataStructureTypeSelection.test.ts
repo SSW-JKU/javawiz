@@ -10,10 +10,10 @@ import {
 /** Builds the minimal heap-object tree node needed by the preprocessing utility tests. */
 function heapObjectNode (id: number, type: string, fieldNames: string[] = []) {
   return {
-    children: [],
-    depth: 1,
-    name: type,
-    element: {
+    childDataStructureGraphNodes: [],
+    bfsDepth: 1,
+    label: type,
+    traceElement: {
       kind: 'HeapObject' as const,
       id,
       type,
@@ -33,10 +33,10 @@ function heapObjectNode (id: number, type: string, fieldNames: string[] = []) {
 /** Builds a root variable with an optional referenced heap-object child. */
 function variableNode (name: string, type: string, value: { kind: 'NullVal' } | { kind: 'ReferenceVal', reference: number }, child?: ReturnType<typeof heapObjectNode>) {
   return {
-    children: child ? [child] : [],
-    depth: 1,
-    name,
-    element: {
+    childDataStructureGraphNodes: child ? [child] : [],
+    bfsDepth: 1,
+    label: name,
+    traceElement: {
       kind: 'Var' as const,
       name,
       type,
@@ -52,7 +52,7 @@ test('filters multiple heap types and retains deterministic object ordering', ()
   const nodes = [heapObjectNode(8, 'NodeB'), heapObjectNode(2, 'Other'), heapObjectNode(5, 'NodeA')]
 
   assert.deepEqual(
-    getNodesOfTypes(nodes, new Set(['NodeA', 'NodeB'])).map(node => node.element && 'id' in node.element ? node.element.id : -1),
+    getNodesOfTypes(nodes, new Set(['NodeA', 'NodeB'])).map(node => node.traceElement && 'id' in node.traceElement ? node.traceElement.id : -1),
     [5, 8]
   )
   assert.deepEqual(getNodesOfTypes(nodes, new Set()), [])
@@ -62,18 +62,18 @@ test('classifies non-null pointers by runtime type and null pointers by declared
   const selectedTarget = heapObjectNode(1, 'NodeB')
   const unselectedTarget = heapObjectNode(2, 'Other')
   const root = {
-    children: [
+    childDataStructureGraphNodes: [
       variableNode('selectedReference', 'BaseNode', { kind: 'ReferenceVal', reference: 1 }, selectedTarget),
       variableNode('unselectedReference', 'NodeA', { kind: 'ReferenceVal', reference: 2 }, unselectedTarget),
       variableNode('selectedNull', 'NodeA', { kind: 'NullVal' }),
       variableNode('unselectedNull', 'Other', { kind: 'NullVal' })
     ],
-    depth: 0,
-    name: 'root'
+    bfsDepth: 0,
+    label: 'root'
   }
 
   assert.deepEqual(
-    getVariablePointers(root, new Set(['NodeA', 'NodeB'])).map(pointer => pointer.name),
+    getVariablePointers(root, new Set(['NodeA', 'NodeB'])).map(pointer => pointer.label),
     ['selectedReference', 'selectedNull']
   )
 })

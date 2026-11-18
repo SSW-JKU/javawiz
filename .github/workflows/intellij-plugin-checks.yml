@@ -1,0 +1,130 @@
+name: IntelliJ Plugin Checks
+
+on:
+  # Check every pushed commit and tag, pull requests, published releases, and allow manual runs.
+  push:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# When new commits arrive quickly, only the newest run matters. Release runs are always completed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+# Reading the repository is enough. Test results are shown as annotations and in the job summary,
+# which needs no write access, so pull requests from forks work the same way.
+permissions:
+  contents: read
+
+jobs:
+  plugin-tests:
+    name: Plugin tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          # The build does not need Git credentials after checkout.
+          persist-credentials: false
+
+      # JDK 25 runs Gradle. Gradle downloads the Java 21 toolchain that compiles the plugin.
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      # `test` uses the minimum supported IntelliJ IDEA, `testLatestStableIde` the newest stable one.
+      # printProductsReleases lists the stable versions, so the log shows which one was tested.
+      - name: Run plugin tests on the minimum and the newest stable IntelliJ IDEA
+        shell: bash
+        run: >-
+          bash ./gradlew :intellij-plugin:printProductsReleases
+          :intellij-plugin:test :intellij-plugin:testLatestStableIde
+          --continue --no-daemon --stacktrace
+
+      # Store both formats: XML for tools and the full Gradle HTML report for people.
+      - name: Upload test reports
+        id: test-report-artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: intellij-plugin-test-reports-${{ matrix.os }}
+          path: |
+            intellij-plugin/build/test-results/
+            intellij-plugin/build/reports/tests/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9
+
+      # Turn the JUnit XML into a readable summary with annotations for failed tests.
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: intellij-plugin/build/test-results/**/TEST-*.xml
+          annotate_only: true
+          detailed_summary: true
+          fail_on_parse_error: true
+          require_tests: true
+          job_summary_text: >-
+            [Download the complete Gradle HTML and JUnit XML reports](${{ steps.test-report-artifact.outputs.artifact-url }}).
+
+  plugin-verification:
+    name: Plugin verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      # verifyPluginStructure checks plugin.xml and the plugin ZIP. verifyPlugin checks the plugin's
+      # API use against the minimum and the newest stable IntelliJ IDEA. Only compatibility problems
+      # and internal or override-only API use fail the job; deprecated API use is only reported.
+      # --refresh-dependencies makes Gradle look for a new Plugin Verifier even with a restored cache.
+      - name: Verify plugin structure and compatibility
+        shell: bash
+        run: >-
+          bash ./gradlew :intellij-plugin:printProductsReleases
+          :intellij-plugin:verifyPluginStructure :intellij-plugin:verifyPlugin
+          --continue --no-daemon --stacktrace --refresh-dependencies
+
+      - name: Upload verification reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: intellij-plugin-verifier-reports
+          path: intellij-plugin/build/reports/pluginVerifier/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9

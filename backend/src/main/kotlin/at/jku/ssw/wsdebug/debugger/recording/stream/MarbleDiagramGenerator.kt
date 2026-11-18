@@ -150,7 +150,7 @@ class MarbleDiagramGenerator {
      * that the collector just processed. Every value that is new in this state was produced from that element, also
      * when a lambda computed it. Example: after `map(n -> n * 2)`, `toMap(n -> n, n -> n * n)` receives the element
      * with value 4. The state changes from `{2=4}` to `{2=4, 4=16}`, and 16 is new, so it comes from that element.
-     * StreamViz links 16 to the element's marble in the lane before collect (`map`) and draws it in that color.
+     * The Stream View links 16 to the element's marble in the lane before collect (`map`) and draws it in that color.
      *
      * Returns `null` for the value returned by collect after pending running marbles: those marbles show no values,
      * so it is unknown which element added which value (see `StreamOperationTracer.reconcileCollectResult`).
@@ -262,7 +262,7 @@ data class MarbleDiagramMarble(
 /**
  * One value shown inside a list or map marble: its [value] of [type], and the [MarbleDiagramMarble.marbleKey] of the
  * element marble it came from, if known. For `mapping(n -> n + 1, toList())`, the item `int "3"` comes from the element marble with value 2;
- * StreamViz draws it as the value 3 in that marble's color. An item that equals its element is drawn as that element.
+ * The Stream View draws it as the value 3 in that marble's color. An item that equals its element is drawn as that element.
  */
 data class MarbleDiagramItem(
     val marbleKey: String?,

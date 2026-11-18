@@ -47,7 +47,7 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
 
   const fieldIdentifier = heapObjectFieldIdentifier({ id: 1 }, field('child.value', 2))
   const cellIdentifier = svgCellIdentifier(fieldIdentifier, SVG_CELL_SUFFIXES.value)
-  assert.equal(fieldIdentifier, 'o_1:child_DOT_CHARACTER_REPLACEMENT_value')
+  assert.equal(fieldIdentifier, 'obj_1-child_DOT_CHARACTER_REPLACEMENT_value')
   assert.equal(identifierFromSvgCellIdentifier(cellIdentifier), fieldIdentifier)
 
   assert.equal(shouldShowObjectFields(ordinaryClass, DEFAULT_DATA_STRUCTURE_VISIBILITY_SETTINGS), true)
@@ -79,7 +79,7 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
   const assertHeapNode = (name: string, node: string, expectedIdentifier: string, expectedClass: string): void => {
     assert.match(node, new RegExp(`^${expectedIdentifier}\\[label=<<font`), name)
     assert.match(node, /port="heap_object_header"/, name)
-    assert.match(node, /id=&quot;[^&]+:header&quot;/, name)
+    assert.match(node, /id=&quot;[^&]+--header&quot;/, name)
     assert.match(node, new RegExp(`class="${expectedClass}"`), name)
     const graphviz = spawnSync('dot', ['-Tsvg'], {
       input: `digraph { node [shape="plaintext"] ${node} }`,
@@ -88,11 +88,11 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
     assert.equal(graphviz.status, 0, `${name}: ${graphviz.stderr}`)
     assert.match(graphviz.stdout, /<svg/, name)
   }
-  assertHeapNode('compact object node', compactObject.renderNode(), 'o_1', 'heapvizheapobject')
-  assertHeapNode('memory object node', memoryObject.renderNode(), 'o_1', 'heapvizheapobject')
+  assertHeapNode('compact object node', compactObject.renderNode(), 'obj_1', 'heapvizheapobject')
+  assertHeapNode('memory object node', memoryObject.renderNode(), 'obj_1', 'heapvizheapobject')
   assert.doesNotMatch(compactObject.render(), /href=/)
-  assert.match(compactObject.render(), /id=&quot;o_1:child_DOT_CHARACTER_REPLACEMENT_value:value&quot;/)
-  assert.match(compactObject.edges(), /o_2:heap_object_header:w/)
+  assert.match(compactObject.render(), /id=&quot;obj_1-child_DOT_CHARACTER_REPLACEMENT_value--value&quot;/)
+  assert.match(compactObject.edges(), /obj_2:heap_object_header:w/)
   assert.doesNotMatch(compactObject.render(), />\d+<\/b><\/td>/)
   assert.match(memoryObject.render(), />16<\/b>/)
   assert.match(memoryObject.render(), /<b>24<\/b>&nbsp;\(\+0\)/)
@@ -114,11 +114,11 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
     }]
   }
   const array = new HeapVizHeapArray(arrayModel, compactContext)
-  assert.match(array.render(), /o_3:i_0:index/)
-  assert.match(array.edges(), /o_3:i_0:e -> o_2:heap_object_header:w/)
+  assert.match(array.render(), /obj_3-0--index/)
+  assert.match(array.edges(), /obj_3:0:e -> obj_2:heap_object_header:w/)
   const memoryArray = new HeapVizHeapArray(arrayModel, memoryContext)
-  assertHeapNode('compact array node', array.renderNode(), 'o_3', 'heapvizheaparray')
-  assertHeapNode('memory array node', memoryArray.renderNode(), 'o_3', 'heapvizheaparray')
+  assertHeapNode('compact array node', array.renderNode(), 'obj_3', 'heapvizheaparray')
+  assertHeapNode('memory array node', memoryArray.renderNode(), 'obj_3', 'heapvizheaparray')
 
   const primitiveArray = new HeapVizHeapArray({
     kind: 'HeapArray',
@@ -174,7 +174,7 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
   sanitizer.sanitizeTraceState(traceState)
   assert.equal(stringModel.string, 'Tony')
   const heapString = new HeapVizHeapString(stringModel, memoryContext)
-  assertHeapNode('memory string node', heapString.renderNode(), 'o_5', 'heapvizheapstring')
+  assertHeapNode('memory string node', heapString.renderNode(), 'obj_5', 'heapvizheapstring')
   assert.equal(heapString.getTotalBytes(), STRING_OBJECT_BYTES + arraySize(4, 1))
   assert.match(heapString.render(), /align="right" bgcolor="#ffffff">32<\/td>/)
   const stringBackingArrayModel: ProcessedHeapArray = {

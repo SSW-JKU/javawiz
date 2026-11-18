@@ -7,6 +7,18 @@ export default ts.config(
   ...ts.configs.recommended,
   { ignores: ['**/out', '**/img'] },
   {
+    // watch.cjs is a Node build script written as CommonJS, so it uses require(),
+    // process, and __dirname instead of ES module imports.
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { ...globals.node }
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off'
+    },
+  },
+  {
     files: ['**/*.ts'],
     languageOptions: {
       parser: ts.parser,

@@ -16,7 +16,7 @@ import { alignBytes, OBJECT_HEADER_BYTES } from '../MemorySize'
 import { HeapVizHeapItem } from './HeapVizHeapItem'
 import { HeapVizReferenceVal } from './HeapVizReferenceVal'
 import { HeapVizVar } from './HeapVizVar'
-import { heapItemIdentifier, heapObjectFieldIdentifier, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
+import { heapItemIdentifier, heapObjectFieldNodeAndPort, injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 export class HeapVizHeapObject extends HeapVizHeapItem<ProcessedHeapObject> {
   public fields: HeapVizVar[] // does not include static fields
@@ -35,7 +35,7 @@ export class HeapVizHeapObject extends HeapVizHeapItem<ProcessedHeapObject> {
 
   constructor (model: ProcessedHeapObject, renderContext: MemoryViewRenderContext) {
     super(model, renderContext)
-    this.fields = model.fields.map(f => new HeapVizVar(f, heapObjectFieldIdentifier(model, f), renderContext))
+    this.fields = model.fields.map(f => new HeapVizVar(f, heapObjectFieldNodeAndPort(model, f), renderContext))
     this.identifier = heapItemIdentifier(model)
   }
 

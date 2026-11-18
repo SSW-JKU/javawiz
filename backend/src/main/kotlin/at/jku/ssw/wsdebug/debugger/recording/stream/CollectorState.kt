@@ -44,7 +44,7 @@ data class CollectedValue(val type: String?, val value: Any)
 
 /**
  * The elements of an array or a collection, such as a `List` or `Set` stream element, as the [CollectedValue.value] of
- * that value. StreamViz draws one small box per element. Its text is like `Arrays.toString`, for example `[1, 2]`, and is
+ * that value. The Stream View draws one small box per element. Its text is like `Arrays.toString`, for example `[1, 2]`, and is
  * used wherever the value is shown as text.
  */
 data class CollectionElements(val elements: List<CollectedValue>) {

@@ -4,7 +4,7 @@ import { HeapVizElement } from './HeapVizElement';
 import { HeapVizVal } from './HeapVizVal';
 import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
-import { heapArrayElementIdentifier } from '@/identifiers/trace-identifiers'
+import { variableIdentifier, type GraphvizNodeAndPort, heapArrayElementNodeAndPort, heapItemIdentifier } from '@/identifiers/trace-identifiers'
 import { type EdgeStyle, referenceEdgeStyle, renderReferenceEdge } from '../ReferenceEdge'
 
 export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementVar> {
@@ -22,9 +22,13 @@ export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementV
     return this.identifierValue
   }
 
-  readonly value: HeapVizVal;
+  /** Where this element's cell sits in the DOT graph, e.g. `{ node: 'obj_1', port: '3' }`. */
+  readonly nodeAndPort: GraphvizNodeAndPort
 
-  changed: boolean;
+  /** The Graphviz port of this element's cell, e.g. `3`. Its reference edge starts at this port. */
+  public get port (): string { return this.nodeAndPort.port }
+
+  readonly value: HeapVizVal;
 
   constructor (model: HeapArrayElementVar, arrayId: number, renderContext: MemoryViewRenderContext) {
     super(model, renderContext);
@@ -32,9 +36,10 @@ export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementV
     this.arrayId = arrayId;
     this.index = model.index;
     this.changed = model.changed;
-    this.identifierValue = heapArrayElementIdentifier({ ...model, arrayId });
+    this.nodeAndPort = heapArrayElementNodeAndPort({ arrayId, index: model.index });
+    this.identifierValue = variableIdentifier(this.nodeAndPort);
 
-    this.value = HeapVizVal.fromVal(model.value, this.identifier, model.type, renderContext);
+    this.value = HeapVizVal.fromVal(model.value, this.identifier, model.type, renderContext, model.changed);
 
   }
 
@@ -47,7 +52,7 @@ export class HeapVizHeapArrayElementVar extends HeapVizElement<HeapArrayElementV
     if (!(this.value instanceof HeapVizReferenceVal))
       throw new Error('Not supported for ' + this.value.kind);
 
-    return renderReferenceEdge(this.identifier, `o_${this.value.reference}`, this.edgeStyle)
+    return renderReferenceEdge(this.nodeAndPort, this.identifier, heapItemIdentifier({ id: this.value.reference }), this.edgeStyle)
 
   }
 

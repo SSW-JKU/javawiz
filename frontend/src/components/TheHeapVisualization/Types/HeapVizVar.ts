@@ -5,7 +5,14 @@ import { HeapVizVal } from './HeapVizVal';
 import { shortTypeName } from '@/helpers/Common';
 import { HeapVizReferenceVal } from './HeapVizReferenceVal';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
-import { injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
+import {
+  variableIdentifier,
+  type GraphvizNodeAndPort,
+  heapItemIdentifier,
+  injectedTitleAttributes,
+  SVG_CELL_SUFFIXES,
+  svgCellIdentifier
+} from '@/identifiers/trace-identifiers'
 import type { HoverInfo } from '@/hover/types'
 import { type EdgeStyle, referenceEdgeStyle, renderReferenceEdge } from '../ReferenceEdge'
 
@@ -13,9 +20,9 @@ export class HeapVizVar extends HeapVizElement<IVar> {
 
   name: string;
   value: HeapVizVal;
-  changed: boolean;
   heapObjectId?: number;
-  public get port (): string { return this.identifier.split(':')[1]}
+  /** The Graphviz port of this variable's cell, e.g. `local_0_arr` or `next`. */
+  public get port (): string { return this.nodeAndPort.port }
   identifier: string;
 
   public get varType (): string { return (this.model as IVar).type; }
@@ -62,25 +69,33 @@ export class HeapVizVar extends HeapVizElement<IVar> {
   }
 
   /**
-   * @param stackFrameNr the memory view's frame number for a local variable (main is 0), so that a hover
+   * @param stackFrameNr the Memory View's frame number for a local variable (main is 0), so that a hover
    *   of a recursive method's local highlights only its own frame; unset for fields and statics
+   * @param nodeAndPort where the variable's cell sits in the DOT graph, from the matching `…NodeAndPort`
+   *   function; the identifier is derived from it, so the two always match
    */
-  constructor (model: IVar, identifier: string, renderContext: MemoryViewRenderContext, readonly stackFrameNr?: number) {
+  constructor (
+    model: IVar,
+    readonly nodeAndPort: GraphvizNodeAndPort,
+    renderContext: MemoryViewRenderContext,
+    readonly stackFrameNr?: number
+  ) {
     super(model, renderContext);
     this.name = model.name;
     this.changed = model.changed;
     this.heapObjectId = model.heapObjectId;
-    this.identifier = identifier
-    this.value = HeapVizVal.fromVal(model.value, identifier, model.type, renderContext);
+    this.identifier = variableIdentifier(nodeAndPort)
+    this.value = HeapVizVal.fromVal(model.value, this.identifier, model.type, renderContext, model.changed);
 
   }
 
-  public edges (): string {
+  /** Renders the reference edge of this variable; `dotEdgeConstraintAttribute` is passed on to `renderReferenceEdge`. */
+  public edges (dotEdgeConstraintAttribute = true): string {
 
     if (!(this.value instanceof HeapVizReferenceVal))
       throw new Error('Not supported for ' + this.value.kind);
 
-    return renderReferenceEdge(this.identifier, `o_${this.value.reference}`, this.edgeStyle)
+    return renderReferenceEdge(this.nodeAndPort, this.identifier, heapItemIdentifier({ id: this.value.reference }), this.edgeStyle, dotEdgeConstraintAttribute)
 
   }
 
@@ -102,7 +117,7 @@ export class HeapVizVar extends HeapVizElement<IVar> {
              <font color="${TYPE_FONT_COLOR}">
                <b>&nbsp;${shortTypeName(this.varType.replace('-','UNKNOWN'))}</b>
              </font>
-             <font color="${this.highlightColor}">${this.name}</font>
+             <font color="${this.textColor}"><${this.textTag}>${this.name}</${this.textTag}></font>
            </td>
 
            <td align="right" cellpadding="0" cellspacing="0" title="${pseudoTitle}" port="${this.port}" sides="LTB" bgcolor="${this.bgColor}">

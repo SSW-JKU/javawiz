@@ -17,8 +17,10 @@ export class HeapVizPrimitiveVal extends HeapVizElement<PrimitiveVal> {
 
   }
 
-  constructor (model: PrimitiveVal, identifier:string, type:string, renderContext: MemoryViewRenderContext) {
+  /** @param changed true if the variable that holds this value changed in the last step; the value is then drawn red */
+  constructor (model: PrimitiveVal, identifier:string, type:string, renderContext: MemoryViewRenderContext, changed: boolean = false) {
     super(model, renderContext);
+    this.changed = changed;
     this.identifierValue = identifier;
     this.value = model.vizValue;
     this.type = type
@@ -26,7 +28,7 @@ export class HeapVizPrimitiveVal extends HeapVizElement<PrimitiveVal> {
 
   public render (): string {
 
-    return `<font color="${this.highlightColor}" face="${FONT_FACE_VALUES}">&nbsp;${this.value}&nbsp;</font>`; // &nbsp; is needed as dot does not support empty font tags
+    return `<font color="${this.textColor}" face="${FONT_FACE_VALUES}">&nbsp;${this.value}&nbsp;</font>`; // &nbsp; is needed as dot does not support empty font tags
   }
 
   public getTotalBytes (): number {

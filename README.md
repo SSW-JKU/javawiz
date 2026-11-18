@@ -6,6 +6,10 @@
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Install%20JavaWiz-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz)
 [![GitHub release](https://img.shields.io/github/v/release/SSW-JKU/javawiz)](https://github.com/SSW-JKU/javawiz/releases)
 [![Backend CI](https://img.shields.io/badge/Backend%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/backend-tests.yml)
+[![IntelliJ Plugin CI](https://img.shields.io/badge/IntelliJ%20Plugin%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/intellij-plugin-checks.yml)
+[![Frontend CI](https://img.shields.io/badge/Frontend%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/frontend-checks.yml)
+[![Shared Code CI](https://img.shields.io/badge/Shared%20Code%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/shared-checks.yml)
+[![VS Code Extension CI](https://img.shields.io/badge/VS%20Code%20Extension%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/vsc-extension-checks.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE.txt)
 
 [🌐 Visit javawiz.net](https://javawiz.net/) · [📰 Read the news](https://javawiz.net/news.html) · [📋 View the changelog](https://javawiz.net/changelog.html)
@@ -25,49 +29,49 @@ Unlike a traditional debugger, JavaWiz records the execution trace. You can move
 - ⏪ **Time-travel debugging** — step backward, replay earlier states, and inspect an execution at your own pace.
 - 🧭 **Visual control flow** — follow the currently executing statement in automatically generated flowcharts.
 - 🧠 **Concrete memory models** — see stack frames, static variables, heap objects, references, and object relationships.
-- 📊 **Tabular view** — track variable values and conditions from one statement to the next.
+- 📊 **Tabular View** — track variable values and conditions from one statement to the next.
 - 🧩 **Array visualization** — follow index expressions, assignments, and values moving between variables and array cells.
-- 🔗 **Linked List visualization** — see nodes, references, traversals, insertions, and deletions as they happen.
-- 🌳 **Binary Tree visualization** — explore tree structure and watch traversal and update algorithms operate on it.
-- 🌊 **Java Stream visualization** — trace execution order, transformations, intermediate results, and element lineage in dynamic marble diagrams.
+- 🔗 **Linked-list visualization** — see nodes, references, traversals, insertions, and deletions as they happen.
+- 🌳 **Binary-tree visualization** — explore tree structure and watch traversal and update algorithms operate on it.
+- 🌊 **Java Stream View** — trace execution order, transformations, intermediate results, and element lineage in dynamic marble diagrams.
 - 🔁 **Sequence diagrams** — see how objects interact through method calls.
-- ⌨️ **Input visualization** — inspect consumed and remaining input when using JavaWiz's `In.java` class.
-- 🔎 **History View** — browse calls and assignments across the complete trace, filter or search them, and jump directly to a matching execution state.
+- ⌨️ **Input buffer visualization** — inspect consumed and remaining input when using JavaWiz's `In.java` class.
+- 🔎 **Event History View** — browse calls and assignments across the complete trace, filter or search them, and jump directly to a matching execution state.
 - 🎓 **Built for teaching and learning** — useful for individual exploration, exercises, and live classroom demonstrations.
 
 ## 🔍 Visualization Highlights
 
 | Flowchart View | Memory View |
 |:---:|:---:|
-| [![Flowchart view](docs/img/flowchart-view.png)](https://javawiz.net/#features-section) | [![Memory view](docs/img/memory-view.png)](https://javawiz.net/#features-section) |
+| [![Flowchart View](docs/img/flowchart-view.png)](https://javawiz.net/#features-section) | [![Memory View](docs/img/memory-view.png)](https://javawiz.net/#features-section) |
 | Follow control flow, active statements, values, and method expansion. | Understand stack, statics, heap objects, and references. |
 
-| Tabular View | Lists and Trees |
+| Tabular View | List View and Tree View |
 |:---:|:---:|
-| [![Tabular view](docs/img/tabular-view.png)](https://javawiz.net/#features-section) | [![List and tree view](docs/img/list-tree-view.png)](https://javawiz.net/#features-section) |
+| [![Tabular View](docs/img/tabular-view.png)](https://javawiz.net/#features-section) | [![List View and Tree View](docs/img/list-tree-view.png)](https://javawiz.net/#features-section) |
 | Review execution history, variable changes, and conditions. | Watch traversal, insertion, deletion, and pointer changes. |
 
 | Array View | Input View |
 |:---:|:---:|
-| [![Array view](docs/img/array-view.png)](https://javawiz.net/#features-section) | [![Input view](docs/img/input-view.png)](https://javawiz.net/#features-section) |
+| [![Array View](docs/img/array-view.png)](https://javawiz.net/#features-section) | [![Input View](docs/img/input-view.png)](https://javawiz.net/#features-section) |
 | See index expressions, assignments, and data movement. | See consumed input, remaining input, and operation results. |
 
-| Java Stream View |
+| Stream View |
 |:---:|
-| [![Java Stream view](docs/img/stream-viz.png)](https://javawiz.net/#features-section) |
+| [![Stream View](docs/img/stream-viz.png)](https://javawiz.net/#features-section) |
 | Follow execution order and element lineage through filtering, mapping, and terminal operations. |
 
 ## 🚀 Get JavaWiz
 
 ### Visual Studio Code
 
-Install [JavaWiz from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz), open a Java file, and use **Debug with JavaWiz** above a `main` method or from the editor context menu. JavaWiz requires **Visual Studio Code 1.87.0 or newer**.
+Install [JavaWiz from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz), open a Java file with a `main` method, and use **Debug with JavaWiz** above the `main` method or from the editor context menu. JavaWiz requires **Visual Studio Code 1.87.0 or newer**.
 
 ### IntelliJ IDEA
 
 Download the latest IntelliJ plugin ZIP from [GitHub Releases](https://github.com/SSW-JKU/javawiz/releases). In IntelliJ IDEA, open **Settings → Plugins → ⚙ → Install Plugin from Disk**, then select the downloaded ZIP. JavaWiz requires **IntelliJ IDEA 2026.2.1 or newer**.
 
-> JavaWiz currently requires **JDK 25 or newer**.
+> JavaWiz currently requires **JDK 25 or newer**. In Visual Studio Code, JavaWiz uses the JDK from the setting `java.jdt.ls.java.home` if it is set, and otherwise `java` and `javac` from `PATH`.
 
 ## 📚 Research
 
@@ -179,11 +183,41 @@ This automatically builds frontend and backend, packages them and runs the plugi
 
 # Run the IntelliJ plugin tests
 ./gradlew :intellij-plugin:test
+
+# Run the same tests against the newest stable IntelliJ IDEA
+./gradlew :intellij-plugin:testLatestStableIde
+
+# Check the plugin's structure and its compatibility with the oldest supported and the newest stable IntelliJ IDEA
+./gradlew :intellij-plugin:verifyPluginStructure :intellij-plugin:verifyPlugin
 ```
+
+The frontend, the shared code, and the VS Code extension are checked with npm. Run these commands from the repository root:
+
+```shell
+# Install the shared code's packages first; the frontend and the extension use them
+cd shared && npm ci && cd ..
+
+# Frontend: lint, type-check, build, and run all tests
+cd frontend && npm ci && npm run lint && npm run build && npm test && cd ..
+
+# Shared code: lint
+cd shared && npm run lint && cd ..
+
+# VS Code extension: lint, compile, and run its tests
+cd vsc-extension && npm ci && npm run lint && npm test && cd ..
+```
+
+`./gradlew check` also runs the frontend lint and all frontend tests.
 
 By default, Gradle prints only failed backend tests and suppresses test-process standard streams. Add `-PverboseTests` to a backend test command to print passed/skipped events and standard output/error, for example `./gradlew :backend:test -PverboseTests`.
 
-Backend tests also run automatically on Windows and Linux for pushed commits, tags, and published GitHub releases.
+Every part has its own GitHub Actions workflow. Each one runs on Windows and Linux for pushed commits, tags, pull requests, and published GitHub releases:
+
+- **Backend:** all tests on every supported JDK.
+- **Frontend:** lint, type check, production build, and all tests.
+- **Shared code:** lint.
+- **VS Code extension:** lint, compile, and tests.
+- **IntelliJ plugin:** tests against the oldest supported and the newest stable IntelliJ IDEA. The plugin's structure and compatibility are checked on Linux only.
 
 ## Icons
 

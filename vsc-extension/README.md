@@ -6,24 +6,25 @@ JavaWiz is developed and maintained by the [Institute for System Software](https
 
 ## Features
 JavaWiz provides ten visualization views:
-- Flow charts, visually representing the control flow of the program.
+- Flowcharts, visually representing the control flow of the program.
 - A memory visualization. It displays statics, the stack, and the heap, to help understand how program memory works.
-- A "tabular view" displaying the variable changes from line to line, which is useful for understanding simple algorithms.
+- A Tabular View displaying the variable changes from line to line, which is useful for understanding simple algorithms.
 - An array visualization showing index expressions, assignments, and the values in each array cell.
-- A Linked List visualization showing nodes, references, and changes during list algorithms.
-- A Binary Tree visualization showing tree structure and changes during tree algorithms.
-- A Java Stream API visualization using dynamic Marble Diagrams to show execution order, transformations, intermediate results, and element lineage through the pipeline.
+- A linked-list visualization showing nodes, references, and changes during list algorithms.
+- A binary-tree visualization showing tree structure and changes during tree algorithms.
+- A Java Stream View using dynamic marble diagrams to show execution order, transformations, intermediate results, and element lineage through the pipeline.
 - Sequence diagrams, which show how objects relate to each other by depicting the method calls between them.
 - Input buffer visualization
   - _Hint: To use this feature, you have to use JavaWiz's `In.java` class to read input. This class can easily be added to your project by right-clicking on the project folder in the explorer and selecting "Create In.java"._
-- A History View for browsing calls and assignments across the complete execution trace, filtering or searching them, and jumping to matching program states.
+- An Event History View for browsing calls and assignments across the complete execution trace, filtering or searching them, and jumping to matching program states.
 
 ## How to use
 The extension requires **Visual Studio Code 1.87.0 or newer** and at least **JDK 25** to run.
+If the VS Code setting `java.jdt.ls.java.home` is set, JavaWiz uses that JDK, just like the Java support from Red Hat. Otherwise, it uses the `java` and `javac` commands from `PATH`.
 
 ### Start
 
-After installing JavaWiz from the VSCode marketplace and opening a .java file, the tool can be started by either:
+After installing JavaWiz from the VSCode marketplace and opening a .java file with a main method, the tool can be started by either:
 - clicking <kbd>Debug with JavaWiz</kbd> above the main method, or
 - right click into the opened editor and selecting <kbd>Debug with JavaWiz</kbd> from the context menu, or
 - using the shortcut <kbd>CTRL + SHIFT + J</kbd>.
@@ -38,7 +39,7 @@ It is possible to step back and repeat parts of the program, i.e., there's no ne
 
 The current status (_live_ or _replay_) is displayed in the toolbar.
 
-The visualization tools (heap view, desk test, etc.) can be revealed using the selection buttons on the main view.
+The visualization tools (for example the Memory View or the Tabular View) can be revealed using the selection buttons on the main view.
 To close a tool, press ❌.
 Some tools are customizable. Change their settings by pressing ⚙.
 
@@ -53,7 +54,7 @@ Please note that the tool is targeted at beginners and is under active developme
 
 --------------------------------------
 <font size="2">Icon sources:
-- Desk test button: made by <a href="https://www.flaticon.com/authors/darius-dan" title="Darius Dan">Darius Dan</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+- Tabular View button: made by <a href="https://www.flaticon.com/authors/darius-dan" title="Darius Dan">Darius Dan</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
 - Editor button: made by <a href="https://www.flaticon.com/authors/becris" title="Becris">Becris</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
 - Stack button: made by <a href="https://www.flaticon.com/authors/hirschwolf" title="hirschwolf">hirschwolf</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
 - Heap button: made by <a href="https://www.flaticon.com/authors/alfredo-hernandez" title="Alfredo Hernandez">Alfredo Hernandez</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>

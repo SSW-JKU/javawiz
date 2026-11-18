@@ -1,13 +1,7 @@
-import { zoomIdentity, type ZoomTransform } from 'd3-zoom'
+/** Y coordinate of each depth of each tree row, kept in sync by TheTreeVisualization. */
+export let yCoordinatesByTreeRowAndDepth: number[][] = []
+export function setYCoordinatesByTreeRowAndDepth (coords: number[][]) { yCoordinatesByTreeRowAndDepth = coords }
 
-/** Current d3 zoom transform; updated on every zoom/pan event. */
-export let transform: ZoomTransform = zoomIdentity
-export function setTransform (t: ZoomTransform) { transform = t }
-
-/** Y offsets per tree level, kept in sync by TheTreeVisualization. */
-export let levelCoordinates: number[][] = []
-export function setLevelCoordinates (coords: number[][]) { levelCoordinates = coords }
-
-/** Width of each tree level, kept in sync by TheTreeVisualization. */
-export let levelWidths: number[] = []
-export function setLevelWidths (widths: number[]) { levelWidths = widths }
+/** Width of each tree row (each stacked tree), kept in sync by TheTreeVisualization. */
+export let treeRowWidths: number[] = []
+export function setTreeRowWidths (widths: number[]) { treeRowWidths = widths }

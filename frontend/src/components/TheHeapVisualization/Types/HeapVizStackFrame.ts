@@ -5,7 +5,7 @@ import { HeapVizElement } from './HeapVizElement';
 import { HeapVizVar } from './HeapVizVar';
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { alignBytes } from '../MemorySize'
-import { injectedTitleAttributes, methodHeaderIdentifier, stackLocalIdentifier } from '@/identifiers/trace-identifiers'
+import { injectedTitleAttributes, methodHeaderIdentifier, stackLocalIdentifier, stackLocalNodeAndPort } from '@/identifiers/trace-identifiers'
 
 export class HeapVizStackFrame extends HeapVizElement<StackFrame> {
   public override get bgColor (): string {
@@ -13,8 +13,9 @@ export class HeapVizStackFrame extends HeapVizElement<StackFrame> {
       ? METHOD_HEADER_BG_COLOR_HOVER
       : SUB_HEADER_BG_COLOR
   }
+  /** `HeapVizElement` requires an identifier; a frame reuses the one of its `this` row, e.g. `local_1_this`. */
   public get identifier (): string {
-    return `roots:l_${this.stackFrameNr}_this`
+    return stackLocalIdentifier(this.stackFrameNr, { name: 'this' })
   }
   stackFrameNr: number;
   class: string;
@@ -33,7 +34,7 @@ export class HeapVizStackFrame extends HeapVizElement<StackFrame> {
     this.method = model.method;
     this.signature = model.signature;
     this.genericSignature = model.genericSignature;
-    this.localVariables = model.localVariables?.map(v => new HeapVizVar(v, stackLocalIdentifier(stackFrameNr, v), renderContext, stackFrameNr));
+    this.localVariables = model.localVariables?.map(v => new HeapVizVar(v, stackLocalNodeAndPort(stackFrameNr, v), renderContext, stackFrameNr));
     if (stackFrameNr === 0 && model.method === 'main' && model.signature === '([Ljava/lang/String;)V' && !model.this) {
       // The JVM descriptor identifies main(String[]); the backend's display signature
       // supplies its parameter name, so unrelated locals named args stay expanded.
@@ -59,7 +60,7 @@ export class HeapVizStackFrame extends HeapVizElement<StackFrame> {
       value: this.model.this as ReferenceVal,
       kind: 'Var'
     }
-    return new HeapVizVar(refValue,  `roots:l_${this.stackFrameNr}_this`, this.renderContext)
+    return new HeapVizVar(refValue, stackLocalNodeAndPort(this.stackFrameNr, { name: 'this' }), this.renderContext)
   }
 
   public render (): string {

@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture
 
 class Frontend(project: Project) : Component(project) {
   // Http Server Information
-  private lateinit var httpServer: ApplicationEngine
+  private lateinit var httpServer: EmbeddedServer<*, *>
   override var isRunning: Boolean = false
   override var readyFuture: CompletableFuture<Boolean> = CompletableFuture()
 
@@ -55,7 +55,7 @@ class Frontend(project: Project) : Component(project) {
 
   // Initialize the HTTP server
   private fun initializeHttpServer(frontEndPort: Int) {
-    httpServer = embeddedServer(Netty, port = frontEndPort, module = fun Application.() {
+    httpServer = embeddedServer(Netty, port = frontEndPort) {
       routing {
         project.service<LoggerProjectService>()
           .log(
@@ -67,14 +67,14 @@ class Frontend(project: Project) : Component(project) {
           call.respondText { "working fine..." }
         }
       }
-    })
+    }
 
-    httpServer.environment.monitor.subscribe(ApplicationStopped) {
+    httpServer.monitor.subscribe(ApplicationStopped) {
       isRunning = false
       project.service<LoggerProjectService>().log(LogSource.FRONTEND, "Frontend server stopped.")
     }
 
-    httpServer.environment.monitor.subscribe(ApplicationStarted) {
+    httpServer.monitor.subscribe(ApplicationStarted) {
       isRunning = true
       readyFuture.complete(true)
       project.service<LoggerProjectService>()

@@ -14,6 +14,7 @@ import { calculateDeskTestLine } from '@/components/TheDeskTest/line'
 import { TraceData } from './TraceData'
 import { linkHeapItemsToLoadedClasses } from './processedTraceState'
 import { PetAnnotation } from '@/dto/DebuggerProtocol'
+import { heapArrayElementIdentifier, stackLocalIdentifier } from '@/identifiers/trace-identifiers'
 
 export class Trace {
   public readonly trace: TraceState[]
@@ -121,7 +122,7 @@ export class Trace {
   /**
    * Returns the index of the first state of every batch that addTraceStates received, in order.
    * A batch is one debugger response, usually one step. Views that build their own data step by step,
-   * such as the sequence diagram, use these indices to replay the stored states batch by batch.
+   * such as the Sequence Diagram View, use these indices to replay the stored states batch by batch.
    * Example: batches of 1, 2 and 3 states give [0, 1, 3].
    */
   getBatchStartIndices (): readonly number[] {
@@ -265,7 +266,7 @@ export class Trace {
     const reversedCurrentStack = [...current.stack].reverse()
     reversedCurrentStack.forEach(function(stackFrame: StackFrame, stackFrameNumber: number) {
       for (const localVar of stackFrame.localVariables) {
-        currentLocalVarLookup.set(stackFrameNumber + '_' + localVar.name, localVar)
+        currentLocalVarLookup.set(stackLocalIdentifier(stackFrameNumber, localVar), localVar)
       }
     })
 
@@ -273,7 +274,7 @@ export class Trace {
     const reversedNextStack = [...next.stack].reverse()
     reversedNextStack.forEach(function(stackFrame: StackFrame, stackFrameNumber: number) {
       for (const localVar of stackFrame.localVariables) {
-        nextLocalVarLookup.set(stackFrameNumber + '_' + localVar.name, localVar)
+        nextLocalVarLookup.set(stackLocalIdentifier(stackFrameNumber, localVar), localVar)
       }
     })
 
@@ -311,7 +312,7 @@ export class Trace {
     })
     _.differenceWith(nextStaticVars,
       currentStaticVars,
-      (nextVar: StaticVar, currVar: StaticVar) => nextVar.name === currVar.name &&
+      (nextVar: StaticVar, currVar: StaticVar) => nextVar.class === currVar.class && nextVar.name === currVar.name &&
             !hasChanged(currVar.value, current.heap, nextVar.value, next.heap))
       .forEach((changedStaticVar: StaticVar) => {
         changedStaticVar.changed = true
@@ -364,7 +365,7 @@ export class Trace {
           .flatMap((ha: HeapArray) => ha.elements)
     const currArrayElementsLookup = new Map<string, HeapArrayElementVar>()
     currArrayElements.forEach((elem: HeapArrayElementVar) => {
-      currArrayElementsLookup.set(elem.arrayId + '_' + elem.index, elem)
+      currArrayElementsLookup.set(heapArrayElementIdentifier(elem), elem)
     })
 
     const nextArrayElements =
@@ -377,12 +378,18 @@ export class Trace {
     })
 
     nextArrayElements.forEach((elem: HeapArrayElementVar) => {
-      const currElem = currArrayElementsLookup.get(elem.arrayId + '_' + elem.index)
+      const currElem = currArrayElementsLookup.get(heapArrayElementIdentifier(elem))
       if (currElem) {
         elem.changed = !_.isEqual(elem.value, currElem.value)
       } else {
         elem.changed = true
       }
+    })
+
+    // heap items that did not exist before; set on the processed copies, which do not share this flag with `next.heap`
+    const currentHeapIds = new Set(current.heap.map(item => item.id))
+    result.heapAfterExecution.forEach(item => {
+      item.isNew = !currentHeapIds.has(item.id)
     })
 
     return result

@@ -24,38 +24,46 @@ const node = {
   fields: []
 }
 
-/** Builds a root variable as `heapBFS` does; static fields have no method and no stack frame. */
+/** Builds a root variable as `buildDataStructureGraph` does; static fields have no method and no stack frame. */
 function root (name: string, value: { kind: 'ReferenceVal', reference: number } | { kind: 'NullVal' }, local?: { method: string, depth: number }) {
   const element = local
     ? { kind: 'Var', name, type: 'Node', value, class: 'StaticList', method: local.method, changed: false }
     : { kind: 'Var', name, type: 'Node', value, class: 'StaticList', changed: false }
-  return { element, children: [], depth: 1, name, stackFrameDepth: local?.depth }
+  return { traceElement: element, childDataStructureGraphNodes: [], bfsDepth: 1, label: name, stackFrameNumber: local?.depth }
 }
 
 test('list pointers use the official identifiers', async () => {
   await withVite(async vite => {
-    const { createPointerStructure } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheListVisualization/preprocessing.ts')
-    const nodeHeapTreeNode = { element: node, children: [], depth: 2, name: 'head' }
-    const listNode = { node: nodeHeapTreeNode, index: 0, lists: [], level: 0, height: 1, valFieldIndex: -1, nextFieldIndex: -1 }
+    const { createVariablePointers } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheListVisualization/preprocessing.ts')
+    const nodeDataStructureGraphNode = { traceElement: node, childDataStructureGraphNodes: [], bfsDepth: 2, label: 'head' }
+    const listNodeBox = {
+      dataStructureGraphNode: nodeDataStructureGraphNode,
+      column: 0,
+      containingListDataStructureGraphNodes: [],
+      row: 0,
+      height: 1,
+      valueFieldPosition: -1,
+      nextFieldPosition: -1
+    }
     const list = {
-      element: {
+      traceElement: {
         kind: 'HeapObject',
         id: 1,
         type: 'MyList',
         faked: false,
         fields: [{ kind: 'Var', name: 'first', type: 'Node', value: { kind: 'ReferenceVal', reference: 2 }, class: 'MyList', changed: false, heapObjectId: 1 }]
       },
-      children: [],
-      depth: 2,
-      name: 'list'
+      childDataStructureGraphNodes: [],
+      bfsDepth: 2,
+      label: 'list'
     }
     // Null pointers look up their previous position in the drawn SVG; record the selectors.
     const selectors: string[] = []
     const svg = { select: (selector: string) => { selectors.push(selector); return { empty: () => true } } }
 
-    const pointers = createPointerStructure(
+    const variableToListNodePointers = createVariablePointers(
       svg,
-      [listNode],
+      [listNodeBox],
       [
         root('head', { kind: 'ReferenceVal', reference: 2 }),
         root('cur', { kind: 'ReferenceVal', reference: 2 }, { method: 'main(java.lang.String[])', depth: 0 }),
@@ -66,18 +74,9 @@ test('list pointers use the official identifiers', async () => {
     )
 
     assert.deepEqual(
-      pointers.map((pointer: { name: string, sourceVariableIdentifier: string }) => [pointer.name, pointer.sourceVariableIdentifier]).sort(),
-      [['cur', 'roots:l_0_cur'], ['first', 'o_1:first'], ['head', 'roots:s_StaticList_head'], ['tail', 'roots:s_StaticList_tail']]
+      variableToListNodePointers.map((pointer: { name: string, sourceVariableIdentifier: string }) => [pointer.name, pointer.sourceVariableIdentifier]).sort(),
+      [['cur', 'local_0_cur'], ['first', 'obj_1-first'], ['head', 'static_StaticList_head'], ['tail', 'static_StaticList_tail']]
     )
-    assert.deepEqual(selectors, ['[id="list-p-roots:s_StaticList_tail"]'])
-  })
-})
-
-test('id attribute selector matches ids with colons', async () => {
-  await withVite(async vite => {
-    const { idAttributeSelector } = await vite.ssrLoadModule('/src/identifiers/trace-identifiers.ts')
-
-    assert.equal(idAttributeSelector('list-p-roots:l_0_head'), '[id="list-p-roots:l_0_head"]')
-    assert.equal(idAttributeSelector('a"b\\c'), '[id="a\\"b\\\\c"]')
+    assert.deepEqual(selectors, ['#list-p-static_StaticList_tail'])
   })
 })

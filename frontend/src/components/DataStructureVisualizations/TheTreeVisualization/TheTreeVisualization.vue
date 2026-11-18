@@ -17,9 +17,9 @@
       </g>
     </svg>
     <VizSetting
-      :zoom-in="zoomIn"
-      :zoom-out="zoomOut"
-      :zoom-reset="zoomReset"
+      :zoom-in="() => viewZoom.zoomIn()"
+      :zoom-out="() => viewZoom.zoomOut()"
+      :zoom-reset="() => viewZoom.reset()"
       :viz-id="visualizationStore.BINARYTREE.id">
       <ClassCheckboxGroup
         id-prefix="tree-wrapper-class"
@@ -52,17 +52,15 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { BaseType, select, Selection } from 'd3-selection'
-import { zoom, zoomIdentity } from 'd3-zoom'
-import { transform, setTransform, levelCoordinates, setLevelCoordinates, levelWidths, setLevelWidths } from './state'
+import { yCoordinatesByTreeRowAndDepth, setYCoordinatesByTreeRowAndDepth, treeRowWidths, setTreeRowWidths } from './state'
 import VizSetting from '@/components/VizSetting.vue'
 import ClassCheckboxGroup from '../ClassCheckboxGroup.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
-import { drawNodeRectangles, drawChildPointers, drawPointers } from './drawing'
-import { processChildren, createTreeAndChildPointerStructs, createPointerStructure } from './preprocessing'
-import { CSS } from '../constants'
-import { zoomToChange } from '../zooming'
-import { getHeapTree, removeChildren } from '../utils'
+import { drawTreeNodeBoxes, drawChildFieldPointers, drawVariablePointers } from './drawing'
+import { processChildren, createTreeNodeBoxesAndChildFieldPointers, createVariablePointers } from './preprocessing'
+import { CSS, SVG } from '../constants'
+import { getDataStructureGraph, removeChildren } from '../utils'
 import { reconcileClassSelections } from '../classSelection'
 import { findMissingFieldsByClass, formatMissingFields, getNodesOfTypes } from '../preprocessing-utils'
 import { calcTreeWidth } from './layout'
@@ -71,7 +69,7 @@ import { HoverInfo } from '@/hover/types'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { getCoordinatesOfChange } from './node-utils'
-import { DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/helpers/constants'
+import { ViewZoom } from '@/helpers/zooming'
 
 const visualizationStore = useVisualizationStore()
 
@@ -79,12 +77,7 @@ const leftName = ref(localStorage.getItem(LOCAL_STORAGE.leftName) || 'left')
 const rightName = ref(localStorage.getItem(LOCAL_STORAGE.rightName) || 'right')
 const valueName = ref(localStorage.getItem(LOCAL_STORAGE.valueName) || 'val')
 const parentName = ref(localStorage.getItem(LOCAL_STORAGE.parentName) || 'parent')
-// Track handle replacement without deep-proxying imperative browser and D3 objects.
-const resizeObserver = shallowRef<ResizeObserver>()
-const zoomCall = shallowRef(zoom().on('zoom', (event) => {
-  setTransform(event.transform)
-  select(`#${HTML.ids.tree}`).attr('transform', event.transform)
-}))
+const viewZoom = new ViewZoom(`#${HTML.ids.tree}`)
 const svg = shallowRef(select(`#${HTML.ids.treeSvg}`))
 const hoveredInfos = ref<HoverInfo[]>([])
 
@@ -118,24 +111,24 @@ const cssVariables = {
   '--pointer-name-font-family': CSS.pointer.name.fontFamily
 }
 function redraw (hoveredInfos: HoverInfo[] = []) {
-  const { root: heapTree, heapNodes } = getHeapTree(stateIndex.value, traceState.value, firstState.value, undefined)
+  const { rootDataStructureGraphNode, heapContentDataStructureGraphNodes } = getDataStructureGraph(stateIndex.value, traceState.value, firstState.value, undefined)
 
-  // create tree from heap tree
-  // get trees
-  const trees = getNodesOfTypes(heapNodes, selectedTreeClassNameSet.value)
+  // get the tree node objects of the selected classes
+  const trees = getNodesOfTypes(heapContentDataStructureGraphNodes, selectedTreeClassNameSet.value)
 
-  // explore tree and create data-structure for tree nodes and child pointers
-  setLevelCoordinates([])
-  setLevelWidths([calcTreeWidth(0)])
-  const { treeNodes, childPointers, pointers } = createTreeAndChildPointerStructs(heapTree, trees, levelCoordinates, levelWidths, {
-    nodeClassNames: selectedNodeClassNameSet.value,
-    valueName: valueName.value,
-    leftName: leftName.value,
-    rightName: rightName.value
-  })
+  // explore tree and create the tree node boxes and child field pointers
+  setYCoordinatesByTreeRowAndDepth([])
+  setTreeRowWidths([calcTreeWidth(0)])
+  const { treeNodeBoxes, childFieldPointers, variableDataStructureGraphNodes } = createTreeNodeBoxesAndChildFieldPointers(
+    rootDataStructureGraphNode, trees, yCoordinatesByTreeRowAndDepth, treeRowWidths, {
+      nodeClassNames: selectedNodeClassNameSet.value,
+      valueName: valueName.value,
+      leftName: leftName.value,
+      rightName: rightName.value
+    })
 
   const missingFields = findMissingFieldsByClass(
-    treeNodes.flatMap(node => node.node ? [node.node] : []),
+    treeNodeBoxes.flatMap(treeNodeBox => treeNodeBox.dataStructureGraphNode ? [treeNodeBox.dataStructureGraphNode] : []),
     [leftName.value, rightName.value, valueName.value]
   )
   fieldValidationMessage.value = formatMissingFields(missingFields)
@@ -144,34 +137,31 @@ function redraw (hoveredInfos: HoverInfo[] = []) {
     return
   }
 
-  processChildren(treeNodes, {
+  processChildren(treeNodeBoxes, {
     leftName: leftName.value,
     rightName: rightName.value
   })
 
   // create data-structure for node pointers
-  const nodePointers = createPointerStructure(treeNodes, pointers, trees, {
+  const variableToTreeNodePointers = createVariablePointers(treeNodeBoxes, variableDataStructureGraphNodes, trees, {
     parentName: parentName.value,
     nodeClassNames: selectedNodeClassNameSet.value
   })
 
   // visualize everything
   const _svg = svg.value as Selection<BaseType, unknown, HTMLElement, unknown>
-  drawNodeRectangles(_svg, treeNodes, {
+  drawTreeNodeBoxes(_svg, treeNodeBoxes, {
     leftName: leftName.value,
     rightName: rightName.value
   }, hoveredInfos)
-  drawChildPointers(_svg, childPointers, hoveredInfos)
-  drawPointers(_svg, nodePointers, hoveredInfos)
+  drawChildFieldPointers(_svg, childFieldPointers, hoveredInfos)
+  drawVariablePointers(_svg, variableToTreeNodePointers, hoveredInfos)
 
   // get changed pointers and their coordinate
-  const { x, y } = getCoordinatesOfChange(nodePointers, childPointers)
+  const { x, y } = getCoordinatesOfChange(variableToTreeNodePointers, childFieldPointers)
 
-  // add ability to zoom and pan
-  _svg.call(zoomCall.value as any)
-
-  // translate zoom, so x and y are visible
-  zoomToChange(x, y, transform, zoomCall.value, HTML.ids.parentDiv, LAYOUT.svgWidth, _svg)
+  // move the view, so x and y are visible
+  viewZoom.followChange(x, y, { width: SVG.cellWidth, height: 2 * SVG.cellHeight })
 }
 
 /** Applies a manual wrapper-class selection and redraws the mounted visualization. */
@@ -198,20 +188,6 @@ function deleteViz () {
   removeChildren(`#${HTML.ids.treeNodes}`)
   removeChildren(`#${HTML.ids.childPointers}`)
   removeChildren(`#${HTML.ids.nodePointers}`)
-}
-
-function getTransition () {
-  return svg.value.transition().duration(TRANSFORMATION.duration)
-    .ease(TRANSFORMATION.ease) as any
-}
-function zoomIn () {
-  zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
-}
-function zoomOut () {
-  zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
-}
-function zoomReset () {
-  zoomCall.value.transform(getTransition(), zoomIdentity)
 }
 
 watch(stateIndex, () => redraw())
@@ -247,22 +223,13 @@ watch(parentName, () => {
 
 onMounted(() => {
   isMounted = true
-  setTransform(zoomIdentity)
   // selection was empty when component was created, since template was not inserted yet
   svg.value = select(`#${HTML.ids.treeSvg}`)
+  viewZoom.attach(svg.value.node() as SVGSVGElement)
 
   HoverSynchronizer.onHover(onHover)
 
-  const div = document.getElementById(HTML.ids.parentDiv)
-  resizeObserver.value = new ResizeObserver(() => {
-    if (div) {
-      const height = div.offsetHeight / div.offsetWidth * LAYOUT.svgWidth
-      if (height) {
-        svg.value.attr('viewBox', `0 0 ${LAYOUT.svgWidth} ${height}`)
-      }
-    }
-  })
-  resizeObserver.value.observe(div!)
+  viewZoom.observeViewport(document.getElementById(HTML.ids.parentDiv)!, () => LAYOUT.svgWidth)
   // delete old visualization
   deleteViz()
   redraw()
@@ -272,7 +239,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   isMounted = false
-  resizeObserver.value?.disconnect()
+  viewZoom.detach()
   HoverSynchronizer.removeOnHover(onHover)
 })
 </script>

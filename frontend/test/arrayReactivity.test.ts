@@ -20,13 +20,13 @@ test('array access detection observes later changes through its live ref', async
   })
   try {
     const { detectArrayAccesses } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheArrayVisualization/preprocessing.ts')
-    const { processIndex } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheArrayVisualization/index-processing.ts')
-    const processedIndexes = ref([])
-    const indexes = []
+    const { parseIndexLabelSetting } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheArrayVisualization/index-processing.ts')
+    const parsedIndexLabelSettings = ref([])
+    const indexLabelSettings = []
     const array = {
-      element: { id: 7 },
-      kind: 'OneDimArrayNode',
-      name: 'arr'
+      traceElement: { id: 7 },
+      kind: 'OneDimArrayBox',
+      label: 'arr'
     }
     const traceState = {
       stackAfterExecution: [{
@@ -40,14 +40,14 @@ test('array access detection observes later changes through its live ref', async
       }]
     }
 
-    const component = { traceState, indexes, processedIndexes }
+    const component = { traceState, indexLabelSettings, parsedIndexLabelSettings }
     detectArrayAccesses([array], [], component)
-    assert.equal(indexes.length, 1)
+    assert.equal(indexLabelSettings.length, 1)
 
-    processedIndexes.value = [processIndex({ displayString: 'arr[i]', isDetected: false })]
+    parsedIndexLabelSettings.value = [parseIndexLabelSetting({ expression: 'arr[i]', isDetected: false })]
     detectArrayAccesses([array], [], component)
 
-    assert.equal(indexes.length, 1)
+    assert.equal(indexLabelSettings.length, 1)
   } finally {
     await vite.close()
   }

@@ -8,7 +8,7 @@ export interface HistoryFormatter {
 }
 
 /**
- * Creates the value and call formatter used while building History View
+ * Creates the value and call formatter used while building Event History View
  * entries.
  *
  * Constructor lookups are cached for the lifetime of the formatter because the

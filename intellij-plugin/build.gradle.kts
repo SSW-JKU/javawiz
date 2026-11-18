@@ -1,17 +1,18 @@
 import java.util.Properties
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.3.0"
-    id("org.jetbrains.intellij.platform") version "2.18.1"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
     kotlin("plugin.serialization") version "2.3.0"
 }
 
 group = "at.jku.ssw"
-version = "2.4.1"
+version = "2.4.2"
 
 fun htmlEscape(value: String): String =
     value
@@ -108,16 +109,21 @@ repositories {
 
 dependencies {
     val junitVersion = "6.1.3"
+    // The plugin runs on the kotlinx-coroutines that ship with the IDE. Use a Ktor release built
+    // against the coroutines version of the oldest supported IDE (IDEA 2026.2: coroutines 1.10.2).
+    // A Ktor built against newer coroutines may call methods that the IDE's copy does not have.
+    val ktorVersion = "3.4.3"
 
     // Ktor embedded HTTP + WebSocket server
-    implementation("io.ktor:ktor-server-core:2.3.4")
-    implementation("io.ktor:ktor-server-netty:2.3.4")
-    implementation("io.ktor:ktor-server-host-common:2.3.4")
-    implementation("io.ktor:ktor-server-websockets:2.3.4")
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-server-host-common:$ktorVersion")
+    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
 
     // Kotlin stdlib + serialization
     implementation(kotlin("stdlib"))
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    // Matches the version that Ktor 3.4.3 requires; Gradle would otherwise resolve to it silently.
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     // SLF4J binding (suppresses "No SLF4J providers found" at runtime)
     implementation("org.slf4j:slf4j-simple:2.0.9")
@@ -148,10 +154,13 @@ dependencies {
         bundledModule("intellij.platform.ui.jcef")
         bundledModule("intellij.libraries.jcef")
 
-        // Declare every framework used by the headless model-level tests explicitly:
-        // https://plugins.jetbrains.com/docs/intellij/tests-and-fixtures.html
+        // Without a version, Gradle downloads the newest published Plugin Verifier. New Verifier
+        // releases add compatibility checks for new IDEs, so this is intentionally not pinned.
+        // The selected version is printed at the start of verifyPlugin.
         pluginVerifier()
         zipSigner()
+        // Declare every framework used by the headless model-level tests explicitly:
+        // https://plugins.jetbrains.com/docs/intellij/tests-and-fixtures.html
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.JUnit5)
         // Java PSI fixtures require the Java plugin's dedicated test framework:
@@ -160,6 +169,9 @@ dependencies {
     }
 }
 
+// These exclusions affect only the test JVM. The sandbox and the plugin ZIP are packaged from the
+// runtime classpath and are not changed by them.
+//
 // IDEA's test framework supplies a JetBrains-patched coroutine core. Avoid shadowing it with
 // Ktor's ordinary Maven variant while leaving the plugin's production runtime unchanged.
 configurations.testRuntimeClasspath {
@@ -168,6 +180,61 @@ configurations.testRuntimeClasspath {
     // the platform-provided serialization implementation instead of the plugin's runtime copy.
     exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-serialization-core-jvm")
     exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-serialization-json-jvm")
+}
+
+// printProductsReleases lists IDE releases from JetBrains' online release list, which Gradle caches
+// for one day. Limit it to stable IntelliJ IDEA releases from the minimum supported build (262) on.
+// EAP and RC builds are left out on purpose: they are not finished releases and change often.
+tasks.printProductsReleases {
+    channels = listOf(ProductRelease.Channel.RELEASE)
+    types = listOf(IntelliJPlatformType.IntellijIdeaUltimate)
+}
+
+// The newest stable IntelliJ IDEA version, for example "2026.3". The task property used here is
+// the list the task would print, such as ["IU-2026.3", "IU-2026.2.5"]. Versions are compared
+// number by number, so that "2026.10" counts as newer than "2026.9".
+val latestStableIdea = tasks.printProductsReleases.flatMap { it.productsReleases }.map { releases ->
+    releases.map { it.substringAfter('-') }.maxBy { version ->
+        version.split('.').map(String::toInt).plus(listOf(0, 0, 0)).take(3)
+            .fold(0L) { combined, part -> combined * 10_000 + part }
+    }
+}
+
+// Testing and verification check the plugin in two different ways. Both run against the oldest
+// supported and the newest stable IntelliJ IDEA:
+//
+// - Testing (`test`, `testLatestStableIde`) runs the plugin's JUnit tests in src/test. The tests
+//   start a real IntelliJ IDEA without a window and execute plugin code in it, so they check what
+//   the plugin does, for example which line gets highlighted. They only find problems in code
+//   that a test executes.
+// - Verification (`verifyPluginStructure`, `verifyPlugin`, configured in `pluginVerification`
+//   below) executes no plugin code. `verifyPluginStructure` checks plugin.xml and the layout of the
+//   plugin ZIP. `verifyPlugin` runs JetBrains' Plugin Verifier, which reads the compiled classes and
+//   checks every IntelliJ API they use against each IDE: whether it still exists, and whether it is
+//   internal or deprecated. It covers all plugin code, including code no test executes, but it
+//   cannot tell whether the plugin behaves correctly.
+//
+// `testLatestStableIde` runs the same tests as `test`, but against the newest stable IntelliJ IDEA
+// instead of the version the plugin is compiled against. This shows early when a new IDE release
+// breaks the plugin. Test frameworks and bundled plugins must be declared again here: JetBrains
+// matches their versions to this IDE, not to the one used for compiling.
+intellijPlatformTesting {
+    testIde {
+        register("testLatestStableIde") {
+            type = IntelliJPlatformType.IntellijIdeaUltimate
+            version = latestStableIdea
+            plugins {
+                bundledPlugin("com.intellij.java")
+                bundledModule("intellij.platform.ui.jcef")
+                bundledModule("intellij.libraries.jcef")
+            }
+            testFrameworks(
+                TestFrameworkType.Platform,
+                TestFrameworkType.JUnit5,
+                TestFrameworkType.Plugin.Java,
+            )
+        }
+    }
 }
 
 intellijPlatform {
@@ -193,9 +260,15 @@ intellijPlatform {
         token.set(providers.environmentVariable("INTELLIJ_PUBLISH_TOKEN"))
     }
 
+    // Configures `verifyPlugin`; see the comparison of testing and verification above
+    // `intellijPlatformTesting`. With the default failure levels, compatibility problems and use of
+    // internal or override-only APIs fail the build. Deprecated API use is only reported.
     pluginVerification {
         ides {
+            // The minimum supported version, which the plugin is compiled against
             create(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2.1")
+            // The newest stable version, to find problems with new IDE releases early
+            create(IntelliJPlatformType.IntellijIdeaUltimate, latestStableIdea)
         }
     }
 }
@@ -235,17 +308,23 @@ tasks {
         // Light fixture tests reuse one application and do not exercise the execution UI.
         // Loading JWExecutor there registers its global context action twice, which Jupiter's
         // uncaught-exception extension correctly reports. Keep every other plugin extension.
+        //
+        // The tests load this copy of plugin.xml in addition to the main one. An action with a fixed
+        // ID would be registered twice and fail every test, so drop ThrowTestException here too.
+        // (DebugWithJavaWiz is not affected: its ID is a placeholder that this copy leaves unreplaced.)
         val testPluginDescriptor = layout.buildDirectory.file("resources/test/META-INF/plugin.xml")
         doLast {
             val descriptor = testPluginDescriptor.get().asFile
-            val retainedLines = descriptor.readLines().filterNot {
-                "at.jku.ssw.javawiz.intellij.action.JWExecutor" in it
+            val retainedLines = descriptor.readLines().filterNot { line ->
+                "at.jku.ssw.javawiz.intellij.action.JWExecutor" in line ||
+                    "at.jku.ssw.javawiz.intellij.action.ThrowTestException" in line
             }
             descriptor.writeText(retainedLines.joinToString(System.lineSeparator(), postfix = System.lineSeparator()))
         }
     }
 
-    test {
+    // Applies to `test` and to `testLatestStableIde`, which run the same tests against different IDEs.
+    withType<Test>().configureEach {
         // Model-level tests need no display. Force headless AWT even on desktop Linux:
         // otherwise Wayland starts a persistent keyboard timer that fails thread-leak checks.
         systemProperty("java.awt.headless", "true")

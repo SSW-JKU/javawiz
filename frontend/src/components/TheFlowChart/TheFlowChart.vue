@@ -1,9 +1,9 @@
 <template>
   <div style="position: relative;height: 100%;">
     <VizSetting
-      :zoom-in="zoomIn"
-      :zoom-out="zoomOut"
-      :zoom-reset="zoomReset"
+      :zoom-in="() => viewZoom.zoomIn()"
+      :zoom-out="() => viewZoom.zoomOut()"
+      :zoom-reset="() => viewZoom.reset()"
       :viz-id="visualizationStore.FLOWCHART.id">
       <FlowChartSettings
         :auto-inline="autoInline"
@@ -75,8 +75,7 @@ import { FullWidthManager } from './FullWidthManager'
 import { AstElement, AstFile } from '@/dto/AbstractSyntaxTree'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/helpers/constants'
-import { getNavigationClearTransform } from '@/components/DataStructureVisualizations/zooming'
+import { getHorizontalCenterTransform, ViewZoom } from '@/helpers/zooming'
 
 const SIZE = 50000
 const CENTER = SIZE / 2
@@ -108,10 +107,18 @@ const rootCurrentClass = ref(latestStack.value[0].class)
 const prevPosX = ref<number>(0)
 const prevCenterX = ref<number>(CENTER)
 
-const prevScale = ref<number>(1)
-let initialPositionPending = true
-let resizeObserver: ResizeObserver | undefined
+const viewZoom = new ViewZoom('#flowchart g.chart')
 let svgElement: SVGSVGElement | null = null
+// Home: the chart's center line in the middle of the view, at scale 1.
+viewZoom.home = () => {
+  const realWidth = svgElement?.getBoundingClientRect().width
+  return realWidth ? getHorizontalCenterTransform(realWidth, CENTER) : null
+}
+// Keeps the starting chart clear of the icons without constraining later pan/zoom.
+viewZoom.contentLeft = () => {
+  const bounds = svgElement?.querySelector('.chart')?.getBoundingClientRect()
+  return bounds && (bounds.width || bounds.height) ? bounds.left : Infinity
+}
 
 const showFunctionSelectOverlay = ref<boolean>(false)
 const functionSelectOptions = ref<string[]>([])
@@ -281,7 +288,6 @@ function focusActiveStatementIfOutOfScope (ast: FullHierarchyNode<AstElement>) {
     return
   }
   const { x, y } = getFocusCoordinates(active)
-  const svg = (d3.select('#flowchart').node() as SVGElement).getBoundingClientRect()
 
   const chart = (d3.select('#flowchart').select('.chart')
     .node() as SVGElement).getBoundingClientRect()
@@ -289,7 +295,7 @@ function focusActiveStatementIfOutOfScope (ast: FullHierarchyNode<AstElement>) {
   const relPosX = x - ast.pos.x
   const relPosY = y - ast.pos.y
 
-  const offsetX = chart.right - ast.box.width * prevScale.value
+  const offsetX = chart.right - ast.box.width * viewZoom.transform.k
   const offsetY = chart.y
 
   /*
@@ -298,55 +304,7 @@ function focusActiveStatementIfOutOfScope (ast: FullHierarchyNode<AstElement>) {
    Therefore we use the chart.right coordinate to compute offsetX
    */
 
-  const posX = relPosX * prevScale.value + offsetX
-  const posY = relPosY * prevScale.value + offsetY
-
-  const statementVisible = svg.left <= posX && posX <= svg.right && svg.top <= posY && posY <= svg.bottom
-
-  if (!statementVisible) {
-    zoomBehavior.translateTo(getTransition(), CENTER + relPosX - ast.box.centerX, relPosY)
-  }
-}
-
-function getTransition () {
-  const svg = d3.select<SVGSVGElement, unknown>('#flowchart')
-  return svg.transition().duration(TRANSFORMATION.duration)
-    .ease(TRANSFORMATION.ease)
-}
-
-/**
- * Reset the zoom to the center, shifting wide charts clear of the icons afterward.
- */
-function zoomReset () {
-  const svg = d3.select<SVGSVGElement, unknown>('#flowchart')
-  const realWidth = svg.node()?.getBoundingClientRect().width || 0
-  initialPositionPending = true
-  if (!realWidth) return
-  const x = -CENTER + realWidth / 2
-  zoomBehavior.transform(getTransition().on('end.navigation', positionInitially), d3.zoomIdentity.translate(x, 0))
-}
-
-/** Keeps the starting chart clear of the icons without constraining later pan/zoom. */
-function positionInitially () {
-  const svg = d3.select<SVGSVGElement, unknown>(svgElement!)
-  const node = svg.node()
-  const chart = svg.select<SVGGElement>('.chart').node()
-  if (!initialPositionPending || !node?.isConnected || !node.clientWidth || !chart) return
-  const bounds = chart.getBoundingClientRect()
-  if (!bounds.width && !bounds.height) return
-  initialPositionPending = false
-  resizeObserver?.disconnect()
-  zoomBehavior.transform(svg, getNavigationClearTransform(node, d3.zoomTransform(node), bounds.left))
-}
-
-function zoomIn () {
-  initialPositionPending = false
-  zoomBehavior.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
-}
-
-function zoomOut () {
-  initialPositionPending = false
-  zoomBehavior.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
+  viewZoom.centerIfOffScreen([CENTER + relPosX - ast.box.centerX, relPosY], [relPosX, relPosY], [offsetX, offsetY])
 }
 
 /**
@@ -357,33 +315,19 @@ function init () {
   generateLayout(false)
 }
 
-const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
-  .scaleExtent([0.3, 3])
-  .on('zoom', (e) => {
-    if (e.sourceEvent) initialPositionPending = false
-    prevScale.value = e.transform.k
-
-    d3.select('#flowchart g.chart')
-      .attr('transform', e.transform)
-  })
-
 onMounted(() => {
+  svgElement = document.querySelector<SVGSVGElement>('#flowchart')
+  viewZoom.attach(svgElement!)
   init()
-  zoomReset()
-  const chartRoot = d3.select<SVGSVGElement, unknown>('#flowchart')
-  svgElement = chartRoot.node()
-  chartRoot.call(zoomBehavior)
-    .on('dblclick.zoom', () => zoomReset())
+  viewZoom.reset()
   // A pane can mount before its first nonzero size is known. Retry only while
   // initial positioning is pending, so later resizing preserves manual panning.
-  resizeObserver = new ResizeObserver(() => {
-    if (initialPositionPending) zoomReset()
+  viewZoom.observeViewport(svgElement!, undefined, () => {
+    if (viewZoom.initialPositionPending) viewZoom.reset()
   })
-  resizeObserver.observe(chartRoot.node()!)
 })
 onUnmounted(() => {
-  resizeObserver?.disconnect()
-  d3.select(svgElement).interrupt()
+  viewZoom.detach()
 })
 watch(currentFileUri, init)
 

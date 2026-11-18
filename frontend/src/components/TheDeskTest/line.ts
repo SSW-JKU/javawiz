@@ -2,6 +2,23 @@ import { StackFrame, HeapItem, LocalVar, StaticVar, LocalCondition, ProcessedTra
 import { DeskTestLineMethod, DeskTestVal, DeskTestConditionVal, DeskTestMethod, DeskTestStatic, DeskTestVar, DeskTestCondition, DeskTestLine } from './types'
 import { HoverInfo } from '@/hover/types'
 import { createHoverCondition, createHoverHeapObject, createHoverLine, createHoverLocal, createHoverMethod, createHoverStatic } from '@/hover/hoverinfo-builder'
+import { staticFieldIdentifier } from '@/identifiers/trace-identifiers'
+
+/**
+ * Key of a local variable's column, used to look up its current value in a line.
+ * The view shows one column per method and variable name (a recursive call shares the column of
+ * the earlier call), so this is not a stack-frame identifier. Data that changes from step to step,
+ * such as the referenced object, must not be part of the key, or the value would no longer be found.
+ * Example: `deskTestVarKey({ class: 'Main', method: 'main', name: 'i' })` → `["Main","main","i"]`.
+ */
+export function deskTestVarKey (variable: Pick<DeskTestVar, 'class' | 'method' | 'name'>): string {
+  return JSON.stringify([variable.class, variable.method, variable.name])
+}
+
+/** Key of a static field's column: the shared static field identifier, e.g. `static_Main_count`. */
+export function deskTestStaticKey (field: Pick<DeskTestStatic, 'class' | 'name'>): string {
+  return staticFieldIdentifier(field, field)
+}
 
 export function calculateDeskTestLine (
   previous: DeskTestLine | undefined,
@@ -13,10 +30,11 @@ export function calculateDeskTestLine (
       .filter(v => v.changed)
       .forEach(variable => {
         vars.set(
-          JSON.stringify(toDeskTestVar(variable, frame)),
+          deskTestVarKey(toDeskTestVar(variable, frame)),
           toDeskTestVal(heap, variable)
         )
       })
+    // Conditions are not variables. Their key holds only data that stays the same from step to step.
     const conditions = new Map<string, DeskTestConditionVal>()
     frame.conditionValues
       .filter(c => c.evaluated)
@@ -113,7 +131,7 @@ export function calculateDeskTestLine (
     .filter(f => f.changed)
     .forEach(field => {
       currentStatics.set(
-        JSON.stringify(toDeskTestStatic(field)),
+        deskTestStaticKey(field),
         toDeskTestVal(
           state.heapAfterExecution,
           field
@@ -184,7 +202,7 @@ function getHoverInfos (state: ProcessedTraceState): HoverInfo[] { // only highl
 }
 
 /**
- * @desc Get all the values relevant for the representation of a variable in the DeskTest.
+ * @desc Get all the values relevant for the representation of a variable in the Tabular View.
  * @param {array} heap
  * @param {LocalVar | StaticVar} variable
  */

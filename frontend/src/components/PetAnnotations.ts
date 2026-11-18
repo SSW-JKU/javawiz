@@ -2,17 +2,24 @@ import * as d3 from 'd3'
 import lightbulbIcon from '@/assets/icons/pets/lightbulb.png'
 import questionIcon from '@/assets/icons/pets/question-sign.png'
 import { colors } from '@/helpers/colors'
+import {
+  CALLOUT_MARGIN,
+  HTML_CALLOUT_SIDES,
+  placeCallout,
+  pointerPath,
+  SVG_CALLOUT_SIDES,
+  type Box,
+  type CalloutSide,
+  type Point
+} from '@/components/petCalloutPlacement'
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
-const DEFAULT_CALLOUT_GAP = 16
-const CALLOUT_MARGIN = 8
 const CALLOUT_MIN_WIDTH = 96
 const CALLOUT_MAX_CONTENT_WIDTH = 240
 const COLLAPSED_CALLOUT_SIZE = 36
 const CALLOUT_ICON_SIZE = 20
 const CALLOUT_ICON_GAP = 6
 const CALLOUT_TEXT_FALLBACK_CHAR_WIDTH = 7
-const TARGET_POINTER_MARGIN = 2
 
 export type PetQuestionOption = {
   readonly label: string
@@ -66,18 +73,6 @@ export type PetAnnotationManagerOptions = {
   readonly getHtmlContainer?: () => HTMLElement | null
 }
 
-type Point = {
-  x: number
-  y: number
-}
-
-type Box = {
-  readonly x: number
-  readonly y: number
-  readonly width: number
-  readonly height: number
-}
-
 type AnnotationBase = {
   readonly id: number
   readonly target: AnnotationTarget
@@ -87,6 +82,8 @@ type AnnotationBase = {
 type CalloutBase = AnnotationBase & {
   readonly text: string
   position?: Point
+  /** The user dragged the callout, so its position is kept when annotations are added. */
+  userPositioned: boolean
   collapsed: boolean
   dragging: boolean
   suppressClick: boolean
@@ -117,6 +114,9 @@ const CALLOUT_ICON_URLS: Record<Callout['kind'], string> = {
   speech: lightbulbIcon,
   question: questionIcon
 }
+
+/** Callout boxes drawn so far in one redraw, per coordinate system: an SVG root group or the page. */
+type PlacedCallouts = Map<SVGGElement | 'html', Box[]>
 
 type SvgContext = {
   readonly svg: SVGSVGElement
@@ -270,10 +270,11 @@ export class PetAnnotationManager {
       }
     }
 
-    for (const annotation of this.annotations) {
-      if (annotation.kind !== 'highlight') {
-        this.drawCallout(annotation)
-      }
+    // Dragged callouts are drawn first, so automatically placed callouts avoid them.
+    const callouts = this.annotations.filter((annotation): annotation is Callout => annotation.kind !== 'highlight')
+    const placed: PlacedCallouts = new Map()
+    for (const callout of [...callouts.filter(c => c.userPositioned), ...callouts.filter(c => !c.userPositioned)]) {
+      this.drawCallout(callout, placed)
     }
   }
 
@@ -298,19 +299,17 @@ export class PetAnnotationManager {
     target: HtmlAnnotationTarget | SvgAnnotationTarget,
     text: string
   ): number {
-    const id = this.nextAnnotationId++
-    this.annotations.push({
-      id,
+    return this.addAnnotation({
+      id: this.nextAnnotationId++,
       kind,
       target,
       surface,
       text,
+      userPositioned: false,
       collapsed: false,
       dragging: false,
       suppressClick: false
     })
-    this.redraw()
-    return id
   }
 
   private addHighlightForSurface (
@@ -320,9 +319,8 @@ export class PetAnnotationManager {
     opacity: number,
     padding: number
   ): number {
-    const id = this.nextAnnotationId++
-    this.annotations.push({
-      id,
+    return this.addAnnotation({
+      id: this.nextAnnotationId++,
       kind: 'highlight',
       target,
       surface,
@@ -330,8 +328,6 @@ export class PetAnnotationManager {
       opacity,
       padding
     })
-    this.redraw()
-    return id
   }
 
   private addQuestionForSurface (
@@ -341,21 +337,36 @@ export class PetAnnotationManager {
     options: readonly PetQuestionOption[],
     onAnswer?: (answer: PetQuestionAnswer) => void
   ): number {
-    const id = this.nextAnnotationId++
-    this.annotations.push({
-      id,
+    return this.addAnnotation({
+      id: this.nextAnnotationId++,
       kind: 'question',
       target,
       surface,
       text,
       options,
       onAnswer,
+      userPositioned: false,
       collapsed: false,
       dragging: false,
       suppressClick: false
     })
+  }
+
+  /**
+   * Adds an annotation and redraws. Callouts that were placed automatically forget their position,
+   * so the redraw places them again and they also avoid the new annotation. Callers add the PETs of
+   * a line one at a time; this way the last add places every callout knowing all targets. Callouts
+   * the user dragged keep their position. Returns the annotation's id.
+   */
+  private addAnnotation (annotation: Annotation): number {
+    this.annotations.push(annotation)
+    for (const other of this.annotations) {
+      if (other.kind !== 'highlight' && !other.userPositioned) {
+        other.position = undefined
+      }
+    }
     this.redraw()
-    return id
+    return annotation.id
   }
 
   private calloutById (id: number): Callout | undefined {
@@ -385,12 +396,32 @@ export class PetAnnotationManager {
     }
   }
 
-  private drawCallout (annotation: Callout): void {
+  private drawCallout (annotation: Callout, placed: PlacedCallouts): void {
     if (annotation.surface === 'svg') {
-      this.drawSvgCallout(annotation)
+      this.drawSvgCallout(annotation, placed)
     } else {
-      this.drawHtmlCallout(annotation)
+      this.drawHtmlCallout(annotation, placed)
     }
+  }
+
+  /**
+   * Boxes a callout without a position should avoid: the callouts already drawn in this redraw and
+   * the targets of the other annotations on the same surface. `toLocalBox` converts a page box into
+   * the callout's coordinate system. A callout that already has a position needs no obstacles, so
+   * redraws during dragging or zooming skip the target lookups.
+   */
+  private calloutObstacles (
+    annotation: Callout,
+    placedBoxes: readonly Box[],
+    toLocalBox: (box: Box | null) => Box | null
+  ): Box[] {
+    if (annotation.position) return []
+
+    const otherTargets = this.annotations
+      .filter(other => other !== annotation && other.surface === annotation.surface)
+      .map(other => toLocalBox(unionViewportBox(resolveTargetElements(other.target))))
+      .filter((box): box is Box => box !== null)
+    return [...placedBoxes, ...otherTargets]
   }
 
   private drawSvgHighlight (annotation: Highlight): void {
@@ -417,7 +448,7 @@ export class PetAnnotationManager {
       .attr('opacity', annotation.opacity)
   }
 
-  private drawSvgCallout (annotation: Callout): void {
+  private drawSvgCallout (annotation: Callout, placed: PlacedCallouts): void {
     const context = svgContext(annotation.target as SvgAnnotationTarget)
     if (!context) return
 
@@ -469,8 +500,11 @@ export class PetAnnotationManager {
     const rectHeight = annotation.collapsed
       ? COLLAPSED_CALLOUT_SIZE
       : textMetrics.lineCount * lineHeight + paddingY * 2 + buttonBlockHeight
-    const position = calloutPosition(annotation, targetBox, rectWidth, rectHeight, visibleBounds)
+    const placedBoxes = placedCalloutBoxes(placed, context.rootG)
+    const obstacles = this.calloutObstacles(annotation, placedBoxes, box => viewportBoxToSvgBox(box, context.svg, context.rootG))
+    const position = calloutPosition(annotation, targetBox, rectWidth, rectHeight, visibleBounds, obstacles, SVG_CALLOUT_SIDES)
     const calloutBox = { ...position, width: rectWidth, height: rectHeight }
+    placedBoxes.push(calloutBox)
 
     group.append('image')
       .attr('class', 'pet-callout-icon')
@@ -598,7 +632,7 @@ export class PetAnnotationManager {
     root.append(highlight)
   }
 
-  private drawHtmlCallout (annotation: Callout): void {
+  private drawHtmlCallout (annotation: Callout, placed: PlacedCallouts): void {
     const targetBox = unionViewportBox(resolveTargetElements(annotation.target))
     const root = this.ensureHtmlRoot()
     if (!targetBox || !root) return
@@ -657,14 +691,18 @@ export class PetAnnotationManager {
     root.append(callout)
     const rectWidth = callout.offsetWidth
     const rectHeight = callout.offsetHeight
+    const placedBoxes = placedCalloutBoxes(placed, 'html')
     const position = calloutPosition(
       annotation,
       targetBox,
       rectWidth,
       rectHeight,
-      { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight }
+      { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
+      this.calloutObstacles(annotation, placedBoxes, box => box),
+      HTML_CALLOUT_SIDES
     )
     const calloutBox = { ...position, width: rectWidth, height: rectHeight }
+    placedBoxes.push(calloutBox)
     callout.style.left = `${position.x}px`
     callout.style.top = `${position.y}px`
 
@@ -730,6 +768,7 @@ export class PetAnnotationManager {
 
       if (Math.abs(movement.x) > 0.5 || Math.abs(movement.y) > 0.5) {
         moved = true
+        annotation.userPositioned = true
       }
       const position = annotation.position ?? { x: 0, y: 0 }
       annotation.position = {
@@ -874,12 +913,24 @@ function svgDelta (from: Point, to: Point, rootG: SVGGElement): Point | null {
   }
 }
 
+/** The callout boxes already drawn in one coordinate system during the current redraw. */
+function placedCalloutBoxes (placed: PlacedCallouts, space: SVGGElement | 'html'): Box[] {
+  let boxes = placed.get(space)
+  if (!boxes) {
+    boxes = []
+    placed.set(space, boxes)
+  }
+  return boxes
+}
+
 function calloutPosition (
   annotation: Callout,
   targetBox: Box,
   width: number,
   height: number,
-  bounds: Box
+  bounds: Box,
+  obstacles: readonly Box[],
+  sides: readonly CalloutSide[]
 ): Point {
   const targetCenter = {
     x: targetBox.x + targetBox.width / 2,
@@ -887,14 +938,7 @@ function calloutPosition (
   }
 
   if (!annotation.position) {
-    let x = targetBox.x + targetBox.width + DEFAULT_CALLOUT_GAP
-    let y = targetBox.y - height - DEFAULT_CALLOUT_GAP
-    if (x + width > bounds.x + bounds.width - CALLOUT_MARGIN) {
-      x = targetBox.x - width - DEFAULT_CALLOUT_GAP
-    }
-    if (y < bounds.y + CALLOUT_MARGIN) {
-      y = targetBox.y + targetBox.height + DEFAULT_CALLOUT_GAP
-    }
+    const { x, y } = placeCallout(targetBox, width, height, bounds, obstacles, sides)
     annotation.position = {
       x: x - targetCenter.x,
       y: y - targetCenter.y
@@ -912,54 +956,6 @@ function calloutPosition (
     y: y - targetCenter.y
   }
   return { x, y }
-}
-
-function pointerPath (targetBox: Box, calloutBox: Box, collapsed: boolean): string {
-  const targetCenter = {
-    x: targetBox.x + targetBox.width / 2,
-    y: targetBox.y + targetBox.height / 2
-  }
-  const calloutCenter = {
-    x: calloutBox.x + calloutBox.width / 2,
-    y: calloutBox.y + calloutBox.height / 2
-  }
-  const calloutIsRight = calloutCenter.x >= targetCenter.x
-  const calloutIsBelow = calloutCenter.y >= targetCenter.y
-  const anchor = {
-    x: calloutIsRight
-      ? targetBox.x + targetBox.width + TARGET_POINTER_MARGIN
-      : targetBox.x - TARGET_POINTER_MARGIN,
-    y: calloutIsBelow
-      ? targetBox.y + targetBox.height + TARGET_POINTER_MARGIN
-      : targetBox.y - TARGET_POINTER_MARGIN
-  }
-  const margin = Math.min(CALLOUT_MARGIN, calloutBox.width / 3, calloutBox.height / 3)
-  const calloutCorner = {
-    x: calloutIsRight ? calloutBox.x : calloutBox.x + calloutBox.width,
-    y: calloutIsBelow ? calloutBox.y : calloutBox.y + calloutBox.height
-  }
-
-  if (collapsed) {
-    return `M${anchor.x},${anchor.y} L${calloutCorner.x},${calloutCorner.y}`
-  }
-
-  let first: Point
-  let second: Point
-  if (calloutIsRight && calloutIsBelow) {
-    first = { x: calloutBox.x + margin, y: calloutBox.y }
-    second = { x: calloutBox.x, y: calloutBox.y + margin }
-  } else if (calloutIsRight) {
-    first = { x: calloutBox.x, y: calloutBox.y + calloutBox.height - margin }
-    second = { x: calloutBox.x + margin, y: calloutBox.y + calloutBox.height }
-  } else if (calloutIsBelow) {
-    first = { x: calloutBox.x + calloutBox.width - margin, y: calloutBox.y }
-    second = { x: calloutBox.x + calloutBox.width, y: calloutBox.y + margin }
-  } else {
-    first = { x: calloutBox.x + calloutBox.width, y: calloutBox.y + calloutBox.height - margin }
-    second = { x: calloutBox.x + calloutBox.width - margin, y: calloutBox.y + calloutBox.height }
-  }
-
-  return `M${anchor.x},${anchor.y} L${first.x},${first.y} L${second.x},${second.y} Z`
 }
 
 function wrapText (

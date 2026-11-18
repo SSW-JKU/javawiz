@@ -4,13 +4,16 @@ import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { OBJECT_HEADER_BYTES } from '../MemorySize'
 import { shortTypeName } from '@/helpers/Common'
 import {
+  CHANGED_VAR_COLOR,
   CONTENT_FONT_SIZE,
   FONT_FACE_TABLES,
   MAIN_HEADER_BG_COLOR,
   MAIN_HEADER_BG_COLOR_HOVER,
   MAIN_HEADER_FONT_COLOR,
   MIN_WIDTH,
-  TABLE_FORMAT
+  NEW_HEAP_ITEM_HEADER_FONT_COLOR,
+  TABLE_FORMAT,
+  UNCHANGED_VAR_COLOR
 } from '../constants'
 import { injectedTitleAttributes, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
 
@@ -82,22 +85,34 @@ export abstract class HeapVizHeapItem<T extends ProcessedHeapItem> extends HeapV
             </tr>`
   }
 
+  /** True if this item did not exist in the state shown before; it is then drawn with a red frame and header text. */
+  public get isNew (): boolean { return this.model.isNew ?? false }
+
   /**
    * Renders the shared Graphviz node wrapper and title row around this item's body rows.
    * Subclasses continue to provide only their item-specific rows through `render()`.
+   * A new item (see `isNew`) gets a red frame and light red header text in every mode.
    */
   public renderNode (): string {
     const headerBgColor = this.renderContext.hoverInfos().some(item => item.kind === 'HeapObject' && item.objId === this.id)
       ? MAIN_HEADER_BG_COLOR_HOVER
       : MAIN_HEADER_BG_COLOR
     const headerTitle = injectedTitleAttributes({ id: svgCellIdentifier(this.identifier, SVG_CELL_SUFFIXES.header) })
+    const headerFontColor = this.isNew ? NEW_HEAP_ITEM_HEADER_FONT_COLOR : MAIN_HEADER_FONT_COLOR
+    // Graphviz passes a table's color on to its cells and nested tables. The red frame of a new item is therefore
+    // a separate outer table, and the item's table sets the color of its cell borders back to black.
+    const frameStart = this.isNew
+      ? `<table border="2" color="${CHANGED_VAR_COLOR}" cellborder="0" cellspacing="0" cellpadding="0"><tr><td>`
+      : ''
+    const frameEnd = this.isNew ? '</td></tr></table>' : ''
+    const tableColor = this.isNew ? ` color="${UNCHANGED_VAR_COLOR}"` : ''
 
     return `${this.identifier}[label=<<font face="${FONT_FACE_TABLES}" point-size="${CONTENT_FONT_SIZE}">
-                              <table ${TABLE_FORMAT}><tr>
+                              ${frameStart}<table ${TABLE_FORMAT}${tableColor}><tr>
                             <td align="center" colspan="5" title="${headerTitle}" bgcolor="${headerBgColor}" port="heap_object_header">
-                              <font color="${MAIN_HEADER_FONT_COLOR}"><b>${shortTypeName(this.varType.replace('-',''))}</b></font>
+                              <font color="${headerFontColor}"><b>${shortTypeName(this.varType.replace('-',''))}</b></font>
                             </td>
-                          </tr>   ${this.render()}\n\n  </table>  </font>> , class="${this.getCssClasses()}"];\n`
+                          </tr>   ${this.render()}\n\n  </table>${frameEnd}  </font>> , class="${this.getCssClasses()}"];\n`
   }
 
 }

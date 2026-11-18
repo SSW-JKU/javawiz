@@ -72,7 +72,7 @@ function enterAnimation (e: d3.Selection<any, any, any, any>) {
 }
 
 /**
- * This does one full rendering of a Flowchart
+ * This does one full rendering of a flowchart
  * @param data full specified hierarchy
  * @param selection render start selection
  * @param collapse toggle collapse function

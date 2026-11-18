@@ -4,7 +4,9 @@
       Version
     </p>
     <div class="divider" />
-    Version {{ package_.version }}, released on {{ releaseDate }}
+    Version {{ package_.version }}, released on {{ releaseDate }}<template v-if="generalStore.javaExecutable">
+      currently running on <code class="java-executable">{{ generalStore.javaExecutable }}</code>
+    </template>
     <div class="divider" />
 
     <p class="heading">
@@ -81,6 +83,7 @@
 import package_ from '../../../package.json'
 import Overlay from '@/components/Overlays/Overlay.vue'
 import { useOverlayStore } from '@/store/OverlayStore'
+import { useGeneralStore } from '@/store/GeneralStore'
 
 /**
  * Overlay containing descriptions of the JavaWiz team.
@@ -88,8 +91,9 @@ import { useOverlayStore } from '@/store/OverlayStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-11-08-10-37'
+const releaseDate = '2026-11-19-00-15'
 const overlayStore = useOverlayStore()
+const generalStore = useGeneralStore()
 
 function hide () {
   overlayStore.showAbout = false
@@ -111,5 +115,9 @@ function hide () {
 
 ul {
   margin: 0px;
+}
+
+.java-executable {
+  word-break: break-all;
 }
 </style>

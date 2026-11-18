@@ -36,7 +36,9 @@ export const ELEMENT = {
         THROW: 18
       }
     },
-    maxWidth: 150,
+    // Number.MAX_VALUE means "no width limit": statements show their full code text.
+    // The "Use width limit" option in the Flowchart View settings switches to a 150-pixel limit.
+    maxWidth: Number.MAX_VALUE,
     fontSize: 12
   },
   Block: {

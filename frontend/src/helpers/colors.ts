@@ -13,14 +13,14 @@ export const colors = {
   primaryBlue: '#163150',
   /**
    * Lighter dark blue: empty visualization pane (view chooser), pane navigation bar, hover of buttons, and the
-   * memory view's main headers (Statics, Stack, Heap, and object headers).
-   * Written in hex because the memory view puts it into Graphviz DOT, which does not understand CSS `rgb(...)`.
+   * Memory View's main headers (Statics, Stack, Heap, and object headers).
+   * Written in hex because the Memory View puts it into Graphviz DOT, which does not understand CSS `rgb(...)`.
    */
   secondaryBlue: '#315277',
   /** Primary action buttons, focus borders, and highlighted labels and cells in visualizations. */
   actionBlue: '#007bff',
   /**
-   * Pale blue of memory-view method and class headers, array indices and string values,
+   * Pale blue of memory-view method and class headers and array indices,
    * sequence-diagram boxes, and default stream marbles.
    */
   paleBlue: '#c8d8e8',
@@ -30,11 +30,11 @@ export const colors = {
   /** Background of teaching annotations and value overlays. */
   annotationFill: '#fff9e6',
 
-  /** Accent for objects: arrows and outlines in the list, tree and sequence diagram views. */
+  /** Accent for objects: arrows and outlines in the List View, the Tree View, and the Sequence Diagram View. */
   objectAccent: '#eda167',
   /** Background of a hovered object. */
   objectHover: '#ffe9d8',
-  /** Accent for references: arrows in the sequence diagram view. */
+  /** Accent for references: arrows in the Sequence Diagram View. */
   referenceAccent: '#a1c79d',
   /** Background of an object that a hovered reference points to. */
   referencedObjectHover: '#e3eee2',
@@ -50,7 +50,7 @@ export const colors = {
   lightMediumGray: '#cccccc',
   /** Medium gray: borders of inputs and controls, scrollbars, lines in diagrams, and dimmed hint text. */
   mediumGray: '#999999',
-  /** Dark gray: text, including secondary content text, main StreamViz strokes and event markers. */
+  /** Dark gray: text, including secondary content text, main Stream View strokes and event markers. */
   darkGray: '#444444'
 } as const
 

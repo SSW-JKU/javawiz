@@ -88,7 +88,7 @@ test('normalizes assignment targets into canonical lookup names', () => {
   assert.equal(normalizeFilterTarget('static example.Person . count'), 'example.Person.count')
 })
 
-test('parses call and assignment filters and rejects unsupported queries', () => {
+test('parses call and assignment filters', () => {
   assert.deepEqual(parseDslFilter('call sort'), {
     kind: 'call',
     methodName: 'sort',
@@ -99,14 +99,6 @@ test('parses call and assignment filters and rejects unsupported queries', () =>
     target: 'numbers[2]',
     targetValue: '7',
     isActive: true
-  })
-  assert.deepEqual(parseDslFilter('a + b'), {
-    kind: 'inactive',
-    isActive: false
-  })
-  assert.deepEqual(parseDslFilter('counter ='), {
-    kind: 'inactive',
-    isActive: false
   })
   assert.equal(parseDslFilter('   '), null)
 })
@@ -662,6 +654,67 @@ test('matches static array aliases when a shorter local alias is displayed', () 
     findHighlightedHistoryEntries(states, parseDslFilter('Holder.items[2] = *')).has(states[0].entries[0]),
     true
   )
+})
+
+test('matches writes to a field reached through several references', () => {
+  const person = {
+    kind: 'HeapObject' as const,
+    id: 1,
+    type: 'example.Person',
+    faked: false,
+    fields: [{
+      kind: 'Var' as const,
+      name: 'address',
+      type: 'example.Address',
+      value: reference(2),
+      changed: false,
+      class: 'example.Person'
+    }]
+  }
+  const addressBefore = {
+    kind: 'HeapObject' as const,
+    id: 2,
+    type: 'example.Address',
+    faked: false,
+    fields: [{
+      kind: 'Var' as const,
+      name: 'zip',
+      type: 'int',
+      value: primitive('1010'),
+      changed: false,
+      class: 'example.Address'
+    }]
+  }
+  const addressAfter = {
+    ...addressBefore,
+    fields: [{
+      ...addressBefore.fields[0],
+      value: primitive('4040'),
+      changed: true
+    }]
+  }
+  const state = processedState(
+    [frame([local('tony', reference(1), false)])],
+    [person, addressBefore],
+    [person, addressAfter]
+  )
+  const states = buildFilteredHistoryStates({
+    trace: [state],
+    showFieldAssignments: true,
+    showArrayInitialization: false,
+    isShownMethod: () => true,
+    formatter,
+    lookup: createHistoryLookup()
+  })
+  const isHighlighted = (query: string) =>
+    findHighlightedHistoryEntries(states, parseDslFilter(query)).has(states[0].entries[0])
+
+  assert.deepEqual(states[0].entries.map(entry => entry.text), ['tony.address.zip = 4040'])
+  assert.equal(isHighlighted('tony.address.zip = *'), true)
+  assert.equal(isHighlighted('tony.address.zip = 4040'), true)
+  assert.equal(isHighlighted('Address.zip = *'), true)
+  assert.equal(isHighlighted('tony.zip = *'), false)
+  assert.equal(isHighlighted('tony.address.zip = 1010'), false)
 })
 
 test('matches nested array and method-parameter aliases', () => {

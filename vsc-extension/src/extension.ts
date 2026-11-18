@@ -1,7 +1,8 @@
 import * as vscode from 'vscode'
 import { Communication } from './Communication'
 import { Editors } from './Editors'
-import { codeLensProvider } from './Codelens'
+import { codeLensProvider, resolveMainMethods } from './Codelens'
+import { watchActiveFileForMainMethod } from './MainMethodContext'
 import { Backend } from './Backend'
 import { Frontend } from './Frontend'
 import { Webview } from './Webview'
@@ -20,7 +21,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('javawiz.enableJavaFeatures', () => toggleJavaFeatures(true)),
     vscode.commands.registerCommand('javawiz.disableJavaFeatures', () => toggleJavaFeatures(false)),
     vscode.commands.registerCommand('javawiz.createIn', (...args: any[]) => createAdditionalClass('In', context, args)),
-    vscode.commands.registerCommand('javawiz.createOut',  (...args: any[]) => createAdditionalClass('Out', context, args))
+    vscode.commands.registerCommand('javawiz.createOut',  (...args: any[]) => createAdditionalClass('Out', context, args)),
+    watchActiveFileForMainMethod()
   )
   console.log('### JavaWiz extension activated ###')
 }
@@ -37,6 +39,27 @@ export class Extension {
   static openTextDocumentLocalUri: string | undefined = undefined // try to run currently open editor as main by default
 
   static async startDebug(context : vscode.ExtensionContext): Promise<void> {
+    // The menus only offer this command for a Java file with a main method, but the file may have
+    // changed since then, or the command may have been started in another way. Check again before
+    // ending a running session, so that a refused start leaves that session alone.
+    const document = vscode.window.activeTextEditor?.document
+    if (!document || document.languageId !== 'java') {
+      vscode.window.showErrorMessage('Debug with JavaWiz needs a Java file with a main method in the active editor.')
+      return
+    }
+    const fileName = path.basename(document.uri.fsPath)
+    let mainMethods
+    try {
+      mainMethods = await resolveMainMethods(document.uri)
+    } catch (_e) {
+      vscode.window.showErrorMessage(`JavaWiz could not check ${fileName} for a main method, because the Java language support is not ready. Wait until it has loaded and try again.`)
+      return
+    }
+    if (!mainMethods || mainMethods.length === 0) {
+      vscode.window.showErrorMessage(`${fileName} has no main method that JavaWiz can start.`)
+      return
+    }
+
     await Extension.endDebug()
     if(Extension.state !== 'notrunning') {
       return
@@ -46,13 +69,7 @@ export class Extension {
     Extension.editors = new Editors()
 
     try {
-      if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'java') {
-        Extension.openTextDocumentLocalUri = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri)
-      }
-      const activeEditor = vscode.window.activeTextEditor
-      if(!activeEditor) {
-        throw Error('Cannot launch JavaWiz if no active text editor is selected')
-      }
+      Extension.openTextDocumentLocalUri = vscode.workspace.asRelativePath(document.uri)
       Console.initialize()
       Console.show()
 
@@ -65,8 +82,7 @@ export class Extension {
       await Communication.start(communicationPort)
       await Backend.start(context.extensionUri, debuggerPort) // risk: port might no longer be free
       await Frontend.start(context.extensionUri, frontendPort) // risk: port might no longer be free
-      const name = path.basename(activeEditor.document.uri.fsPath)
-      Webview.activate(name, frontendPort, communicationPort, debuggerPort)
+      Webview.activate(fileName, frontendPort, communicationPort, debuggerPort)
       Extension.state = 'running'
     } catch (e: any) { // some of these initialization operations might fail; in that case, we want to clean up everything else we did
       const message = e instanceof JavaRuntimeCompatibilityError

@@ -155,9 +155,9 @@
                 class="value-cell"
                 :class="{ 'last-header-child': isLastChild(varIdx, method.vars.length), 'highlighted-col': localHighlighted(variable) }">
                 <DeskTestValue
-                  v-if="deskTestLine.currentVars.has(JSON.stringify(variable))"
+                  v-if="deskTestLine.currentVars.has(deskTestVarKey(variable))"
                   :variable="variable"
-                  :value="deskTestLine.currentVars.get(JSON.stringify(variable))!!" />
+                  :value="deskTestLine.currentVars.get(deskTestVarKey(variable))!!" />
               </td>
               <td
                 v-for="(condition, condIdx) in method.conditions"
@@ -175,9 +175,9 @@
               class="value-cell truncated"
               :class="{ 'last-header-child': isLastChild(varIdx, statics.length), 'highlighted-col': staticHighlighted(variable) }">
               <DeskTestValue
-                v-if="deskTestLine.currentStatics.has(JSON.stringify(variable))!!"
+                v-if="deskTestLine.currentStatics.has(deskTestStaticKey(variable))"
                 :variable="variable"
-                :value="deskTestLine.currentStatics.get(JSON.stringify(variable))!!" />
+                :value="deskTestLine.currentStatics.get(deskTestStaticKey(variable))!!" />
             </td>
           </tr>
         </tbody>
@@ -194,6 +194,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { DeskTestCondition, DeskTestMethod, DeskTestStatic, DeskTestVar, HoverTarget } from '@/components/TheDeskTest/types'
 import DeskTestValue from './DeskTestValue.vue'
+import { deskTestStaticKey, deskTestVarKey } from './line'
 import VizSetting from '@/components/VizSetting.vue'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useHoverStore } from '@/store/HoverStore'
@@ -311,7 +312,7 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-/*** Desk Test container ***/
+/*** Tabular View container ***/
 .desk-test-content {
   padding-left: v-bind('NAVIGATION_CONTENT_INSET + "px"');
   box-sizing: border-box;

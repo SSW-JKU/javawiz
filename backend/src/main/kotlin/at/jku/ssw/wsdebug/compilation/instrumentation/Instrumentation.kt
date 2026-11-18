@@ -135,7 +135,7 @@ private fun buildTerminalInsertions(operation: StreamOperationInstrumentationInf
             }
         }
     } else {
-        // Parameterless terminals, including forEach, trace each arriving element so StreamViz can link it to the terminal marble.
+        // Parameterless terminals, including forEach, trace each arriving element so the Stream View can link it to the terminal marble.
         add(SourceInsertion(
             operation.startLine,
             operation.startColumn,

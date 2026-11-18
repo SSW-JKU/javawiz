@@ -15,14 +15,13 @@ import type { HoverInfo } from '@/hover/types'
 import { HeapVizChart } from '@/components/TheHeapVisualization/HeapVizChart'
 import { HeapVizTraceState } from '@/components/TheHeapVisualization/Types/HeapVizTraceState'
 import { MemoryViewRenderContext } from '@/components/TheHeapVisualization/MemoryViewRenderContext'
-import { getLocalOrStaticsToHeapItemHoverInfos, getMethodHoverInfos } from '@/components/TheHeapVisualization/hover'
+import { collectHoverTargets, hoverInfosForTarget } from '@/components/TheHeapVisualization/hover'
 import { identifierFromSvgCellIdentifier } from '@/identifiers/trace-identifiers'
 
 interface HeapVizChartInternals {
   readonly renderContext: MemoryViewRenderContext
   traceState: HeapVizTraceState
   calculateNodeVisibility: () => void
-  getHeapItemToHeapItemHoverInfos: (identifier: string, state: HeapVizTraceState) => HoverInfo[]
 }
 
 const HIGHLIGHTED_EDGE_COLOR = '#eda167'
@@ -160,7 +159,7 @@ function bgColor (cell: string): string | undefined {
 
 function edges (dot: string): Edge[] {
   // Edge statements are not always on their own line, so match each statement by its shape.
-  return Array.from(dot.matchAll(/([^\s;{}]+):e -> (o_\d+):heap_object_header:w \[([^\]]*)\]/g), match => ({
+  return Array.from(dot.matchAll(/([^\s;{}]+):e -> (obj_\d+):heap_object_header:w \[([^\]]*)\]/g), match => ({
     key: `${match[1]} -> ${match[2]}`,
     attributes: match[3]
   }))
@@ -170,14 +169,10 @@ function isOrange (edge: Edge): boolean {
   return edge.attributes.includes(`color="${HIGHLIGHTED_EDGE_COLOR}"`) && /penwidth="2(\.0)?"/.test(edge.attributes)
 }
 
-/** Mirrors the chart's mousemove dispatch, so each hover list is the one the memory view sends. */
+/** Computes the hover list the same way as the chart's mousemove handler. */
 function hoverInfosForCell (internals: HeapVizChartInternals, cellIdentifier: string): HoverInfo[] {
-  const identifier = identifierFromSvgCellIdentifier(cellIdentifier)
-  if (identifier.charAt(0) === 'o')
-    return internals.getHeapItemToHeapItemHoverInfos(identifier, internals.traceState)
-  if (identifier.search('l_') >= 0 || identifier.search('s_') >= 0)
-    return getLocalOrStaticsToHeapItemHoverInfos(identifier.split(':')[1], internals.traceState)
-  return getMethodHoverInfos(identifier, internals.traceState)
+  const target = collectHoverTargets(internals.traceState).get(identifierFromSvgCellIdentifier(cellIdentifier))
+  return target ? hoverInfosForTarget(target, internals.traceState) : []
 }
 
 interface HoverExpectation {
@@ -194,36 +189,36 @@ interface HoverExpectation {
 const HOVER_EXPECTATIONS: readonly HoverExpectation[] = [
   {
     // A primitive local of the outer recursive call: only the local rule can color it.
-    cell: 'roots:l_1_depth:value',
+    cell: 'local_1_depth--value',
     orangeEdges: [],
-    changedRecords: ['roots:l_1_depth'],
-    unchangedRecords: ['roots:l_2_depth']
+    changedRecords: ['local_1_depth'],
+    unchangedRecords: ['local_2_depth']
   },
   {
-    cell: 'roots:l_1_n:value', // reference local of the outer recursive call
-    orangeEdges: ['roots:l_1_n -> o_10'],
-    changedRecords: ['roots:l_1_n'],
-    unchangedRecords: ['roots:l_2_n']
+    cell: 'local_1_n--value', // reference local of the outer recursive call
+    orangeEdges: ['roots:local_1_n -> obj_10'],
+    changedRecords: ['local_1_n'],
+    unchangedRecords: ['local_2_n']
   },
-  { cell: 'roots:l_0_nodes:value', orangeEdges: ['roots:l_0_nodes -> o_20'], changedRecords: ['roots:l_0_nodes'] },
+  { cell: 'local_0_nodes--value', orangeEdges: ['roots:local_0_nodes -> obj_20'], changedRecords: ['local_0_nodes'] },
   {
-    cell: 'roots:l_1_this:value',
-    orangeEdges: ['roots:l_1_this -> o_10'],
-    changedRecords: ['roots:l_1_this'],
-    unchangedRecords: ['roots:l_2_this']
+    cell: 'local_1_this--value',
+    orangeEdges: ['roots:local_1_this -> obj_10'],
+    changedRecords: ['local_1_this'],
+    unchangedRecords: ['local_2_this']
   },
-  { cell: 'roots:s_Node_head:value', orangeEdges: ['roots:s_Node_head -> o_10'], changedRecords: ['roots:s_Node_head'] },
-  { cell: 'o_10:next:value', orangeEdges: ['o_10:next -> o_11'], changedRecords: ['o_10:next', 'o_11'] },
-  { cell: 'o_20:i_0:value', orangeEdges: ['o_20:i_0 -> o_10'], changedRecords: ['o_20:i_0', 'o_10'] },
+  { cell: 'static_Node_head--value', orangeEdges: ['roots:static_Node_head -> obj_10'], changedRecords: ['static_Node_head'] },
+  { cell: 'obj_10-next--value', orangeEdges: ['obj_10:next -> obj_11'], changedRecords: ['obj_10-next', 'obj_11'] },
+  { cell: 'obj_20-0--value', orangeEdges: ['obj_20:0 -> obj_10'], changedRecords: ['obj_20-0', 'obj_10'] },
   {
-    cell: 'o_11:header',
-    orangeEdges: ['o_10:next -> o_11', 'o_20:i_1 -> o_11', 'roots:l_2_n -> o_11', 'roots:l_2_this -> o_11'],
-    changedRecords: ['o_11', 'o_10:next', 'o_20:i_1', 'roots:l_2_n', 'roots:l_2_this']
+    cell: 'obj_11--header',
+    orangeEdges: ['obj_10:next -> obj_11', 'obj_20:1 -> obj_11', 'roots:local_2_n -> obj_11', 'roots:local_2_this -> obj_11'],
+    changedRecords: ['obj_11', 'obj_10-next', 'obj_20-1', 'local_2_n', 'local_2_this']
   },
-  { cell: 'o_20:header', orangeEdges: ['roots:l_0_nodes -> o_20'], changedRecords: ['o_20', 'o_20:i_0', 'o_20:i_1'] },
-  { cell: 'o_21:i_1:value', orangeEdges: [], changedRecords: ['o_21:i_1'] },
-  { cell: 'o_22:header', orangeEdges: ['roots:l_0_text -> o_22'], changedRecords: ['o_22'] },
-  { cell: 'stackframe_1:method', orangeEdges: [], changedRecords: ['stackframe_1', 'stackframe_2'] }
+  { cell: 'obj_20--header', orangeEdges: ['roots:local_0_nodes -> obj_20'], changedRecords: ['obj_20', 'obj_20-0', 'obj_20-1'] },
+  { cell: 'obj_21-1--value', orangeEdges: [], changedRecords: ['obj_21-1'] },
+  { cell: 'obj_22--header', orangeEdges: ['roots:local_0_text -> obj_22'], changedRecords: ['obj_22'] },
+  { cell: 'stackframe_1--method', orangeEdges: [], changedRecords: ['stackframe_1', 'stackframe_2'] }
 ]
 
 function recordOf (cellId: string): string {
@@ -255,20 +250,20 @@ export function runHoverCoverageAssertions (assert: typeof StrictAssert, showMem
 
   // Every edge the fixture draws, so a missing edge cannot hide a missing id.
   assert.deepEqual(baselineEdges.map(edge => edge.key).sort(), [
-    'o_10:next -> o_11',
-    'o_20:i_0 -> o_10',
-    'o_20:i_1 -> o_11',
-    'roots:l_0_nodes -> o_20',
-    'roots:l_0_numbers -> o_21',
-    'roots:l_0_text -> o_22',
-    'roots:l_1_n -> o_10',
-    'roots:l_1_this -> o_10',
-    'roots:l_2_n -> o_11',
-    'roots:l_2_this -> o_11',
-    'roots:s_Node_head -> o_10'
+    'obj_10:next -> obj_11',
+    'obj_20:0 -> obj_10',
+    'obj_20:1 -> obj_11',
+    'roots:local_0_nodes -> obj_20',
+    'roots:local_0_numbers -> obj_21',
+    'roots:local_0_text -> obj_22',
+    'roots:local_1_n -> obj_10',
+    'roots:local_1_this -> obj_10',
+    'roots:local_2_n -> obj_11',
+    'roots:local_2_this -> obj_11',
+    'roots:static_Node_head -> obj_10'
   ])
   assert.ok(baselineEdges.every(edge => !isOrange(edge)), 'no edge is orange without hover')
-  assert.match(baselineEdges.find(edge => edge.key === 'roots:s_Node_head -> o_10')!.attributes, /color="red"/,
+  assert.match(baselineEdges.find(edge => edge.key === 'roots:static_Node_head -> obj_10')!.attributes, /color="red"/,
     'a changed reference is red without hover')
 
   const edgeIds = baselineEdges.map(edge => /\bid="([^"]+)"/.exec(edge.attributes)?.[1])

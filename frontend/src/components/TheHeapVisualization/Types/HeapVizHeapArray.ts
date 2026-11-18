@@ -95,15 +95,15 @@ export class HeapVizHeapArray extends HeapVizHeapItem<ProcessedHeapArray> {
     return `<tr>
               ${memoryDetails}
               <td${indexColumnSpan} width="${MIN_WIDTH}" title="${indexTitle}" bgcolor="${SUB_HEADER_BG_COLOR}">
-                <font color="${this.highlightColor}">
-                  <${this.tag}>[${index}]</${this.tag}>
+                <font color="${elem.textColor}">
+                  <${elem.textTag}>[${index}]</${elem.textTag}>
                 </font>
               </td>
-              <td align="right" cellpadding="0" cellspacing="0" title="${pseudoTitle}" port="i_${index}" sides="LTB" bgcolor="${elem.bgColor}">
+              <td align="right" cellpadding="0" cellspacing="0" title="${pseudoTitle}" port="${elem.port}" sides="LTB" bgcolor="${elem.bgColor}">
                 <font color="white">&nbsp;</font>
               </td>
               <td align="left" cellpadding="0" cellspacing="0" title="${valueTitle}" sides="RTB" bgcolor="${elem.bgColor}">
-                <${this.tag}>${elem.render()}</${this.tag}>
+                <${elem.textTag}>${elem.render()}</${elem.textTag}>
               </td>
             </tr>`;
 
@@ -190,7 +190,7 @@ export class HeapVizHeapArray extends HeapVizHeapItem<ProcessedHeapArray> {
     for (let i = 0; i < nVisibleElements; i++) {
       const itemColor = this.elements[i].bgColor;
       const title = injectedTitleAttributes({ id: svgCellIdentifier(this.elements[i].identifier, SVG_CELL_SUFFIXES.index) })
-      dotString += `<td width="${MIN_WIDTH}" title="${title}" bgcolor="${itemColor}"><font color="${this.highlightColor}">[${i}]</font></td>`;
+      dotString += `<td width="${MIN_WIDTH}" title="${title}" bgcolor="${itemColor}"><font color="${this.elements[i].textColor}">[${i}]</font></td>`;
     }
 
     if (this.isLarge()) {
@@ -215,7 +215,7 @@ export class HeapVizHeapArray extends HeapVizHeapItem<ProcessedHeapArray> {
     if (memoryMode) {
       dotString += '<tr>'
       for (let i = 0; i < nVisibleElements; i++) {
-        dotString += `<td width="${MIN_WIDTH}" align="right" bgcolor="${this.bgColor}"><font color="${this.highlightColor}">`
+        dotString += `<td width="${MIN_WIDTH}" align="right" bgcolor="${this.bgColor}"><font color="${this.textColor}">`
         dotString += `<b>${this.elements[i].value.getTotalBytes()}</b>`
         dotString += '</font></td>'
       }

@@ -1,29 +1,34 @@
-import { HeapTreeNode } from '../heapBFS'
+import { DataStructureGraphNode } from '../dataStructureGraph'
 import { ArrayAccessTarget, ArrayAccessValue, HeapArray, IndexExpression, PrimitiveVal, ProcessedTraceState, StackFrame, Var, VariableTarget } from '@/dto/TraceState'
 import { rootVariableIdentifier } from '@/identifiers/trace-identifiers'
 import {
-  ArrayIndex,
-  ArrayNode,
-  ArrayPointer,
-  CopyAnimations,
-  MissingSource,
-  ProcessedIndex, SettingsIndex,
-  TempVariable,
-  TwoDimArrayNode,
-  ValidProcessedIndex
+  IndexLabel,
+  GhostIndexLabelCandidate,
+  ArrayBox,
+  VariableToArrayPointer,
+  CopyAnimationGroup,
+  VanishedSourceVariable,
+  ParsedIndexLabelSetting, IndexLabelSetting,
+  TemporaryVariableBox,
+  TwoDimArrayRowBox,
+  TwoDimArrayBox,
+  ValidParsedIndexLabelSetting
 } from './types'
 import { DISPLAYABLE_TYPES, HTML, LAYOUT, REGEX } from './constants'
 import { getCellWidth, getCoordinatesAndWidth } from './utils'
-import { addIndex, getIndexCoordinates } from './index-utils'
+import { addIndexLabel, getIndexCoordinates } from './index-utils'
 import { BaseType, Selection } from 'd3-selection'
 import { getAnimationArray, visualizeValueCopy } from './animation'
-import { checkIndexCoverage, getDisplayString } from './index-processing'
+import { checkIndexCoverage, formatIndexLabelExpression } from './index-processing'
 import { SVG } from '../constants'
 import { blendOutAnimation } from '../animations'
 import type { Ref } from 'vue'
 
-export function createTempVariablesStructure (heapTree: HeapTreeNode, component: { traceState?: ProcessedTraceState, minCellWidth: number, onlyCurrentStackFrame: boolean }) {
-  const tempVariables: TempVariable[] = []
+export function createTemporaryVariableBoxes (
+  rootDataStructureGraphNode: DataStructureGraphNode,
+  component: { traceState?: ProcessedTraceState, minCellWidth: number, onlyCurrentStackFrame: boolean }
+) {
+  const temporaryVariableBoxes: TemporaryVariableBox[] = []
   let x = LAYOUT.xOrigin
 
   if (component.traceState) {
@@ -35,12 +40,12 @@ export function createTempVariablesStructure (heapTree: HeapTreeNode, component:
           if (!variable || !DISPLAYABLE_TYPES.types.find(type => type === variable.type)) {
             return
           }
-          const heapNode = heapTree.children.find(child => child.element === variable)
-          if (heapNode && !tempVariables.find(tempVariable => tempVariable.variable === heapNode)) {
+          const heapNode = rootDataStructureGraphNode.childDataStructureGraphNodes.find(child => child.traceElement === variable)
+          if (heapNode && !temporaryVariableBoxes.find(temporaryVariableBox => temporaryVariableBox.variableDataStructureGraphNode === heapNode)) {
             const cellWidth = getCellWidth(heapNode, component.minCellWidth)
-            tempVariables.push({
-              kind: 'TempVariable',
-              variable: heapNode,
+            temporaryVariableBoxes.push({
+              kind: 'TemporaryVariableBox',
+              variableDataStructureGraphNode: heapNode,
               coordinates: [x, LAYOUT.yOrigin + LAYOUT.tempVariables.yOrigin],
               cellWidth
             })
@@ -50,195 +55,201 @@ export function createTempVariablesStructure (heapTree: HeapTreeNode, component:
       })
     }
   }
-  return tempVariables
+  return temporaryVariableBoxes
 }
 
 function isDisplayAbleType (type: string) {
   return DISPLAYABLE_TYPES.oneDim.includes(type) || DISPLAYABLE_TYPES.twoDim.includes(type)
 }
 
-function isDisplayableArray (child: HeapTreeNode) {
+function isDisplayableArray (child: DataStructureGraphNode) {
   // test if referenced array is displayable
-  const displayableArrayReference = (child.element as Var).value.kind === 'ReferenceVal' &&
-    isDisplayAbleType((child.children[0].element as HeapArray).type)
+  const displayableArrayReference = (child.traceElement as Var).value.kind === 'ReferenceVal' &&
+    isDisplayAbleType((child.childDataStructureGraphNodes[0].traceElement as HeapArray).type)
   // test if array null pointer is displayable
-  const displayableArrayNullPointer = (child.element as Var).value.kind === 'NullVal' &&
-    isDisplayAbleType((child.element as Var).type)
+  const displayableArrayNullPointer = (child.traceElement as Var).value.kind === 'NullVal' &&
+    isDisplayAbleType((child.traceElement as Var).type)
   return displayableArrayReference || displayableArrayNullPointer
 }
 
-export function createArrayAndPointerStructure (heapTree: HeapTreeNode, component: { showArgs: boolean, minCellWidth: number }) {
-  const arrayPointers: ArrayPointer[] = []
-  const arrays: ArrayNode[] = []
+export function createArrayBoxesAndVariablePointers (rootDataStructureGraphNode: DataStructureGraphNode, component: { showArgs: boolean, minCellWidth: number }) {
+  const variableToArrayPointers: VariableToArrayPointer[] = []
+  const arrayBoxes: ArrayBox[] = []
   let ignored = 0
-  heapTree.children
+  rootDataStructureGraphNode.childDataStructureGraphNodes
     .filter(child => isDisplayableArray(child))
     .forEach((node, index) => {
-      if (!component.showArgs && (node.name === 'args' || node.name === 'arg')) {
+      if (!component.showArgs && (node.label === 'args' || node.label === 'arg')) {
         ignored++
         return
       }
-      let arrayNode = arrays.find(n => n.element === node.children[0]?.element)
-      if (!arrayNode && (node.element as Var).value.kind !== 'NullVal') {
-        if ((node.children[0].element as HeapArray).type.endsWith('[][]') || (node.element as Var).type.endsWith('[][]')) {
-          const cellWidth = Math.max(...node.children[0].children.map(child => getCellWidth(child, component.minCellWidth)))
-          const maxLength = Math.max(...node.children[0].children.map(child => child.children.length))
-          const parentDimensions: [number, number] = [node.children[0].children.length, maxLength]
-          arrayNode = {
-            ...node.children[0],
-            kind: 'TwoDimArrayNode',
-            level: index - ignored,
+      let arrayBox = arrayBoxes.find(n => n.traceElement === node.childDataStructureGraphNodes[0]?.traceElement)
+      if (!arrayBox && (node.traceElement as Var).value.kind !== 'NullVal') {
+        if ((node.childDataStructureGraphNodes[0].traceElement as HeapArray).type.endsWith('[][]') || (node.traceElement as Var).type.endsWith('[][]')) {
+          const cellWidth = Math.max(...node.childDataStructureGraphNodes[0].childDataStructureGraphNodes.map(child => getCellWidth(child, component.minCellWidth)))
+          const maxLength = Math.max(...node.childDataStructureGraphNodes[0].childDataStructureGraphNodes.map(child => child.childDataStructureGraphNodes.length))
+          const parentDimensions: [number, number] = [node.childDataStructureGraphNodes[0].childDataStructureGraphNodes.length, maxLength]
+          const twoDimArrayBox: TwoDimArrayBox = {
+            ...node.childDataStructureGraphNodes[0],
+            kind: 'TwoDimArrayBox',
+            row: index - ignored,
             cellWidth,
             dimensions: parentDimensions,
-            children: node.children[0].children.map((child, i, _) => {
+            childDataStructureGraphNodes: node.childDataStructureGraphNodes[0].childDataStructureGraphNodes.map((child, i, _): TwoDimArrayRowBox => {
               return {
                 ...child,
-                kind: 'TwoDimArrayChild',
-                parent: undefined,
-                indexInParent: i,
-                level: index - ignored,
+                kind: 'TwoDimArrayRowBox',
+                parentArrayBox: undefined,
+                rowIndex: i,
+                row: index - ignored,
                 cellWidth,
                 parentDimensions
               }
             })
           }
-          arrayNode.children.forEach(child => {
-            child.parent = arrayNode
+          twoDimArrayBox.childDataStructureGraphNodes.forEach(child => {
+            child.parentArrayBox = twoDimArrayBox
           })
-          arrays.push(...(arrayNode as TwoDimArrayNode).children)
-          arrays.push(arrayNode)
+          arrayBoxes.push(...twoDimArrayBox.childDataStructureGraphNodes)
+          arrayBoxes.push(twoDimArrayBox)
+          arrayBox = twoDimArrayBox
         } else {
-          arrayNode = {
-            ...node.children[0],
-            kind: 'OneDimArrayNode',
-            dimensions: [node.children[0].children.length],
-            level: index - ignored,
-            cellWidth: getCellWidth(node.children[0], component.minCellWidth)
+          arrayBox = {
+            ...node.childDataStructureGraphNodes[0],
+            kind: 'OneDimArrayBox',
+            dimensions: [node.childDataStructureGraphNodes[0].childDataStructureGraphNodes.length],
+            row: index - ignored,
+            cellWidth: getCellWidth(node.childDataStructureGraphNodes[0], component.minCellWidth)
           }
-          arrays.push(arrayNode)
+          arrayBoxes.push(arrayBox)
         }
       }
-      arrayPointers.push({
-        array: arrayNode,
-        name: node.name,
-        level: index - ignored,
-        isNull: (node.element as Var).value.kind === 'NullVal',
-        // Same identifier as in the memory view, e.g. `roots:l_0_arr`.
-        sourceVariableIdentifier: rootVariableIdentifier(node.element as Var, node.stackFrameDepth),
-        source: node,
-        changed: (node.element as Var).changed
+      variableToArrayPointers.push({
+        targetArrayBox: arrayBox,
+        name: node.label,
+        row: index - ignored,
+        isNull: (node.traceElement as Var).value.kind === 'NullVal',
+        // Same identifier as in the Memory View, e.g. `local_0_arr`.
+        sourceVariableIdentifier: rootVariableIdentifier(node.traceElement as Var, node.stackFrameNumber),
+        sourceDataStructureGraphNode: node,
+        changed: (node.traceElement as Var).changed
       })
     })
-  return { arrays, arrayPointers }
+  return { arrayBoxes, variableToArrayPointers }
 }
 
-export function createLevelCoordinates (pointer: ArrayPointer[], arrays: ArrayNode[]) {
-  const levelCoordinates: number[] = []
+export function createRowYCoordinates (variableToArrayPointers: VariableToArrayPointer[], arrayBoxes: ArrayBox[]) {
+  const rowYCoordinates: number[] = []
   let lastY = LAYOUT.yOrigin + LAYOUT.arrays.yOrigin
-  pointer
+  variableToArrayPointers
     .slice()
-    .sort((a, b) => a.level - b.level)
+    .sort((a, b) => a.row - b.row)
     .forEach(pointer => {
-      levelCoordinates.push(lastY)
-      const array = arrays.find(array => array.level === pointer.level)
-      if (array?.kind === 'TwoDimArrayChild') {
-        lastY += array.parentDimensions[0] * SVG.cellHeight
+      rowYCoordinates.push(lastY)
+      const arrayBox = arrayBoxes.find(array => array.row === pointer.row)
+      if (arrayBox?.kind === 'TwoDimArrayRowBox') {
+        lastY += arrayBox.parentDimensions[0] * SVG.cellHeight
       } else {
         lastY += SVG.cellHeight
       }
       lastY += LAYOUT.arrays.distanceBetween
     })
-  return levelCoordinates
+  return rowYCoordinates
 }
 
-export function createIndexesStructure (
-  arrays: ArrayNode[],
-  heapTree: HeapTreeNode,
-  ghostIndexes: {array: ArrayNode, name: string, value: number}[],
-  component: { processedIndexes: ProcessedIndex[] }
+export function createIndexLabels (
+  arrayBoxes: ArrayBox[],
+  rootDataStructureGraphNode: DataStructureGraphNode,
+  ghostIndexLabelCandidates: GhostIndexLabelCandidate[],
+  component: { parsedIndexLabelSettings: ParsedIndexLabelSetting[] }
 ) {
-  const indexes: ArrayIndex[] = []
-  component.processedIndexes
+  const indexLabels: IndexLabel[] = []
+  component.parsedIndexLabelSettings
     .filter(index => !index.isHidden && index.isValid)
-    .forEach(processedIndex => {
-      const index = processedIndex as ValidProcessedIndex
+    .forEach(parsedIndexLabelSetting => {
+      const validParsedIndexLabelSetting = parsedIndexLabelSetting as ValidParsedIndexLabelSetting
 
-      const indexedArrays: ArrayNode[] = []
-      if (index.array) {
-        indexedArrays.push(index.array)
-      } else if (index.arrayName === REGEX.arrayWildcard) {
-        indexedArrays.push(...arrays)
+      const indexedArrayBoxes: ArrayBox[] = []
+      if (validParsedIndexLabelSetting.arrayBox) {
+        indexedArrayBoxes.push(validParsedIndexLabelSetting.arrayBox)
+      } else if (validParsedIndexLabelSetting.arrayName === REGEX.arrayWildcard) {
+        indexedArrayBoxes.push(...arrayBoxes)
       } else {
-        for (let i = arrays.length - 1; i >= 0; i--) {
-          if (arrays[i].parents?.find(par => par.name === index.arrayName)) {
-            indexedArrays.push(arrays[i])
+        for (let i = arrayBoxes.length - 1; i >= 0; i--) {
+          if (arrayBoxes[i].parentDataStructureGraphNodes?.find(par => par.label === validParsedIndexLabelSetting.arrayName)) {
+            indexedArrayBoxes.push(arrayBoxes[i])
           }
         }
       }
 
-      index.variableNames.forEach((variableName, i) => {
+      validParsedIndexLabelSetting.variableNames.forEach((variableName, i) => {
         if (variableName === '*') {
           return
         }
         // find variable
-        const variable = heapTree.children.slice().reverse()
-          .find(child => child.name === variableName)
-        if (!variable || (variable.element as Var).value.kind !== 'PrimitiveVal') {
+        const variable = rootDataStructureGraphNode.childDataStructureGraphNodes.slice().reverse()
+          .find(child => child.label === variableName)
+        if (!variable || (variable.traceElement as Var).value.kind !== 'PrimitiveVal') {
           return
         }
         // convert value of variable to number
-        const value = +(((variable.element as Var).value as PrimitiveVal).primitiveValue)
+        const value = +(((variable.traceElement as Var).value as PrimitiveVal).primitiveValue)
         if (!Number.isInteger(value)) {
           return
         }
-        // add indexes
-        indexedArrays
-          .filter(array => array.kind !== 'TwoDimArrayChild')
+        // add index labels
+        indexedArrayBoxes
+          .filter(array => array.kind !== 'TwoDimArrayRowBox')
           .forEach(array => {
-            const arr = i > 0 ? (array as TwoDimArrayNode).children[0] : array
-            if (arr) {
-              addIndex(indexes, { array: arr, name: variableName, value, changed: (variable.element as Var).changed, isGhost: false })
+            const arrayBox = i > 0 ? (array as TwoDimArrayBox).childDataStructureGraphNodes[0] : array
+            if (arrayBox) {
+              addIndexLabel(indexLabels, { arrayBox, text: variableName, cellIndex: value, changed: (variable.traceElement as Var).changed, isGhost: false })
             }
           })
       })
     })
-  ghostIndexes.forEach(ghostIndex => {
-    if (!indexes.find(index => index.name === ghostIndex.name && (index.array.element as HeapArray).id === (ghostIndex.array.element as HeapArray).id)) {
-      addIndex(indexes, { array: ghostIndex.array, name: ghostIndex.name, value: ghostIndex.value, changed: false, isGhost: true })
+  ghostIndexLabelCandidates.forEach(ghostIndexLabelCandidate => {
+    if (!indexLabels.find(indexLabel => indexLabel.text === ghostIndexLabelCandidate.text &&
+      (indexLabel.arrayBox.traceElement as HeapArray).id === (ghostIndexLabelCandidate.arrayBox.traceElement as HeapArray).id)) {
+      addIndexLabel(
+        indexLabels,
+        { arrayBox: ghostIndexLabelCandidate.arrayBox, text: ghostIndexLabelCandidate.text, cellIndex: ghostIndexLabelCandidate.cellIndex, changed: false, isGhost: true }
+      )
     }
   })
-  return indexes
+  return indexLabels
 }
 
 function handleSourceVariables (
   arrayAccessValue: ArrayAccessValue,
-  stackDepth: number,
-  array: ArrayNode,
+  stackFrameNumber: number,
+  arrayBox: ArrayBox,
   structures: {
-    tempVariables: TempVariable[],
-    copyAnimations: CopyAnimations,
-    missingSources: MissingSource[],
+    temporaryVariableBoxes: TemporaryVariableBox[],
+    copyAnimationGroup: CopyAnimationGroup,
+    vanishedSourceVariables: VanishedSourceVariable[],
     staticViz: Selection<BaseType, unknown, HTMLElement, any>,
   }
 ) {
   arrayAccessValue.arrayAccess.assignmentSourceVariableNames.forEach(sourceVariableName => {
-    const source = structures.tempVariables.find(tempVariable => tempVariable.variable.name === sourceVariableName &&
-      tempVariable.variable.stackFrameDepth === stackDepth)
-    if (array) {
-      const targetArray = getAnimationArray(arrayAccessValue, array)
+    const sourceTemporaryVariableBox = structures.temporaryVariableBoxes.find(temporaryVariableBox =>
+      temporaryVariableBox.variableDataStructureGraphNode.label === sourceVariableName &&
+      temporaryVariableBox.variableDataStructureGraphNode.stackFrameNumber === stackFrameNumber)
+    if (arrayBox) {
+      const targetArrayBox = getAnimationArray(arrayAccessValue, arrayBox)
       const indexTo = arrayAccessValue.indexValues[0]
-      if (source) {
+      if (sourceTemporaryVariableBox) {
         visualizeValueCopy(
-          structures.copyAnimations,
+          structures.copyAnimationGroup,
           structures.staticViz,
-          { source, target: targetArray, arrayCopy: false },
-          { to: indexTo }
+          { source: sourceTemporaryVariableBox, target: targetArrayBox, isWholeArrayCopy: false },
+          { target: indexTo }
         )
       } else {
-        structures.missingSources.unshift({
-          name: sourceVariableName,
-          stackDepth,
-          target: getCoordinatesAndWidth(targetArray, false, indexTo)
+        structures.vanishedSourceVariables.unshift({
+          variableName: sourceVariableName,
+          stackFrameNumber,
+          targetCell: getCoordinatesAndWidth(targetArrayBox, false, indexTo)
         })
       }
     }
@@ -247,102 +258,102 @@ function handleSourceVariables (
 
 function handleTargetAccess (
   targetInfo: {
-    dimension: number, array: ArrayNode, arrayAccessValue: ArrayAccessValue, indexExpression: IndexExpression
+    dimension: number, arrayBox: ArrayBox, arrayAccessValue: ArrayAccessValue, indexExpression: IndexExpression
   },
-  ghostIndexes: { array: ArrayNode, name: string, value: number }[],
+  ghostIndexLabelCandidates: GhostIndexLabelCandidate[],
   changeCoordinates?: [number, number]
 ) {
-  const index = {
-    array: targetInfo.dimension === 0 && targetInfo.arrayAccessValue.indexValues.length > 1
-      ? (targetInfo.array as TwoDimArrayNode).children[0]
-      : targetInfo.array,
-    name: targetInfo.indexExpression.expression,
-    value: targetInfo.arrayAccessValue.indexValues[targetInfo.dimension]
+  const ghostIndexLabelCandidate: GhostIndexLabelCandidate = {
+    arrayBox: targetInfo.dimension === 0 && targetInfo.arrayAccessValue.indexValues.length > 1
+      ? (targetInfo.arrayBox as TwoDimArrayBox).childDataStructureGraphNodes[0]
+      : targetInfo.arrayBox,
+    text: targetInfo.indexExpression.expression,
+    cellIndex: targetInfo.arrayAccessValue.indexValues[targetInfo.dimension]
   }
 
-  ghostIndexes.push(index)
+  ghostIndexLabelCandidates.push(ghostIndexLabelCandidate)
 
-  return changeCoordinates ?? getIndexCoordinates(index)
+  return changeCoordinates ?? getIndexCoordinates(ghostIndexLabelCandidate)
 }
 
 function addArrayTargetAnimation (
   targetArrayAccess: ArrayAccessTarget,
   source: {
-    array: ArrayNode,
-    animationArray: ArrayNode,
+    arrayBox: ArrayBox,
+    animationArrayBox: ArrayBox,
     accessValue: ArrayAccessValue
   },
   structures: {
-    arrays: ArrayNode[],
+    arrayBoxes: ArrayBox[],
     stackFrame: StackFrame,
-    copyAnimations: CopyAnimations,
+    copyAnimationGroup: CopyAnimationGroup,
     staticViz: Selection<BaseType, unknown, HTMLElement, any>
   }
 ) {
   // find target access
   const targetAccessValue = structures.stackFrame.arrayAccessValues.find((access: ArrayAccessValue) => access.arrayAccess.id === targetArrayAccess.id)
-  const arrayTo = structures.arrays.find(array => (array.element as HeapArray).id === targetAccessValue?.arrayObjectId)
-  if (targetAccessValue && arrayTo) {
+  const targetArrayBox = structures.arrayBoxes.find(array => (array.traceElement as HeapArray).id === targetAccessValue?.arrayObjectId)
+  if (targetAccessValue && targetArrayBox) {
     visualizeValueCopy(
-      structures.copyAnimations,
+      structures.copyAnimationGroup,
       structures.staticViz,
       {
-        source: getAnimationArray(source.accessValue, source.array),
-        target: getAnimationArray(targetAccessValue, arrayTo),
-        arrayCopy: source.animationArray.kind === 'TwoDimArrayNode' && source.accessValue.indexValues.length === 1
+        source: getAnimationArray(source.accessValue, source.arrayBox),
+        target: getAnimationArray(targetAccessValue, targetArrayBox),
+        isWholeArrayCopy: source.animationArrayBox.kind === 'TwoDimArrayBox' && source.accessValue.indexValues.length === 1
       },
-      { from: source.accessValue.indexValues[0], to: targetAccessValue.indexValues[0] }
+      { source: source.accessValue.indexValues[0], target: targetAccessValue.indexValues[0] }
     )
   }
 }
 
 function addVariableTargetAnimation (
   targetName: string,
-  stackDepth: number,
+  stackFrameNumber: number,
   source: {
-    array: ArrayNode,
+    arrayBox: ArrayBox,
     arrayAccessValue: ArrayAccessValue
   },
   structures: {
-    tempVariables: TempVariable[],
-    copyAnimations: CopyAnimations,
+    temporaryVariableBoxes: TemporaryVariableBox[],
+    copyAnimationGroup: CopyAnimationGroup,
     staticViz: Selection<BaseType, unknown, HTMLElement, any>
   },
   changeCoordinates?: [number, number]
 ) {
-  const targetVariable = structures.tempVariables.find(tempVariable => tempVariable.variable.name === targetName &&
-    tempVariable.variable.stackFrameDepth === stackDepth)
-  if (targetVariable) {
+  const targetTemporaryVariableBox = structures.temporaryVariableBoxes.find(temporaryVariableBox => temporaryVariableBox.variableDataStructureGraphNode.label === targetName &&
+    temporaryVariableBox.variableDataStructureGraphNode.stackFrameNumber === stackFrameNumber)
+  if (targetTemporaryVariableBox) {
     visualizeValueCopy(
-      structures.copyAnimations,
+      structures.copyAnimationGroup,
       structures.staticViz,
       {
-        source: getAnimationArray(source.arrayAccessValue, source.array),
-        target: targetVariable,
-        arrayCopy: source.array.kind === 'TwoDimArrayNode' && source.arrayAccessValue.indexValues.length === 1
+        source: getAnimationArray(source.arrayAccessValue, source.arrayBox),
+        target: targetTemporaryVariableBox,
+        isWholeArrayCopy: source.arrayBox.kind === 'TwoDimArrayBox' && source.arrayAccessValue.indexValues.length === 1
       },
-      { from: source.arrayAccessValue.indexValues[0] }
+      { source: source.arrayAccessValue.indexValues[0] }
     )
   }
 
-  return changeCoordinates ?? targetVariable?.coordinates
+  return changeCoordinates ?? targetTemporaryVariableBox?.coordinates
 }
 
-export function createGhostIdxAndTempVarsStruct (
-  arrays: ArrayNode[],
-  tempVariables: TempVariable[],
+export function createGhostIndexLabelsAndCopyAnimations (
+  arrayBoxes: ArrayBox[],
+  temporaryVariableBoxes: TemporaryVariableBox[],
   viz: Selection<BaseType, unknown, HTMLElement, any>,
   component: { traceState?: ProcessedTraceState }
 ) {
-  const ghostIndexes: { array: ArrayNode, name: string, value: number }[] = []
+  const ghostIndexLabelCandidates: GhostIndexLabelCandidate[] = []
   let changeCoordinates: [number, number] | undefined
 
   const staticViz = viz.select(`#${HTML.ids.arrayWriteAccesses.static}`)
-  const movingViz = viz.select(`#${HTML.ids.arrayWriteAccesses.moving}`)
-  const copyAnimations: CopyAnimations = { duration: 0, movingViz, data: [] }
+  const movingLayerSelection = viz.select(`#${HTML.ids.arrayWriteAccesses.moving}`)
+  const copyAnimationGroup: CopyAnimationGroup = { duration: 0, movingLayerSelection, copyAnimations: [] }
   blendOutAnimation(staticViz.selectAll(`.${HTML.classes.highlightedCells.sources}, .${HTML.classes.highlightedCells.targets}`))
 
-  const missingSources: MissingSource[] = []
+  const vanishedSourceVariables: VanishedSourceVariable[] = []
 
   if (component.traceState) {
     for (let i = 0; i < component.traceState.stackAfterExecution.length; i++) {
@@ -350,54 +361,54 @@ export function createGhostIdxAndTempVarsStruct (
       stackFrame.arrayAccessValues
         .filter(arrayAccessValue => arrayAccessValue.evaluated)
         .forEach(arrayAccessValue => {
-          const array = arrays.find(array => (array.element as HeapArray).id === arrayAccessValue.arrayObjectId)
-          if (!array) {
+          const arrayBox = arrayBoxes.find(array => (array.traceElement as HeapArray).id === arrayAccessValue.arrayObjectId)
+          if (!arrayBox) {
             return
           }
 
-          const stackDepth = component.traceState!.stackAfterExecution.length - 1 - i
+          const stackFrameNumber = component.traceState!.stackAfterExecution.length - 1 - i
 
           handleSourceVariables(
             arrayAccessValue,
-            stackDepth,
-            array,
-            { tempVariables, copyAnimations, missingSources, staticViz }
+            stackFrameNumber,
+            arrayBox,
+            { temporaryVariableBoxes, copyAnimationGroup, vanishedSourceVariables, staticViz }
           )
 
           arrayAccessValue.arrayAccess.indexExpressions.forEach((indexExpression, j) => {
             if (arrayAccessValue.arrayAccess.isWrittenTo) {
               changeCoordinates = handleTargetAccess(
-                { dimension: j, arrayAccessValue, array, indexExpression },
-                ghostIndexes,
+                { dimension: j, arrayAccessValue, arrayBox, indexExpression },
+                ghostIndexLabelCandidates,
                 changeCoordinates
               )
             } else {
-              const arrayFrom = j === 0 && arrayAccessValue.indexValues.length > 1
-                ? (array as TwoDimArrayNode).children[0]
-                : array
+              const sourceArrayBox = j === 0 && arrayAccessValue.indexValues.length > 1
+                ? (arrayBox as TwoDimArrayBox).childDataStructureGraphNodes[0]
+                : arrayBox
 
               const target = arrayAccessValue.arrayAccess.assignmentTarget
-              if (target && target.kind === 'ArrayAccessTarget' && arrayFrom && j === 0) {
+              if (target && target.kind === 'ArrayAccessTarget' && sourceArrayBox && j === 0) {
                 addArrayTargetAnimation(
                   target,
-                  { array, animationArray: arrayFrom, accessValue: arrayAccessValue },
-                  { arrays, stackFrame, copyAnimations, staticViz }
+                  { arrayBox, animationArrayBox: sourceArrayBox, accessValue: arrayAccessValue },
+                  { arrayBoxes, stackFrame, copyAnimationGroup, staticViz }
                 )
               } else if (target && target.kind === 'VariableTarget' && j === 0) {
                 changeCoordinates = addVariableTargetAnimation(
                   target.name,
-                  stackDepth,
-                  { array, arrayAccessValue },
-                  { tempVariables, copyAnimations, staticViz },
+                  stackFrameNumber,
+                  { arrayBox, arrayAccessValue },
+                  { temporaryVariableBoxes, copyAnimationGroup, staticViz },
                   changeCoordinates
                 )
               }
 
-              if (arrayFrom) {
-                ghostIndexes.push({
-                  array: arrayFrom,
-                  name: indexExpression.expression,
-                  value: arrayAccessValue.indexValues[j]
+              if (sourceArrayBox) {
+                ghostIndexLabelCandidates.push({
+                  arrayBox: sourceArrayBox,
+                  text: indexExpression.expression,
+                  cellIndex: arrayAccessValue.indexValues[j]
                 })
               }
             }
@@ -405,13 +416,13 @@ export function createGhostIdxAndTempVarsStruct (
         })
     }
   }
-  return { ghostIndexes, copyAnimations, changeCoordinates, missingSources }
+  return { ghostIndexLabelCandidates, copyAnimationGroup, changeCoordinates, vanishedSourceVariables }
 }
 
 export function detectArrayAccesses (
-  arrays: ArrayNode[],
-  hiddenIndexes: SettingsIndex[],
-  component: { traceState?: ProcessedTraceState, indexes: SettingsIndex[], processedIndexes: Readonly<Ref<ProcessedIndex[]>> }
+  arrayBoxes: ArrayBox[],
+  hiddenIndexLabelSettings: IndexLabelSetting[],
+  component: { traceState?: ProcessedTraceState, indexLabelSettings: IndexLabelSetting[], parsedIndexLabelSettings: Readonly<Ref<ParsedIndexLabelSetting[]>> }
 ) {
   if (component.traceState) {
     let nrOfDetected = 0
@@ -419,8 +430,8 @@ export function detectArrayAccesses (
     component.traceState.stackAfterExecution.forEach(stackFrame => {
       stackFrame.arrayAccessValues
         .forEach((arrayAccessValue: ArrayAccessValue) => {
-          const accessArray = arrays.find(array => (array.element as HeapArray).id === arrayAccessValue.arrayObjectId)
-          if (!accessArray) {
+          const accessedArrayBox = arrayBoxes.find(array => (array.traceElement as HeapArray).id === arrayAccessValue.arrayObjectId)
+          if (!accessedArrayBox) {
             return
           }
 
@@ -429,25 +440,25 @@ export function detectArrayAccesses (
               return
             }
 
-            let array: ArrayNode = accessArray
+            let arrayBox: ArrayBox = accessedArrayBox
             if (i === 0 && arrayAccessValue.indexValues.length > 1) {
-              if (array.kind !== 'TwoDimArrayNode') {
+              if (arrayBox.kind !== 'TwoDimArrayBox') {
                 return
               }
-              array = array.children[0]
+              arrayBox = arrayBox.childDataStructureGraphNodes[0]
             }
 
-            const name = accessArray.name
+            const name = accessedArrayBox.label
             const index = arrayAccessValue.arrayAccess.indexExpressions.length - 1 - i
-            const indexInSettings = component.processedIndexes.value
+            const indexInSettings = component.parsedIndexLabelSettings.value
               .find(idx => idx.isValid &&
                 checkIndexCoverage(idx, { arrayName: name, variableNames: index === 0 ? [indexExpression.expression] : [REGEX.arrayWildcard, indexExpression.expression] }))
-            if (array && !indexInSettings) {
-              const displayString = getDisplayString(name, indexExpression.expression, index)
-              component.indexes.splice(
+            if (arrayBox && !indexInSettings) {
+              const expression = formatIndexLabelExpression(name, indexExpression.expression, index)
+              component.indexLabelSettings.splice(
                 nrOfDetected,
                 0,
-                { displayString, array: accessArray, isDetected: true, isHidden: !!hiddenIndexes.find(idx => idx.displayString === displayString) }
+                { expression, arrayBox: accessedArrayBox, isDetected: true, isHidden: !!hiddenIndexLabelSettings.find(idx => idx.expression === expression) }
               )
               nrOfDetected++
             }

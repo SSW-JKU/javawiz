@@ -1,0 +1,54 @@
+name: Shared Code Checks
+
+on:
+  # Check every pushed commit and tag, pull requests, published releases, and allow manual runs.
+  push:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# When new commits arrive quickly, only the newest run matters. Release runs are always completed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+# Reading the repository is enough, so pull requests from forks work the same way.
+permissions:
+  contents: read
+
+jobs:
+  shared-checks:
+    name: Shared code checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          # The checks do not need Git credentials after checkout.
+          persist-credentials: false
+
+      # The Node version matches the one that the Gradle build pins.
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: shared/package-lock.json
+
+      - name: Install dependencies
+        working-directory: shared
+        run: npm ci
+
+      - name: Lint
+        working-directory: shared
+        run: npm run lint

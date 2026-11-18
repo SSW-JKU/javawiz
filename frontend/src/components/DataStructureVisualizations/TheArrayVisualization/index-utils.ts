@@ -1,116 +1,110 @@
-import { ArrayIndex, ArrayNode } from './types'
+import { IndexLabel, ArrayBox } from './types'
 import { getArrayCoordinates, getArrayLength } from './array-utils'
 import { LAYOUT } from './constants'
 import { BaseType, Selection } from 'd3'
 import { SVG } from '../constants'
 
-// calculates index coordinates
-export function getIndexCoordinates (index: { array: ArrayNode, value: number }, ignoreTwoDim: boolean = false): [number, number] {
-  const arrayCoordinates = getArrayCoordinates(index.array, ignoreTwoDim)
-  if (index.array.kind === 'TwoDimArrayNode') {
+// calculates the coordinates of an index label's cell
+export function getIndexCoordinates (indexLabel: Pick<IndexLabel, 'arrayBox' | 'cellIndex'>, ignoreTwoDim: boolean = false): [number, number] {
+  const arrayCoordinates = getArrayCoordinates(indexLabel.arrayBox, ignoreTwoDim)
+  if (indexLabel.arrayBox.kind === 'TwoDimArrayBox') {
     return [
-      arrayCoordinates[0] + index.array.dimensions[1] * index.array.cellWidth + LAYOUT.indexes.row.xOffset,
-      arrayCoordinates[1] + index.value * SVG.cellHeight
+      arrayCoordinates[0] + indexLabel.arrayBox.dimensions[1] * indexLabel.arrayBox.cellWidth + LAYOUT.indexes.row.xOffset,
+      arrayCoordinates[1] + indexLabel.cellIndex * SVG.cellHeight
     ]
   } else {
     return [
-      arrayCoordinates[0] + index.value * index.array.cellWidth,
+      arrayCoordinates[0] + indexLabel.cellIndex * indexLabel.arrayBox.cellWidth,
       arrayCoordinates[1] - LAYOUT.indexes.col.yOffset
     ]
   }
 }
 
-// calculates index' offset
-export function calculateIndexOffset (index: { array: ArrayNode; value: number; index: number }) {
-  let entry: { count: number, distance: number } | undefined
-  if (index.array.indexDistances) {
-    const i = getIndexInDistArr(index.value, index.array)
-    entry = index.array.indexDistances[i]
+// calculates an index label's offset within its cell, so several labels at one cell do not overlap
+export function calculateIndexOffset (indexLabel: Pick<IndexLabel, 'arrayBox' | 'cellIndex' | 'positionAtCell'>) {
+  let entry: { labelCount: number, spacing: number } | undefined
+  if (indexLabel.arrayBox.indexLabelsPerCell) {
+    const i = getIndexLabelSlot(indexLabel.cellIndex, indexLabel.arrayBox)
+    entry = indexLabel.arrayBox.indexLabelsPerCell[i]
   }
-  if (index.array.kind === 'TwoDimArrayNode') {
-    return entry && entry.count > 1
-      ? LAYOUT.indexes.row.yOffset + index.index * entry.distance
+  if (indexLabel.arrayBox.kind === 'TwoDimArrayBox') {
+    return entry && entry.labelCount > 1
+      ? LAYOUT.indexes.row.yOffset + indexLabel.positionAtCell * entry.spacing
       : 1 / 2 * SVG.cellHeight
   } else {
-    return entry && entry.count > 1
-      ? LAYOUT.indexes.col.xOffset + index.index * entry.distance
-      : index.array.cellWidth / 2
+    return entry && entry.labelCount > 1
+      ? LAYOUT.indexes.col.xOffset + indexLabel.positionAtCell * entry.spacing
+      : indexLabel.arrayBox.cellWidth / 2
   }
 }
 
-// returns the index of a value in the distances array
-function getIndexInDistArr (value: number, array: ArrayNode) {
+// returns the slot of `indexLabelsPerCell` for an index value: the cell itself, or one of the two slots for indexes < 0 and ≥ length
+function getIndexLabelSlot (value: number, arrayBox: ArrayBox) {
   if (value < 0) {
-    // index in distArray for indexes < 0
-    return array.indexDistances!.length - 2
-  } else if (value >= getArrayLength(array)) {
-    // index in distArray for indexes >= array.length
-    return array.indexDistances!.length - 1
+    // slot for indexes < 0
+    return arrayBox.indexLabelsPerCell!.length - 2
+  } else if (value >= getArrayLength(arrayBox)) {
+    // slot for indexes >= array length
+    return arrayBox.indexLabelsPerCell!.length - 1
   } else {
     return value
   }
 }
 
-// adds an index into the indexes array
-export function addIndex (
-  indexes: ArrayIndex[],
-  props: {
-    array: ArrayNode,
-    name: string,
-    value: number,
-    changed: boolean,
-    isGhost: boolean
-  }
+// adds an index label to the list, placing it after the labels already at its cell
+export function addIndexLabel (
+  indexLabels: IndexLabel[],
+  props: Pick<IndexLabel, 'arrayBox' | 'text' | 'cellIndex' | 'changed' | 'isGhost'>
 ) {
-  // init distance info if needed
-  if (!props.array.indexDistances) {
-    props.array.indexDistances = [...Array(getArrayLength(props.array) + 2).keys()].map(_ => {
-      return { count: 0, distance: 0 }
+  // create the label slots of this array box on its first index label
+  if (!props.arrayBox.indexLabelsPerCell) {
+    props.arrayBox.indexLabelsPerCell = [...Array(getArrayLength(props.arrayBox) + 2).keys()].map(_ => {
+      return { labelCount: 0, spacing: 0 }
     })
-    props.array.indexDistances[props.array.indexDistances.length - 1].distance = (props.array.cellWidth - 2 * LAYOUT.indexes.col.xOffset)
+    props.arrayBox.indexLabelsPerCell[props.arrayBox.indexLabelsPerCell.length - 1].spacing = (props.arrayBox.cellWidth - 2 * LAYOUT.indexes.col.xOffset)
   }
 
-  // add index
-  const i = getIndexInDistArr(props.value, props.array)
-  const entry = props.array.indexDistances[i]
-  props.value = Math.max(-1, Math.min(props.value, getArrayLength(props.array)))
-  indexes.push({
+  // add the label
+  const i = getIndexLabelSlot(props.cellIndex, props.arrayBox)
+  const entry = props.arrayBox.indexLabelsPerCell[i]
+  props.cellIndex = Math.max(-1, Math.min(props.cellIndex, getArrayLength(props.arrayBox)))
+  indexLabels.push({
     ...props,
-    index: entry.count,
-    rotated: props.name.length > LAYOUT.indexes.col.rotationThreshold
+    positionAtCell: entry.labelCount,
+    isRotated: props.text.length > LAYOUT.indexes.col.rotationThreshold
   })
-  entry.count++
+  entry.labelCount++
 
-  // update index distances
-  if (entry.count > 1 && i < props.array.indexDistances.length - 1) {
-    if (props.array.kind === 'TwoDimArrayNode') {
-      entry.distance = (SVG.cellHeight - 2 * LAYOUT.indexes.row.yOffset) / (entry.count - 1)
+  // spread the labels at this cell evenly over the cell
+  if (entry.labelCount > 1 && i < props.arrayBox.indexLabelsPerCell.length - 1) {
+    if (props.arrayBox.kind === 'TwoDimArrayBox') {
+      entry.spacing = (SVG.cellHeight - 2 * LAYOUT.indexes.row.yOffset) / (entry.labelCount - 1)
     } else {
-      entry.distance = (props.array.cellWidth - 2 * LAYOUT.indexes.col.xOffset) / (entry.count - 1)
+      entry.spacing = (props.arrayBox.cellWidth - 2 * LAYOUT.indexes.col.xOffset) / (entry.labelCount - 1)
     }
   }
 }
 
-// return index offset as coordinate
-export function calculateIndexOffsetCoordinates (index: { array: ArrayNode, value: number, index: number }): [number, number] {
-  if (index.array.kind === 'TwoDimArrayNode') {
-    return [0, calculateIndexOffset(index)]
+// returns an index label's offset within its cell as coordinates
+export function calculateIndexOffsetCoordinates (indexLabel: Pick<IndexLabel, 'arrayBox' | 'cellIndex' | 'positionAtCell'>): [number, number] {
+  if (indexLabel.arrayBox.kind === 'TwoDimArrayBox') {
+    return [0, calculateIndexOffset(indexLabel)]
   } else {
-    return [calculateIndexOffset(index), 0]
+    return [calculateIndexOffset(indexLabel), 0]
   }
 }
 
-// sets the index' text field attributes (mainly handles rotation)
-export function indexForeignObjectAttributes (foreignObject: Selection<any, ArrayIndex, BaseType, unknown>) {
+// sets the attributes of an index label's text (mainly handles rotation)
+export function indexForeignObjectAttributes (foreignObject: Selection<any, IndexLabel, BaseType, unknown>) {
   foreignObject.attr('height', LAYOUT.indexes.height)
-  foreignObject.filter(d => d.array.kind === 'TwoDimArrayNode')
+  foreignObject.filter(d => d.arrayBox.kind === 'TwoDimArrayBox')
     .attr('x', LAYOUT.indexes.row.text.xOffset)
     .attr('y', -LAYOUT.indexes.height / 2 + LAYOUT.indexes.row.text.yOffset)
     .attr('width', LAYOUT.indexes.row.width)
-  foreignObject.filter(d => d.array.kind !== 'TwoDimArrayNode')
-    .attr('x', d => d.rotated ? LAYOUT.indexes.col.rotatedText.xOffset : -LAYOUT.indexes.col.normalText.width / 2)
-    .attr('y', d => d.rotated ? LAYOUT.indexes.col.rotatedText.yOffset : LAYOUT.indexes.col.normalText.yOffset)
-    .attr('width', d => d.rotated ? LAYOUT.indexes.col.rotatedText.width : LAYOUT.indexes.col.normalText.width)
-    .filter(d => d.rotated)
+  foreignObject.filter(d => d.arrayBox.kind !== 'TwoDimArrayBox')
+    .attr('x', d => d.isRotated ? LAYOUT.indexes.col.rotatedText.xOffset : -LAYOUT.indexes.col.normalText.width / 2)
+    .attr('y', d => d.isRotated ? LAYOUT.indexes.col.rotatedText.yOffset : LAYOUT.indexes.col.normalText.yOffset)
+    .attr('width', d => d.isRotated ? LAYOUT.indexes.col.rotatedText.width : LAYOUT.indexes.col.normalText.width)
+    .filter(d => d.isRotated)
     .attr('transform', LAYOUT.indexes.col.rotatedText.transform)
 }

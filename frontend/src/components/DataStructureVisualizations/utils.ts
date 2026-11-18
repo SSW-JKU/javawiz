@@ -1,6 +1,6 @@
 import { select } from 'd3-selection'
 import { HeapItem, LoadedClass, ProcessedTraceState, StackFrame, TraceState } from '@/dto/TraceState'
-import { heapBFS } from './heapBFS'
+import { buildDataStructureGraph } from './dataStructureGraph'
 
 /**
  * Moves element from fromPos to toPos, if toPos is -1 element is appended
@@ -31,10 +31,10 @@ export function removeChildren (selector: string) {
 }
 
 /**
- * chooses the right stack and heap, depending on if it's the first state or not and creates a stack and heap graph
- * @param vm a component containing stateIndex, traceState and firstState
+ * Builds the data-structure graph of the given trace state (see `buildDataStructureGraph`). Uses the
+ * classes, stack and heap after execution of `traceState`, or those of `firstState` for state 0.
  */
-export function getHeapTree (
+export function getDataStructureGraph (
   stateIndex: number,
   traceState: ProcessedTraceState | undefined,
   firstState: TraceState,
@@ -53,5 +53,5 @@ export function getHeapTree (
     stack = firstState.stack
     heap = firstState.heap
   }
-  return heapBFS(loadedClasses, stack, heap, onlyCurrentStackFrame)
+  return buildDataStructureGraph(loadedClasses, stack, heap, onlyCurrentStackFrame)
 }

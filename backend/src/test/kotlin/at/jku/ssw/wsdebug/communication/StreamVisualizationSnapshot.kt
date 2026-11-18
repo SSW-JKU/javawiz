@@ -6,7 +6,7 @@ import at.jku.ssw.wsdebug.debugger.recording.stream.MarbleDiagramItem
 import at.jku.ssw.wsdebug.debugger.recording.stream.MarbleDiagramMarble
 
 /**
- * Renders a StreamViz payload as readable text for golden-file comparison.
+ * Renders a Stream View payload as readable text for golden-file comparison.
  *
  * Pixel positions and runtime IDs are replaced by stable names: a marble is written as `lane@column`,
  * where `column` is the rank of the marble's x position within its stream (1 = leftmost). The text has

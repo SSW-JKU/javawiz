@@ -78,12 +78,13 @@
     <div class="container mx-auto px-4">
       <h2 class="text-3xl font-bold text-center mb-8">How to Get</h2>
       <p class="text-center text-gray-700 mb-6">
-        Latest Version: <span id="current-version-number" class="font-bold text-blue-800">2.4.1</span>,
-        released on <span id="release-date" class="font-bold text-blue-800">08.11.2026</span> (<a href="changelog.html" class="text-blue-600">Changelog</a>).
+        Latest Version: <span id="current-version-number" class="font-bold text-blue-800">2.4.2</span>,
+        released on <span id="release-date" class="font-bold text-blue-800">18.11.2026</span> (<a href="changelog.html" class="text-blue-600">Changelog</a>).
       </p>
       <p class="text-center text-gray-700 mb-6">
         JavaWiz requires <span class="font-bold text-blue-800">JDK 25 or newer</span>.
         Ensure that both <code>java</code> and <code>javac</code> resolve to the same supported JDK.
+        In Visual Studio Code, JavaWiz uses the JDK from the setting <code>java.jdt.ls.java.home</code> if it is set.
       </p>
       <div class="flex flex-col md:flex-row justify-center items-center gap-6 text-center">
         <a href="https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz"
@@ -121,23 +122,23 @@
   <section id="news-section" class="py-16 bg-gray-100" aria-labelledby="news-heading">
     <div class="container mx-auto px-4">
       <h2 id="news-heading" class="text-3xl font-bold text-center mb-8">News</h2>
-      <div class="grid md:grid-cols-3 gap-6"><article id="2026-11-08-javawiz-2-4-1" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
+      <div class="grid md:grid-cols-3 gap-6"><article id="2026-11-18-javawiz-2-4-2" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.2: a clearer Memory View, better data-structure views, and search in the Event History View</h3>
+          <time datetime="2026-11-18" class="block text-sm text-gray-500 mb-4">2026-11-18</time>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.2 makes the Memory View easier to follow, improves the List View and Tree View, and lets you search the Event History View for lines of your code. The Memory View shows what changed (again): We restored JavaWiz&#x27;s behavior that changed variables, fields, array elements, and strings are drawn in red. We newly added that freshly created objects stand out with a red header and border. …</p>
+          <a href="news.html#2026-11-18-javawiz-2-4-2" class="inline-block mt-4 text-blue-600 underline font-semibold" aria-label="Read more: JavaWiz 2.4.2: a clearer Memory View, better data-structure views, and search in the Event History View">Read more</a>
+        </article>
+<article id="2026-11-08-javawiz-2-4-1" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
           <h3 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.1 release notes</h3>
           <time datetime="2026-11-08" class="block text-sm text-gray-500 mb-4">2026-11-08</time>
-          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.1 is a small update that fixes a few problems with the memory views. The array view no longer stays empty when a program has static array fields. This happened most often in Visual Studio Code. …</p>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.1 is a small update that fixes a few problems with the data-structure views. The Array View no longer stays empty when a program has static array fields. This happened most often in Visual Studio Code. …</p>
           <a href="news.html#2026-11-08-javawiz-2-4-1" class="inline-block mt-4 text-blue-600 underline font-semibold" aria-label="Read more: JavaWiz 2.4.1 release notes">Read more</a>
         </article>
 <article id="2026-11-04-javawiz-2-4-0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
-          <h3 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better StreamViz and Memory Visualization, and design improvements</h3>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better Stream View and Memory View, and design improvements</h3>
           <time datetime="2026-11-04" class="block text-sm text-gray-500 mb-4">2026-11-04</time>
-          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.0 fixes various Java 27 problems, improves IntelliJ&#x27;s multi-main handling and makes StreamViz and Memory Viz far more reliable. On Java 27, there was a deprecation in javac that led to a crash when compiling user programs. In addition to that, JavaWiz could stop at the first String.format or printf and wrongly report that the program was waiting for input while it was actually processing. …</p>
-          <a href="news.html#2026-11-04-javawiz-2-4-0" class="inline-block mt-4 text-blue-600 underline font-semibold" aria-label="Read more: JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better StreamViz and Memory Visualization, and design improvements">Read more</a>
-        </article>
-<article id="2026-10-27-javawiz-2-3-1-release-notes" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
-          <h3 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.3.1 release notes</h3>
-          <time datetime="2026-10-27" class="block text-sm text-gray-500 mb-4">2026-10-27</time>
-          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.3.1 fixes a problem that prevented programs from running with Java 27. If you saw an error mentioning “endPositions,” this update should resolve it. The Heap memory view now collapses the args array by default to keep the display clearer. …</p>
-          <a href="news.html#2026-10-27-javawiz-2-3-1-release-notes" class="inline-block mt-4 text-blue-600 underline font-semibold" aria-label="Read more: JavaWiz 2.3.1 release notes">Read more</a>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.0 fixes various Java 27 problems, improves IntelliJ&#x27;s multi-main handling and makes the Stream View and the Memory View far more reliable. On Java 27, there was a deprecation in javac that led to a crash when compiling user programs. In addition to that, JavaWiz could stop at the first String.format or printf and wrongly report that the program was waiting for input while it was actually processing. …</p>
+          <a href="news.html#2026-11-04-javawiz-2-4-0" class="inline-block mt-4 text-blue-600 underline font-semibold" aria-label="Read more: JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better Stream View and Memory View, and design improvements">Read more</a>
         </article></div>
       <p class="text-center mt-8"><a href="news.html" class="text-blue-600 underline font-semibold">See all</a></p>
     </div>
@@ -204,13 +205,13 @@
           </div>
         </div>
 
-        <!-- List and Tree View Card -->
+        <!-- List View and Tree View Card -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
           <div class="p-4">
-            <img src="img/list-tree-view.png" alt="List and Tree View" class="w-full h-48 object-cover" />
+            <img src="img/list-tree-view.png" alt="List View and Tree View" class="w-full h-48 object-cover" />
           </div>
           <div class="p-6">
-            <h3 class="text-xl font-bold mb-2">List and Tree View</h3>
+            <h3 class="text-xl font-bold mb-2">List View and Tree View</h3>
             <p class="text-gray-600">Specialized views for list and tree data structures with smooth animations for operations such as insertions and deletions.
               Shows local node variables alongside referenced nodes, making traversal algorithms easier to understand.</p>
           </div>
@@ -231,11 +232,11 @@
         <!-- Stream View Card -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
           <div class="p-4">
-            <img src="img/stream-viz.png" alt="Java Stream View" class="w-full h-48 object-cover" />
+            <img src="img/stream-viz.png" alt="Stream View" class="w-full h-48 object-cover" />
           </div>
           <div class="p-6">
-            <h3 class="text-xl font-bold mb-2">Java Stream View</h3>
-            <p class="text-gray-600">Visualizes Stream pipelines as dynamic Marble Diagrams, showing execution order, intermediate results, and transformations.
+            <h3 class="text-xl font-bold mb-2">Stream View</h3>
+            <p class="text-gray-600">Visualizes Stream pipelines as dynamic marble diagrams, showing execution order, intermediate results, and transformations.
               Links between elements reveal their lineage across filtering, mapping, and terminal operations.</p>
           </div>
         </div>
@@ -252,25 +253,25 @@
           </div>
         </div>
 
-        <!-- Sequence Diagram Card -->
+        <!-- Sequence Diagram View Card -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
           <div class="p-4">
-            <img src="img/sequence-diagram.png" alt="Sequence Diagram showing two heroes trading items" class="w-full h-48 object-cover" />
+            <img src="img/sequence-diagram.png" alt="Sequence Diagram View showing two heroes trading items" class="w-full h-48 object-cover" />
           </div>
           <div class="p-6">
-            <h3 class="text-xl font-bold mb-2">Sequence Diagram</h3>
+            <h3 class="text-xl font-bold mb-2">Sequence Diagram View</h3>
             <p class="text-gray-600">Shows objects, method calls, returns, and lifetimes over the course of the execution.
               This makes object interactions and nested call sequences easier to follow.</p>
           </div>
         </div>
 
-        <!-- History View Card -->
+        <!-- Event History View Card -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
           <div class="p-4">
-            <img src="img/history-view.png" alt="History View showing calls and field changes during two item trades" class="w-full h-48 object-cover" />
+            <img src="img/history-view.png" alt="Event History View showing calls and field changes during two item trades" class="w-full h-48 object-cover" />
           </div>
           <div class="p-6">
-            <h3 class="text-xl font-bold mb-2">History View</h3>
+            <h3 class="text-xl font-bold mb-2">Event History View</h3>
             <p class="text-gray-600">Presents calls, constructors, initializers, and assignments to variables, fields, and array elements
               across the complete execution trace. Filter or search the history and jump directly to any matching program state.</p>
           </div>
@@ -314,7 +315,7 @@
                 to decreased student engagement, we introduce JavaWiz: an educational graphical debugger that addresses these challenges by combining
                 traditional debugging functionality with intuitive, dynamic visualizations of program state and run-time behavior.
                 <br /><br />
-                JavaWiz's key features include real-time visualization of heap, stack, and static fields; automatically generated flow charts; interactive
+                JavaWiz's key features include real-time visualization of heap, stack, and static fields; automatically generated flowcharts; interactive
                 representations of data structures; and unique time-travel debugging capabilities. Its step-by-step visual exploration of code execution,
                 including the ability to step backward, bridges the gap between abstract concepts and concrete program understanding.
                 <br /><br />

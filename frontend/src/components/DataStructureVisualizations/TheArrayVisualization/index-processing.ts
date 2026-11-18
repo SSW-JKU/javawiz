@@ -1,5 +1,5 @@
 import { REGEX } from './constants'
-import { ProcessedIndex, SettingsIndex } from './types'
+import { ParsedIndexLabelSetting, IndexLabelSetting } from './types'
 
 // checks if the string of a settings index has the correct format
 export function checkIndexString (index: string) {
@@ -13,9 +13,9 @@ export function checkIndexString (index: string) {
   return match
 }
 
-// tries to extract arrayName and variableNames from the displayed string and returns a processedIndex
-export function processIndex (index: SettingsIndex): ProcessedIndex {
-  const match = checkIndexString(index.displayString)
+// parses the expression of an index label setting into the array name and the index variable names
+export function parseIndexLabelSetting (indexLabelSetting: IndexLabelSetting): ParsedIndexLabelSetting {
+  const match = checkIndexString(indexLabelSetting.expression)
   if (match) {
     const arrayName = match[1] ?? REGEX.arrayWildcard
     const variableNames: string[] = []
@@ -28,13 +28,13 @@ export function processIndex (index: SettingsIndex): ProcessedIndex {
       }
       variableNames.push(match[3])
     }
-    return { ...index, arrayName, variableNames, isValid: true }
+    return { ...indexLabelSetting, arrayName, variableNames, isValid: true }
   }
-  return { ...index, isValid: false }
+  return { ...indexLabelSetting, isValid: false }
 }
 
-// returns a displayable string for an settings index
-export function getDisplayString (arrayName: string, variableName: string, index: number) {
+// builds the index label expression shown for an array access, e.g. `arr[i]`
+export function formatIndexLabelExpression (arrayName: string, variableName: string, index: number) {
   if (index === 0) {
     return `${arrayName}[${variableName}]`
   } else {
@@ -62,4 +62,17 @@ export function checkIndexCoverage (
     }
   }
   return true
+}
+
+/**
+ * Reads the index label settings that `TheArrayVisualization` saved in localStorage (`null` if nothing is saved).
+ * Older versions saved the expression as `displayString`; such entries are converted to `expression`, so users
+ * keep their saved labels.
+ */
+export function parseSavedIndexLabelSettings (json: string | null): IndexLabelSetting[] {
+  if (!json) {
+    return []
+  }
+  const saved = JSON.parse(json) as (IndexLabelSetting & { displayString?: string })[]
+  return saved.map(({ displayString, ...setting }) => ({ ...setting, expression: setting.expression ?? displayString ?? '' }))
 }

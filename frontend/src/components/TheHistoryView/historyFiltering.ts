@@ -1,5 +1,6 @@
 import type { HeapItem, ProcessedTraceState, StackFrame, Val } from '../../dto/TraceState'
 import type { AbstractSyntaxTree } from '../../dto/AbstractSyntaxTree'
+import type { DebuggerProtocol } from '../../dto/DebuggerProtocol'
 import { buildHeapAliasIndex, type HeapAliasIndex } from './HeapAliasIndex.ts'
 import type { HistoryFormatter } from './historyFormatting.ts'
 
@@ -16,12 +17,25 @@ export interface CallDslFilter {
   isActive: true
 }
 
+/** Searches executed source lines for `text`, literally and case-sensitively. */
+export interface SourceDslFilter {
+  kind: 'source'
+  text: string
+  isActive: true
+}
+
 export interface InactiveDslFilter {
   kind: 'inactive'
   isActive: false
 }
 
-export type DslFilter = AssignmentDslFilter | CallDslFilter | InactiveDslFilter
+export type DslFilter = AssignmentDslFilter | CallDslFilter | SourceDslFilter | InactiveDslFilter
+
+/**
+ * Returns the text of a source line, or `undefined` when the file or line is
+ * unknown.
+ */
+export type SourceLineLookup = (localUri: string, line: number) => string | undefined
 
 export interface HistoryLookup {
   clear: () => void
@@ -44,6 +58,7 @@ export type HistoryEntryIcon =
   | 'constructor'
   | 'local'
   | 'object-field'
+  | 'source-line'
   | 'static-field'
   | 'static-initializer'
 
@@ -65,6 +80,10 @@ export type HistoryEntryMatch =
   | {
     kind: 'call'
     methodName: string | undefined
+  }
+  | {
+    kind: 'source'
+    sourceText: string
   }
 
 export interface FilteredHistoryState {
@@ -128,15 +147,34 @@ export function normalizeFilterTarget (target: string): string {
     .trim()
 }
 
+// Splits source files at Java's line terminators (CRLF, LF, or a lone CR), which also define debugger line numbers.
+const LINE_TERMINATOR_PATTERN = /\r\n|\r|\n/
+
 /**
- * Parses a History View query into one of the supported DSL filter variants.
+ * Parses an Event History View query into one of the supported DSL filter variants.
  *
- * @param rawQuery - Unprocessed query entered in the History View.
+ * Text in double quotes always searches the source code, so source text that
+ * looks like another filter can still be found. Unquoted `call` and assignment
+ * queries keep their structured meaning; any other text searches the source.
+ *
+ * ```ts
+ * parseDslFilter('a + b')     // { kind: 'source', text: 'a + b' }
+ * parseDslFilter('"y = 7"')   // { kind: 'source', text: 'y = 7' }
+ * parseDslFilter('y = 7')     // { kind: 'assignment', target: 'y', targetValue: '7' }
+ * ```
+ *
+ * @param rawQuery - Unprocessed query entered in the Event History View.
  * @returns A parsed filter, or `null` for an empty query.
  */
 export function parseDslFilter (rawQuery: string): DslFilter | null {
   const query = rawQuery.trim()
   if (!query) return null
+
+  if (query.length >= 2 && query.startsWith('"') && query.endsWith('"')) {
+    // Spaces inside the quotes are part of the searched text and are not trimmed.
+    const text = query.slice(1, -1)
+    return text ? { kind: 'source', text, isActive: true } : { kind: 'inactive', isActive: false }
+  }
 
   const callMatch = query.match(CALL_FILTER_PATTERN)
   if (callMatch) {
@@ -158,15 +196,69 @@ export function parseDslFilter (rawQuery: string): DslFilter | null {
   }
 
   return {
-    kind: 'inactive',
-    isActive: false
+    kind: 'source',
+    text: query,
+    isActive: true
   }
+}
+
+/**
+ * Creates a lookup for source lines by file and one-based line number, as
+ * reported for each trace state.
+ *
+ * @param sources - Source files compiled for the current trace.
+ * @returns Lookup that returns `undefined` for unknown files and lines outside the file.
+ */
+export function createSourceLineLookup (sources: readonly DebuggerProtocol.ClassContent[]): SourceLineLookup {
+  const linesByUri = new Map(sources.map(source => [source.localUri, source.content.split(LINE_TERMINATOR_PATTERN)]))
+  return (localUri, line) => line >= 1 ? linesByUri.get(localUri)?.[line - 1] : undefined
+}
+
+/**
+ * Adds one source row for every shown trace state whose source line contains
+ * `text`. The row comes first in the state's group; a matching state without
+ * other rows gets a new group at its position in the trace.
+ *
+ * A separate row gives each executed occurrence exactly one visible, clickable
+ * match, also when the state produced no assignment or call row, or several.
+ *
+ * @param trace - Complete processed trace.
+ * @param states - Groups built by {@link buildFilteredHistoryStates} for the same trace.
+ * @param text - Literal, case-sensitive text to search for.
+ * @param getSourceLine - Lookup for the source of the compiled trace.
+ * @param isShownMethod - Shown-method filter; states in hidden methods get no source row.
+ * @returns Groups in trace order, with source rows added. Groups without a match are returned unchanged.
+ */
+export function addSourceLineMatches (
+  trace: readonly ProcessedTraceState[],
+  states: readonly FilteredHistoryState[],
+  text: string,
+  getSourceLine: SourceLineLookup,
+  isShownMethod: HistoryDatasetOptions['isShownMethod']
+): FilteredHistoryState[] {
+  const stateByTraceIndex = new Map(states.map(state => [state.traceIndex, state]))
+  return trace.flatMap((state, traceIndex) => {
+    const existing = stateByTraceIndex.get(traceIndex)
+    const sourceLine = getSourceLine(state.localUri, state.line)
+    if (sourceLine === undefined || !sourceLine.includes(text) ||
+      !isTopStackFrameShown(state.stackAfterExecution, isShownMethod)) {
+      return existing ? [existing] : []
+    }
+
+    const sourceEntry = createEntry(
+      `state:${state.stateIndex}:source`,
+      'source-line',
+      sourceLine.trim(),
+      { kind: 'source', sourceText: sourceLine }
+    )
+    return [{ state, traceIndex, entries: [sourceEntry, ...(existing?.entries ?? [])] }]
+  })
 }
 
 /**
  * Tests an assignment history entry against a parsed assignment filter.
  *
- * @param filter - Active History View filter.
+ * @param filter - Active Event History View filter.
  * @param names - Canonical target names associated with the history entry.
  * @param value - Display value assigned by the history entry.
  * @returns `true` when a target name and the requested value both match.
@@ -206,7 +298,7 @@ function createAssignmentNameMatcher (
 /**
  * Tests a method name against a parsed call filter.
  *
- * @param filter - Active History View filter.
+ * @param filter - Active Event History View filter.
  * @param methodName - Runtime method name associated with the history entry.
  * @returns `true` when the filter requests the supplied method name.
  */
@@ -300,7 +392,7 @@ export function shownMethodFilterKey (className: string, methodSignature: string
 }
 
 /**
- * Builds the visible History View entries from the current trace and visibility
+ * Builds the visible Event History View entries from the current trace and visibility
  * controls.
  *
  * @param options - Trace data, visibility controls, formatting callbacks, and alias lookup.
@@ -561,7 +653,7 @@ function getCallIcon (methodName: string | undefined): HistoryEntryIcon {
 /**
  * Builds the set of prepared entries that match the active DSL filter.
  *
- * @param states - Pre-filtered History View state groups.
+ * @param states - Pre-filtered Event History View state groups.
  * @param filter - Active parsed DSL filter.
  * @returns Entry references that the template should highlight.
  */
@@ -586,12 +678,16 @@ export function findHighlightedHistoryEntries (
  * Creates the entry predicate used to rebuild the highlight set for one parsed
  * filter.
  *
- * @param filter - Active assignment or call filter.
+ * @param filter - Active assignment, call, or source filter.
  * @returns Predicate that accepts matching prepared history entries.
  */
 function createHistoryEntryMatcher (
-  filter: AssignmentDslFilter | CallDslFilter
+  filter: AssignmentDslFilter | CallDslFilter | SourceDslFilter
 ): (entry: FilteredHistoryEntry) => boolean {
+  // Source rows exist only for matching states (see addSourceLineMatches), so every one is a match.
+  if (filter.kind === 'source') {
+    return entry => entry.match.kind === 'source'
+  }
   if (filter.kind === 'call') {
     return entry => entry.match.kind === 'call' && entry.match.methodName === filter.methodName
   }
@@ -606,10 +702,12 @@ function createHistoryEntryMatcher (
 }
 
 /**
- * Creates one render-ready History View entry with shared navigation and
+ * Creates one render-ready Event History View entry with shared navigation and
  * indentation metadata.
  *
- * @param key - Stable identifier for highlighting and Vue rendering.
+ * @param key - Stable identifier for highlighting and Vue rendering, e.g. `state:3:local:0:1:i`.
+ *   Not a shared trace identifier: the list positions in the key keep two fields with the same
+ *   name (a subclass hiding a field of its superclass) apart, which an object field identifier cannot.
  * @param icon - Visual category rendered for the entry.
  * @param text - Preformatted entry text.
  * @param match - Lookup metadata used when rebuilding the highlight set.
@@ -776,7 +874,7 @@ function isArrayInitialization (
 }
 
 /**
- * Creates the cached heap-alias lookup used by History View target matching
+ * Creates the cached heap-alias lookup used by Event History View target matching
  * and display-name selection.
  *
  * @returns Lookup operations sharing one clearable alias-index cache.

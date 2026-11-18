@@ -6,7 +6,7 @@ import { HeapVizVar } from './HeapVizVar';
 import { shouldShowClassStatics } from '../DataStructureVisibility'
 import type { MemoryViewRenderContext } from '../MemoryViewRenderContext'
 import { CLASS_BYTES } from '../MemorySize'
-import { staticFieldIdentifier } from '@/identifiers/trace-identifiers'
+import { staticFieldNodeAndPort } from '@/identifiers/trace-identifiers'
 
 export class HeapVizLoadedClass extends HeapVizRenderableElement<LoadedClass> {
   class: string;
@@ -19,7 +19,7 @@ export class HeapVizLoadedClass extends HeapVizRenderableElement<LoadedClass> {
   constructor (model: LoadedClass, renderContext: MemoryViewRenderContext) {
     super(model, renderContext);
     this.class = model.class;
-    this.staticFields = model.staticFields.map(f => new HeapVizVar(f, staticFieldIdentifier(model, f), renderContext));
+    this.staticFields = model.staticFields.map(f => new HeapVizVar(f, staticFieldNodeAndPort(model, f), renderContext));
     this.isHeapTraversalStop = model.isHeapTraversalStop;
     this.isJavaDataStructure = model.isJavaDataStructure;
     this.hasCollectedFields = model.hasCollectedFields;

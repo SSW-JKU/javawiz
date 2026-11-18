@@ -1,228 +1,238 @@
-import { HeapTreeNode } from '../heapBFS'
-import { ListNode, ListNodePointer, NextPointer, ReferenceNode } from './types'
+import { DataStructureGraphNode } from '../dataStructureGraph'
+import { ListNodeBox, VariableToListNodePointer, NextFieldPointer, ValueObjectBox } from './types'
 import { HeapObject, ReferenceVal, Var } from '@/dto/TraceState'
-import { heapObjectFieldIdentifier, idAttributeSelector, rootVariableIdentifier } from '@/identifiers/trace-identifiers'
-import { hasNextPointerChanged } from './pointer-utils'
+import { heapObjectFieldIdentifier, rootVariableIdentifier } from '@/identifiers/trace-identifiers'
+import { hasNextFieldPointerChanged } from './pointer-utils'
 import { BaseType, Selection } from 'd3-selection'
 import { HTML, LAYOUT } from './constants'
 import { SVG } from '../constants'
 import { moveElemInArray } from '../utils'
 import { getVariablePointers } from '../preprocessing-utils'
-import { getFieldIndex, setChangesInFields } from '../heap-tree-node-utils'
+import { getFieldIndex, setChildChangedFlags } from '../data-structure-graph-node-utils'
 
 function processNode (
-  heapNode: HeapTreeNode & { list?: HeapTreeNode },
+  dataStructureGraphNode: DataStructureGraphNode & { list?: DataStructureGraphNode },
   positionInfo: {
-    index: number,
-    level: number
+    column: number,
+    row: number
   },
   iterationInfo: {
-    current: HeapTreeNode,
-    previous: ListNode | undefined
+    currentDataStructureGraphNode: DataStructureGraphNode,
+    previousListNodeBox: ListNodeBox | undefined
   },
   structures: {
-    nodes: ListNode[],
-    referenceNodes: ReferenceNode[],
-    nextPointers: NextPointer[],
-    dummyNodes: ListNode[]
+    listNodeBoxes: ListNodeBox[],
+    valueObjectBoxes: ValueObjectBox[],
+    nextFieldPointers: NextFieldPointer[],
+    nullTargetPlaceholders: ListNodeBox[]
   },
   component: { nodeClassNames: ReadonlySet<string>, nextName: string, valName: string }
 ) {
   // add node
-  const lists = heapNode.list ? [heapNode.list] : []
-  let nodeHeight = SVG.cellHeight * iterationInfo.current.children.length
-  const listNode: ListNode = {
-    node: iterationInfo.current,
-    index: positionInfo.index,
-    lists,
-    level: positionInfo.level,
+  const containingListDataStructureGraphNodes = dataStructureGraphNode.list ? [dataStructureGraphNode.list] : []
+  let nodeHeight = SVG.cellHeight * iterationInfo.currentDataStructureGraphNode.childDataStructureGraphNodes.length
+  const listNodeBox: ListNodeBox = {
+    dataStructureGraphNode: iterationInfo.currentDataStructureGraphNode,
+    column: positionInfo.column,
+    containingListDataStructureGraphNodes,
+    row: positionInfo.row,
     height: nodeHeight,
-    valFieldIndex: getFieldIndex(iterationInfo.current, component.valName),
-    nextFieldIndex: getFieldIndex(iterationInfo.current, component.nextName)
+    valueFieldPosition: getFieldIndex(iterationInfo.currentDataStructureGraphNode, component.valName),
+    nextFieldPosition: getFieldIndex(iterationInfo.currentDataStructureGraphNode, component.nextName)
   }
-  structures.nodes.push(listNode)
-  // handle reference node
-  const nrOfFieldsInReference = processReferenceNode(listNode, structures.referenceNodes)
-  if (nrOfFieldsInReference > 0) {
-    nodeHeight += (nrOfFieldsInReference + 1) * SVG.cellHeight
+  structures.listNodeBoxes.push(listNodeBox)
+  // handle value object box
+  const nrOfFieldsInValueObject = processValueObjectBox(listNodeBox, structures.valueObjectBoxes)
+  if (nrOfFieldsInValueObject > 0) {
+    nodeHeight += (nrOfFieldsInValueObject + 1) * SVG.cellHeight
   }
   // add next pointer
-  const currentListNode = structures.nodes[structures.nodes.length - 1]
-  if (iterationInfo.previous) {
-    structures.nextPointers.push({
-      from: iterationInfo.previous,
-      to: currentListNode,
-      changed: hasNextPointerChanged(component.nextName, iterationInfo.previous)
+  const currentListNodeBox = structures.listNodeBoxes[structures.listNodeBoxes.length - 1]
+  if (iterationInfo.previousListNodeBox) {
+    structures.nextFieldPointers.push({
+      sourceListNodeBox: iterationInfo.previousListNodeBox,
+      targetListNodeBox: currentListNodeBox,
+      changed: hasNextFieldPointerChanged(component.nextName, iterationInfo.previousListNodeBox)
     })
   }
-  const nextHeapNode: HeapTreeNode | undefined = iterationInfo.current.children[currentListNode.nextFieldIndex]
-  const nextListNode = structures.nodes.find(node => (node.node?.element as HeapObject)?.id === (nextHeapNode?.element as HeapObject)?.id)
-  let nextNode: HeapTreeNode | undefined
-  if (nextListNode) {
+  const nextDataStructureGraphNode: DataStructureGraphNode | undefined =
+    iterationInfo.currentDataStructureGraphNode.childDataStructureGraphNodes[currentListNodeBox.nextFieldPosition]
+  const nextListNodeBox = structures.listNodeBoxes.find(listNodeBox =>
+    (listNodeBox.dataStructureGraphNode?.traceElement as HeapObject)?.id === (nextDataStructureGraphNode?.traceElement as HeapObject)?.id)
+  let nextNode: DataStructureGraphNode | undefined
+  if (nextListNodeBox) {
     // next node is already existing
     // create next pointer
-    structures.nextPointers.push({
-      from: currentListNode,
-      to: nextListNode,
-      changed: hasNextPointerChanged(component.nextName, currentListNode)
+    structures.nextFieldPointers.push({
+      sourceListNodeBox: currentListNodeBox,
+      targetListNodeBox: nextListNodeBox,
+      changed: hasNextFieldPointerChanged(component.nextName, currentListNodeBox)
     })
-    // update indexes of nodes before and after this node, if it's connected to some list
-    if (nextListNode.lists.length > 0 && nextListNode.level !== currentListNode.level) {
-      const nrOfNewNodes = positionInfo.index + 1
-      const indexDifference = nextListNode.index
-      // update indexes of nodes after this one
-      const nodesToCheck = structures.nodes.concat(structures.dummyNodes)
-      nodesToCheck.filter(n => n.index >= indexDifference && n.lists.some(list => nextListNode.lists.includes(list))).forEach(n => {
-        n.index += nrOfNewNodes
-        n.lists.push(...lists)
+    // shift the columns of the boxes before and after this box, if the next box belongs to some list
+    if (nextListNodeBox.containingListDataStructureGraphNodes.length > 0 && nextListNodeBox.row !== currentListNodeBox.row) {
+      const nrOfNewNodes = positionInfo.column + 1
+      const indexDifference = nextListNodeBox.column
+      // shift the columns of the list's boxes from the next box on
+      const nodesToCheck = structures.listNodeBoxes.concat(structures.nullTargetPlaceholders)
+      nodesToCheck.filter(n => n.column >= indexDifference &&
+        n.containingListDataStructureGraphNodes.some(list => nextListNodeBox.containingListDataStructureGraphNodes.includes(list))).forEach(n => {
+        n.column += nrOfNewNodes
+        n.containingListDataStructureGraphNodes.push(...containingListDataStructureGraphNodes)
       })
 
-      // update indexes of nodes on same level
-      structures.nodes.filter(n => n.level === positionInfo.level).forEach(n => {
-        n.index += indexDifference
-        n.lists.push(...nextListNode.lists)
+      // shift the columns of the boxes in this box's row
+      structures.listNodeBoxes.filter(n => n.row === positionInfo.row).forEach(n => {
+        n.column += indexDifference
+        n.containingListDataStructureGraphNodes.push(...nextListNodeBox.containingListDataStructureGraphNodes)
       })
     }
   } else {
     // next node does not exist yet
-    if (nextHeapNode?.element?.kind === 'HeapObject' && component.nodeClassNames.has(nextHeapNode.element.type)) {
+    if (nextDataStructureGraphNode?.traceElement?.kind === 'HeapObject' && component.nodeClassNames.has(nextDataStructureGraphNode.traceElement.type)) {
       // set nextNode to be processed
-      nextNode = nextHeapNode
-    } else if (!nextHeapNode || nextHeapNode.element?.kind !== 'HeapObject') {
-      // if next node is null, add dummy next pointer
-      const dummyNode = { index: positionInfo.index + 1, lists, level: positionInfo.level, height: 0, valFieldIndex: -1, nextFieldIndex: -1 }
-      structures.dummyNodes.push(dummyNode)
-      structures.nextPointers.push({
-        from: currentListNode,
-        to: dummyNode,
-        changed: hasNextPointerChanged(component.nextName, currentListNode)
+      nextNode = nextDataStructureGraphNode
+    } else if (!nextDataStructureGraphNode || nextDataStructureGraphNode.traceElement?.kind !== 'HeapObject') {
+      // if next node is null, add a next pointer to a placeholder box
+      const nullTargetPlaceholder: ListNodeBox = {
+        column: positionInfo.column + 1,
+        containingListDataStructureGraphNodes,
+        row: positionInfo.row,
+        height: 0,
+        valueFieldPosition: -1,
+        nextFieldPosition: -1
+      }
+      structures.nullTargetPlaceholders.push(nullTargetPlaceholder)
+      structures.nextFieldPointers.push({
+        sourceListNodeBox: currentListNodeBox,
+        targetListNodeBox: nullTargetPlaceholder,
+        changed: hasNextFieldPointerChanged(component.nextName, currentListNodeBox)
       })
     }
   }
-  return { nextNode, currentListNode, nodeHeight }
+  return { nextNode, currentListNodeBox, nodeHeight }
 }
 
-export function createListAndNextPointerStructs (
-  heapTree: HeapTreeNode,
-  lists: HeapTreeNode[],
-  levelCoordinates: number[],
+export function createListNodeBoxesAndNextFieldPointers (
+  rootDataStructureGraphNode: DataStructureGraphNode,
+  listDataStructureGraphNodes: DataStructureGraphNode[],
+  rowYCoordinates: number[],
   component: { nodeClassNames: ReadonlySet<string>, nextName: string, valName: string }
 ) {
-  const nodes: ListNode[] = []
-  const referenceNodes: ReferenceNode[] = []
-  const dummyNodes: ListNode[] = []
-  const nextPointers: NextPointer[] = []
+  const listNodeBoxes: ListNodeBox[] = []
+  const valueObjectBoxes: ValueObjectBox[] = []
+  const nullTargetPlaceholders: ListNodeBox[] = []
+  const nextFieldPointers: NextFieldPointer[] = []
 
   // get all variables that point to a node
-  const pointers = getVariablePointers(heapTree, component.nodeClassNames)
+  const variableDataStructureGraphNodes = getVariablePointers(rootDataStructureGraphNode, component.nodeClassNames)
 
   // collect nodes
-  const heapNodes: (HeapTreeNode & { list?: HeapTreeNode })[] = lists.flatMap(list =>
-    list.children.filter(child => child.element?.kind === 'HeapObject' && component.nodeClassNames.has(child.element.type))
+  const listNodeDataStructureGraphNodes: (DataStructureGraphNode & { list?: DataStructureGraphNode })[] = listDataStructureGraphNodes.flatMap(list =>
+    list.childDataStructureGraphNodes.filter(child => child.traceElement?.kind === 'HeapObject' && component.nodeClassNames.has(child.traceElement.type))
       .map(node => {
         return { ...node, list }
       })
   )
-  heapNodes.push(...pointers
-    .filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal' && pointer.children[0])
-    .map(pointer => pointer.children[0]))
+  listNodeDataStructureGraphNodes.push(...variableDataStructureGraphNodes
+    .filter(pointer => (pointer.traceElement as Var).value.kind === 'ReferenceVal' && pointer.childDataStructureGraphNodes[0])
+    .map(pointer => pointer.childDataStructureGraphNodes[0]))
 
   // process nodes
-  let level = 0
-  heapNodes.forEach(heapNode => {
-    const node = heapNode.element as HeapObject
+  let row = 0
+  listNodeDataStructureGraphNodes.forEach(heapNode => {
+    const node = heapNode.traceElement as HeapObject
     // create node, if it's not in the visualization
-    if (!nodes.find(n => (n.node?.element as HeapObject).id === node.id)) {
-      let index = 0
-      let current: HeapTreeNode | undefined = heapNode
-      let previous: ListNode | undefined
+    if (!listNodeBoxes.find(n => (n.dataStructureGraphNode?.traceElement as HeapObject).id === node.id)) {
+      let column = 0
+      let currentDataStructureGraphNode: DataStructureGraphNode | undefined = heapNode
+      let previousListNodeBox: ListNodeBox | undefined
       let maxNodeHeightInLevel = 0
-      previous = undefined
-      while (current) {
+      previousListNodeBox = undefined
+      while (currentDataStructureGraphNode) {
         const ret = processNode(
           heapNode,
-          { index, level },
-          { current, previous },
-          { nodes, referenceNodes, nextPointers, dummyNodes },
+          { column, row },
+          { currentDataStructureGraphNode, previousListNodeBox },
+          { listNodeBoxes, valueObjectBoxes, nextFieldPointers, nullTargetPlaceholders },
           component
         )
-        current = ret.nextNode
-        previous = ret.currentListNode
+        currentDataStructureGraphNode = ret.nextNode
+        previousListNodeBox = ret.currentListNodeBox
         if (ret.nodeHeight > maxNodeHeightInLevel) {
           maxNodeHeightInLevel = ret.nodeHeight
         }
-        index++
+        column++
       }
-      levelCoordinates.push(levelCoordinates[levelCoordinates.length - 1] + maxNodeHeightInLevel + LAYOUT.nodes.distances.between)
-      level++
+      rowYCoordinates.push(rowYCoordinates[rowYCoordinates.length - 1] + maxNodeHeightInLevel + LAYOUT.nodes.distances.between)
+      row++
     }
   })
-  return { nodes, pointers, nextPointers, referenceNodes }
+  return { listNodeBoxes, variableDataStructureGraphNodes, nextFieldPointers, valueObjectBoxes }
 }
 
 // adds changed flag to children of nodes and moves value and next children to the beginning/end of the children-array
-export function processChildren (nodes: (ListNode | ReferenceNode)[], component?: { valName: string, nextName: string }) {
-  nodes
-    .map(node => (node as ReferenceNode).reference ?? node.node)
-    .filter(node => node && node.element?.kind === 'HeapObject')
+export function processChildren (boxes: (ListNodeBox | ValueObjectBox)[], component?: { valName: string, nextName: string }) {
+  boxes
+    .map(box => box.dataStructureGraphNode)
+    .filter(node => node && node.traceElement?.kind === 'HeapObject')
     .forEach(node => {
-      setChangesInFields(node!)
+      setChildChangedFlags(node!)
 
       if (component) {
         const nextIndex = getFieldIndex(node!, component.nextName)
         const valueIndex = getFieldIndex(node!, component.valName)
 
         if (nextIndex !== -1) {
-          node!.children[nextIndex].name = component.nextName
-          moveElemInArray(node!.children, nextIndex, 0)
-          moveElemInArray(node!.changesInFields, nextIndex, 0)
+          node!.childDataStructureGraphNodes[nextIndex].label = component.nextName
+          moveElemInArray(node!.childDataStructureGraphNodes, nextIndex, 0)
+          moveElemInArray(node!.childChangedFlags, nextIndex, 0)
         }
 
         if (valueIndex !== -1) {
           const valueIndexUpdate = valueIndex < nextIndex ? valueIndex + 1 : valueIndex
-          node!.children[valueIndexUpdate].name = component.valName
-          moveElemInArray(node!.children, valueIndexUpdate, -1)
-          moveElemInArray(node!.changesInFields, valueIndexUpdate, -1)
+          node!.childDataStructureGraphNodes[valueIndexUpdate].label = component.valName
+          moveElemInArray(node!.childDataStructureGraphNodes, valueIndexUpdate, -1)
+          moveElemInArray(node!.childChangedFlags, valueIndexUpdate, -1)
         }
       }
     })
 }
 
-export function createPointerStructure (
+export function createVariablePointers (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
-  nodes: ListNode[],
-  pointers: HeapTreeNode[],
-  lists: HeapTreeNode[],
+  listNodeBoxes: ListNodeBox[],
+  variableDataStructureGraphNodes: DataStructureGraphNode[],
+  listDataStructureGraphNodes: DataStructureGraphNode[],
   component: { prevName: string, nodeClassNames: ReadonlySet<string> }
 ) {
-  // create data-structure for node pointers
-  const nodePointers: ListNodePointer[] = nodes.flatMap(node =>
-    pointers.filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal' &&
-      ((pointer.element as Var).value as ReferenceVal).reference ===
-      (node.node?.element as HeapObject).id)
-      .map((pointer, index) => {
+  // create the pointers of variables that reference a list node
+  const variableToListNodePointers: VariableToListNodePointer[] = listNodeBoxes.flatMap(listNodeBox =>
+    variableDataStructureGraphNodes.filter(pointer => (pointer.traceElement as Var).value.kind === 'ReferenceVal' &&
+      ((pointer.traceElement as Var).value as ReferenceVal).reference ===
+      (listNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id)
+      .map((pointer, index): VariableToListNodePointer => {
         return {
-          name: pointer.name,
-          sourceVariableIdentifier: rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth),
-          source: pointer,
-          target: node,
-          index,
+          name: pointer.label,
+          sourceVariableIdentifier: rootVariableIdentifier(pointer.traceElement as Var, pointer.stackFrameNumber),
+          sourceDataStructureGraphNode: pointer,
+          targetListNodeBox: listNodeBox,
+          positionAtTarget: index,
           isNull: false,
-          nodeIndex: node.index,
-          changed: (pointer.element as Var).changed,
-          isListPointer: false
+          targetColumn: listNodeBox.column,
+          changed: (pointer.traceElement as Var).changed,
+          isListObjectField: false
         }
       })
   )
 
   // find prev-pointer and move to front
-  const prevPointer = nodePointers.find(pointer => pointer.name === component.prevName)
+  const prevPointer = variableToListNodePointers.find(pointer => pointer.name === component.prevName)
   if (prevPointer) {
-    const otherPointers = nodePointers
-      .filter(pointer => pointer.target === prevPointer.target && pointer !== prevPointer)
-    prevPointer.index = 0
+    const otherPointers = variableToListNodePointers
+      .filter(pointer => pointer.targetListNodeBox === prevPointer.targetListNodeBox && pointer !== prevPointer)
+    prevPointer.positionAtTarget = 0
     otherPointers.forEach((pointer, index) => {
-      pointer.index = index + 1
+      pointer.positionAtTarget = index + 1
     })
   }
 
@@ -230,10 +240,10 @@ export function createPointerStructure (
   let frontIndex = 0
 
   // add variables of tree itself (root, ...)
-  lists.forEach(heapNode => {
-    const dataStructure = heapNode.element as HeapObject
+  listDataStructureGraphNodes.forEach(heapNode => {
+    const dataStructure = heapNode.traceElement as HeapObject
     dataStructure.fields.filter(field => field.value.kind === 'ReferenceVal'
-      ? nodes.some(node => (node.node?.element as HeapObject).id === (field.value as ReferenceVal).reference)
+      ? listNodeBoxes.some(listNodeBox => (listNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id === (field.value as ReferenceVal).reference)
       : field.value.kind === 'NullVal' && component.nodeClassNames.has(field.type))
       .slice()
       .reverse()
@@ -241,37 +251,37 @@ export function createPointerStructure (
         if (field.value.kind === 'ReferenceVal') {
           const fieldReference = field.value.reference
           // increment indices of all other pointers to same node, so list-pointers are displayed first
-          nodePointers.filter(pointer =>
-            (pointer.target?.node?.element as HeapObject | undefined)?.id === fieldReference)
+          variableToListNodePointers.filter(pointer =>
+            (pointer.targetListNodeBox?.dataStructureGraphNode?.traceElement as HeapObject | undefined)?.id === fieldReference)
             .forEach(pointer => {
-              pointer.index++
+              pointer.positionAtTarget++
             })
           // find node and add entry
-          const node = nodes.find(node =>
-            (node.node?.element as HeapObject).id === fieldReference)
-          if (node) {
-            nodePointers.push({
+          const listNodeBox = listNodeBoxes.find(listNodeBox =>
+            (listNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id === fieldReference)
+          if (listNodeBox) {
+            variableToListNodePointers.push({
               name: field.name,
               sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
-              source: heapNode,
-              target: node as ListNode,
-              index: 0,
+              sourceDataStructureGraphNode: heapNode,
+              targetListNodeBox: listNodeBox as ListNodeBox,
+              positionAtTarget: 0,
               isNull: false,
-              nodeIndex: node.index,
+              targetColumn: listNodeBox.column,
               changed: field.changed,
-              isListPointer: true
+              isListObjectField: true
             })
           }
         } else if (field.value.kind === 'NullVal') {
-          nodePointers.push({
+          variableToListNodePointers.push({
             name: field.name,
             sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
-            source: heapNode,
-            index: frontIndex,
+            sourceDataStructureGraphNode: heapNode,
+            positionAtTarget: frontIndex,
             isNull: true,
-            nodeIndex: -1,
+            targetColumn: -1,
             changed: field.changed,
-            isListPointer: true
+            isListObjectField: true
           })
           frontIndex++
         }
@@ -279,48 +289,48 @@ export function createPointerStructure (
   })
 
   // add null-pointers
-  const backNodeIndex = Math.max(...nodes.map(node => node.index)) + 1
+  const columnAfterLastBox = Math.max(...listNodeBoxes.map(listNodeBox => listNodeBox.column)) + 1
   let backIndex = 0
-  pointers
-    .filter(pointer => (pointer.element as Var).value.kind === 'NullVal')
+  variableDataStructureGraphNodes
+    .filter(pointer => (pointer.traceElement as Var).value.kind === 'NullVal')
     .forEach(pointer => {
-      const sourceVariableIdentifier = rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth)
-      // Identifiers contain `:`, so the previous pointer is found with an attribute selector.
-      const pointerSelection = svg.select(idAttributeSelector(`${HTML.ids.prefixes.pointer}-${sourceVariableIdentifier}`))
-      const nodeIndex = pointerSelection.empty()
+      const sourceVariableIdentifier = rootVariableIdentifier(pointer.traceElement as Var, pointer.stackFrameNumber)
+      const pointerSelection = svg.select(`#${HTML.ids.prefixes.pointer}-${sourceVariableIdentifier}`)
+      const previousTargetColumn = pointerSelection.empty()
         ? undefined
-        : ((pointerSelection.datum() as ListNodePointer).nodeIndex)
-      nodePointers.push({
-        name: (pointer.element as Var).name as string,
+        : ((pointerSelection.datum() as VariableToListNodePointer).targetColumn)
+      variableToListNodePointers.push({
+        name: (pointer.traceElement as Var).name as string,
         sourceVariableIdentifier,
-        source: pointer,
-        index: (nodes.length === 0 || pointerSelection.empty() || nodeIndex === -1)
+        sourceDataStructureGraphNode: pointer,
+        positionAtTarget: (listNodeBoxes.length === 0 || pointerSelection.empty() || previousTargetColumn === -1)
           ? frontIndex++
           : backIndex++,
         isNull: true,
         // if pointer existed and pointed to a node in the right half of the list, move to end
-        nodeIndex: (nodes.length === 0 || pointerSelection.empty() || nodeIndex === -1 || nodeIndex! < (backNodeIndex / 2))
+        targetColumn: (listNodeBoxes.length === 0 || pointerSelection.empty() || previousTargetColumn === -1 || previousTargetColumn! < (columnAfterLastBox / 2))
           ? -1
-          : backNodeIndex,
-        changed: (pointer.element as Var).changed,
-        isListPointer: false
+          : columnAfterLastBox,
+        changed: (pointer.traceElement as Var).changed,
+        isListObjectField: false
       })
     })
-  return nodePointers
+  return variableToListNodePointers
 }
 
-// checks if given ListNode has a reference value, if so it is stored inside the node and it's added to the reference nodes
-// assumed to be called before arrangeNextAndValue(), returns number of fields in reference node
-function processReferenceNode (listNode: ListNode, referenceNodes: ReferenceNode[]) {
-  if (listNode.node && listNode.node.children[listNode.valFieldIndex]?.element?.kind === 'HeapObject') {
-    const referenceHeapNode = listNode.node.children[listNode.valFieldIndex]
-    let referenceNode = referenceNodes.find(refNode => refNode.reference === referenceHeapNode)
-    if (!referenceNode) {
-      referenceNode = { node: listNode, reference: referenceHeapNode }
-      referenceNodes.push(referenceNode)
+// checks if the value field of the given list node box references an object; if so, the value object box of that object
+// is stored in the list node box and, if new, added to the value object boxes
+// assumed to be called before processChildren(), returns number of fields of the value object (0 if there is none)
+function processValueObjectBox (listNodeBox: ListNodeBox, valueObjectBoxes: ValueObjectBox[]) {
+  if (listNodeBox.dataStructureGraphNode && listNodeBox.dataStructureGraphNode.childDataStructureGraphNodes[listNodeBox.valueFieldPosition]?.traceElement?.kind === 'HeapObject') {
+    const valueObjectDataStructureGraphNode = listNodeBox.dataStructureGraphNode.childDataStructureGraphNodes[listNodeBox.valueFieldPosition]
+    let valueObjectBox = valueObjectBoxes.find(valueObjectBox => valueObjectBox.dataStructureGraphNode === valueObjectDataStructureGraphNode)
+    if (!valueObjectBox) {
+      valueObjectBox = { ownerListNodeBox: listNodeBox, dataStructureGraphNode: valueObjectDataStructureGraphNode }
+      valueObjectBoxes.push(valueObjectBox)
     }
-    listNode.referenceValue = referenceNode
-    return referenceNode.reference.children.length
+    listNodeBox.valueObjectBox = valueObjectBox
+    return valueObjectBox.dataStructureGraphNode.childDataStructureGraphNodes.length
   }
   return 0
 }

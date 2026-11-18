@@ -130,15 +130,16 @@ onUnmounted(() => {
   left: 0;
 }
 
-.heap-wrapper g[id^="roots:"],
-.heap-wrapper g[id^="o_"][id*=":"],
-.heap-wrapper g[id$=":moreless"] {
+.heap-wrapper g[id^="local_"],
+.heap-wrapper g[id^="static_"],
+.heap-wrapper g[id^="obj_"][id*="-"],
+.heap-wrapper g[id$="--moreless"] {
   cursor: pointer;
 }
 
-.heap-wrapper g[id$=":header"],
-.heap-wrapper g[id$=":method"],
-.heap-wrapper g[id$=":empty"] {
+.heap-wrapper g[id$="--header"],
+.heap-wrapper g[id$="--method"],
+.heap-wrapper g[id$="--empty"] {
   cursor: default;
 }
 </style>

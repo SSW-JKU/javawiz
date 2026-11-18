@@ -9,7 +9,7 @@ import at.jku.ssw.wsdebug.getEnabledRequests
 import com.sun.jdi.*
 
 /**
- * Converts a debuggee value into the type and value StreamViz uses for stream elements:
+ * Converts a debuggee value into the type and value the Stream View uses for stream elements:
  * primitives and their wrappers become the primitive type name and value (`Integer 4` -> `int`, `4`),
  * Strings keep their text, arrays keep their element values, and any other object is identified by its unique ID.
  * `null` becomes the text `null` without a type.
@@ -34,7 +34,7 @@ fun observedValueOf(value: Value?): CollectedValue = when (value) {
 
 /**
  * Like [observedValueOf], but a collection, such as a `List` or `Set` stream element, also carries its elements, so
- * StreamViz can draw it like an array. Reading the elements calls `toArray()` in the debuggee on [thread], so this must
+ * The Stream View can draw it like an array. Reading the elements calls `toArray()` in the debuggee on [thread], so this must
  * only be called while that thread is suspended at a debugger event. If that call throws, the collection is recorded
  * like any other object, as its class name and object ID.
  */
@@ -83,7 +83,7 @@ private fun primitiveValueOf(value: PrimitiveValue): Any = when (value) {
 /**
  * Reads a `collect` accumulator after an element was added, or the value that `collect` returned, as a [CollectorState].
  *
- * [text] is the value's `toString()` text, computed by the debuggee. It is shown for objects that StreamViz cannot
+ * [text] is the value's `toString()` text, computed by the debuggee. It is shown for objects that the Stream View cannot
  * draw otherwise, for example `IntSummaryStatistics`. Collections and maps are read by calling methods in the
  * debuggee on [thread], so this must only be called while that thread is suspended at a debugger event.
  */
@@ -122,8 +122,8 @@ private fun ObjectReference.implements(interfaceName: String) =
  * - `double[4]`: averagingDouble(), the compensated sum, the count `a[2]`, and the simple sum.
  * - `Object[1]`: reducing(identity, op), the value so far.
  * The doubles are computed like the JDK finishers, so the text equals what `println` prints for the result.
- * Returns `null` for any other array; StreamViz then shows its text. If a JDK ever changes these layouts,
- * the running values no longer match the result of collect, and StreamViz replaces them (see `StreamOperationTracer`).
+ * Returns `null` for any other array; the Stream View then shows its text. If a JDK ever changes these layouts,
+ * the running values no longer match the result of collect, and the Stream View replaces them (see `StreamOperationTracer`).
  */
 private fun accumulatorArrayValue(array: ArrayReference): CollectedValue? {
     val values = array.values

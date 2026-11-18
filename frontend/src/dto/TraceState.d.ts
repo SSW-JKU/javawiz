@@ -119,6 +119,8 @@ export type HeapItem = HeapArray | HeapString | HeapObject
 
 interface IProcessedHeapItem {
   readonly loadedClass: LoadedClass | undefined
+  /** Set by the frontend: true if no heap item with this id existed in the state shown before. */
+  isNew?: boolean
 }
 
 export type ProcessedHeapArray = HeapArray & IProcessedHeapItem

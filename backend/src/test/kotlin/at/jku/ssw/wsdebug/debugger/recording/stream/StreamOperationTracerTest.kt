@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/** Verifies the element identities and parent links consumed by StreamViz playback. */
+/** Verifies the element identities and parent links consumed by Stream View playback. */
 class StreamOperationTracerTest {
     /** Records runtime stream identities separately from compile-time descriptor IDs. */
     @Test

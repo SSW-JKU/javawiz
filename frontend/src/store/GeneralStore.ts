@@ -15,6 +15,8 @@ export const useGeneralStore = defineStore('general', {
       asts: [] as AbstractSyntaxTree[],
       openEditorLocalUri: undefined as string | undefined,
       vscExtensionMode: false,
+      /** Java program used by the backend; reported with the first successful compile, shown in the About overlay. */
+      javaExecutable: undefined as string | undefined,
       fileManager: new FileManager()
     }
   },

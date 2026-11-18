@@ -1,39 +1,39 @@
 import { BaseType, Selection } from 'd3-selection'
-import { ArrayPointer } from './types'
+import { VariableToArrayPointer } from './types'
 import { DEFINITIONS } from '@/helpers/SvgDefinitions'
 import { HTML, LAYOUT } from './constants'
-import { getLevelYCoordinate } from './utils'
+import { getRowYCoordinate } from './utils'
 import { SVG } from '../constants'
 import { TRANSFORMATION } from '@/helpers/constants'
 
 // calculates pointer's coordinates
-export function getPointerCoordinates (pointer: ArrayPointer): [number, number] {
+export function getPointerCoordinates (pointer: VariableToArrayPointer): [number, number] {
   return [
     LAYOUT.pointers.xOrigin,
-    getLevelYCoordinate(pointer.level)
+    getRowYCoordinate(pointer.row)
   ]
 }
 
 // calculates pointer's target X offset
-export function calculatePointerXOffset (pointer: ArrayPointer) {
+export function calculatePointerXOffset (pointer: VariableToArrayPointer) {
   return (LAYOUT.xOrigin - LAYOUT.pointers.xOrigin) * (pointer.isNull ? LAYOUT.pointers.null.lengthMultiplier : 1)
 }
 
 // calculates pointer's target Y offset
-export function calculatePointerYOffset (pointer: ArrayPointer) {
+export function calculatePointerYOffset (pointer: VariableToArrayPointer) {
   if (pointer.isNull) {
     return SVG.cellHeight / 2
   } else {
-    let offset = getLevelYCoordinate(pointer.array!.level) - getLevelYCoordinate(pointer.level) + SVG.cellHeight / 2
-    if (pointer.array?.kind === 'TwoDimArrayChild') {
-      offset += pointer.array.indexInParent * SVG.cellHeight
+    let offset = getRowYCoordinate(pointer.targetArrayBox!.row) - getRowYCoordinate(pointer.row) + SVG.cellHeight / 2
+    if (pointer.targetArrayBox?.kind === 'TwoDimArrayRowBox') {
+      offset += pointer.targetArrayBox.rowIndex * SVG.cellHeight
     }
     return offset
   }
 }
 
 // applies attributes to pointer lines
-export function pointerLineAttributes (line: Selection<SVGLineElement, ArrayPointer, BaseType, unknown>) {
+export function pointerLineAttributes (line: Selection<SVGLineElement, VariableToArrayPointer, BaseType, unknown>) {
   line.classed(HTML.classes.pointers.lines, true)
     .attr('x1', 0)
     .attr('x2', d => calculatePointerXOffset(d))
@@ -43,7 +43,7 @@ export function pointerLineAttributes (line: Selection<SVGLineElement, ArrayPoin
 }
 
 // updates attributes of pointer lines
-export function updatePointerLineAttributes (line: Selection<BaseType, ArrayPointer, BaseType, unknown>) {
+export function updatePointerLineAttributes (line: Selection<BaseType, VariableToArrayPointer, BaseType, unknown>) {
   return line
     .attr('marker-start', d => d.changed ? DEFINITIONS.urls.redDot : DEFINITIONS.urls.dot)
     .transition()
@@ -54,8 +54,8 @@ export function updatePointerLineAttributes (line: Selection<BaseType, ArrayPoin
 }
 
 // sets attributes for null pointers
-export function nullPointerLineAttributes (line: Selection<any, ArrayPointer, BaseType, unknown>, update: boolean) {
-  let l: Selection<any, ArrayPointer, BaseType, unknown> = line
+export function nullPointerLineAttributes (line: Selection<any, VariableToArrayPointer, BaseType, unknown>, update: boolean) {
+  let l: Selection<any, VariableToArrayPointer, BaseType, unknown> = line
   if (update) {
     l = l.transition()
       .duration(TRANSFORMATION.duration)

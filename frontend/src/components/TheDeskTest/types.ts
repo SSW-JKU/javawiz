@@ -57,7 +57,7 @@ export type DeskTestMethod = {
 export type DeskTestLineMethod = {
   readonly name: string
   readonly class: string
-  readonly vars: Map<string, DeskTestVal> // keys: DeskTestVars
+  readonly vars: Map<string, DeskTestVal> // keys: deskTestVarKey(<DeskTestVar>)
   readonly conditions: Map<string, DeskTestConditionVal> // keys: DeskTestCondition
 }
 
@@ -65,9 +65,9 @@ export type DeskTestLine = {
   readonly line: number
   readonly localUri: string
   readonly stateIndex: number
-  readonly currentVars: Map<string, DeskTestVal> // keys: JSON.stringify(<DeskTestVar>)
+  readonly currentVars: Map<string, DeskTestVal> // keys: deskTestVarKey(<DeskTestVar>)
   readonly currentConditions: Map<string, DeskTestConditionVal> // keys: JSON.stringify(<DeskTestCondition>)
-  readonly currentStatics: Map<string, DeskTestVal> // keys: JSON.stringify(<DeskTestStatic>)
+  readonly currentStatics: Map<string, DeskTestVal> // keys: deskTestStaticKey(<DeskTestStatic>)
   readonly methods: DeskTestMethod[]
   readonly statics: DeskTestStatic[]
 } & HoverTarget

@@ -1,0 +1,68 @@
+name: VS Code Extension Checks
+
+on:
+  # Check every pushed commit and tag, pull requests, published releases, and allow manual runs.
+  push:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# When new commits arrive quickly, only the newest run matters. Release runs are always completed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+# Reading the repository is enough, so pull requests from forks work the same way.
+permissions:
+  contents: read
+
+jobs:
+  vsc-extension-checks:
+    name: VS Code extension checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          # The checks do not need Git credentials after checkout.
+          persist-credentials: false
+
+      # The Node version matches the one that the Gradle build pins.
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: |
+            shared/package-lock.json
+            vsc-extension/package-lock.json
+
+      # The extension imports code from the shared folder, which needs its own npm packages.
+      - name: Install shared dependencies
+        working-directory: shared
+        run: npm ci
+
+      - name: Install extension dependencies
+        working-directory: vsc-extension
+        run: npm ci
+
+      - name: Lint
+        working-directory: vsc-extension
+        run: npm run lint
+
+      # Compiles the extension and runs its tests. It also runs after a lint failure,
+      # so one problem does not hide others.
+      - name: Compile and run tests
+        if: ${{ !cancelled() }}
+        working-directory: vsc-extension
+        run: npm test

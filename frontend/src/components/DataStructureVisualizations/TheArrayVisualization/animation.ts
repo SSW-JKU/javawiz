@@ -1,55 +1,55 @@
 import { BaseType, Selection } from 'd3-selection'
 import { HTML, LAYOUT } from './constants'
 import { SelectionOrTransition, Transition } from 'd3'
-import { ArrayIndex, ArrayNode, CopyAnimations, TempVariable } from './types'
+import { IndexLabel, ArrayBox, CopyAnimationGroup, TemporaryVariableBox } from './types'
 import { getCoordinatesAndWidth } from './utils'
 import { ArrayAccessValue } from '@/dto/TraceState'
 import { getArrayLength } from './array-utils'
 import { SVG } from '../constants'
 
 // updates the duration of the animation of array accesses
-export function updateDuration (coordinatesFrom: [number, number], coordinatesTo: [number, number], copyAnimations: CopyAnimations) {
-  const dX = coordinatesFrom[0] - coordinatesTo[0]
-  const dY = coordinatesFrom[1] - coordinatesTo[1]
+export function updateDuration (sourceCoordinates: [number, number], targetCoordinates: [number, number], copyAnimationGroup: CopyAnimationGroup) {
+  const dX = sourceCoordinates[0] - targetCoordinates[0]
+  const dY = sourceCoordinates[1] - targetCoordinates[1]
   const distance = dX * dX + dY * dY
   const duration = 1500 + distance * 0.01
-  if (copyAnimations.duration < duration) {
-    copyAnimations.duration = duration
+  if (copyAnimationGroup.duration < duration) {
+    copyAnimationGroup.duration = duration
   }
 }
 
 // adds a 'flying' rectangle and highlights the source's and the target's cell
 export function visualizeValueCopy (
-  copyAnimations: CopyAnimations,
+  copyAnimationGroup: CopyAnimationGroup,
   staticViz: Selection<BaseType, unknown, HTMLElement, unknown>,
   animationInfo: {
-    source: ArrayNode | TempVariable,
-    target: ArrayNode | TempVariable | { kind: 'MissingSource', coordinates: [number, number], width: number },
-    arrayCopy: boolean
+    source: ArrayBox | TemporaryVariableBox,
+    target: ArrayBox | TemporaryVariableBox | { kind: 'VanishedSourceVariable', coordinates: [number, number], width: number },
+    isWholeArrayCopy: boolean
   },
-  indexes: {
-    from?: number,
-    to?: number
+  cellIndexes: {
+    source?: number,
+    target?: number
   }
 ) {
-  const { coordinates: coordinatesFrom, width: widthFrom } = getCoordinatesAndWidth(animationInfo.source, animationInfo.arrayCopy, indexes.from)
-  const { coordinates: coordinatesTo, width: widthTo } = animationInfo.target.kind === 'MissingSource'
+  const { coordinates: sourceCoordinates, width: sourceWidth } = getCoordinatesAndWidth(animationInfo.source, animationInfo.isWholeArrayCopy, cellIndexes.source)
+  const { coordinates: targetCoordinates, width: targetWidth } = animationInfo.target.kind === 'VanishedSourceVariable'
     ? animationInfo.target
-    : getCoordinatesAndWidth(animationInfo.target, animationInfo.arrayCopy, indexes.to)
+    : getCoordinatesAndWidth(animationInfo.target, animationInfo.isWholeArrayCopy, cellIndexes.target)
 
-  if (animationInfo.target.kind !== 'MissingSource') {
+  if (animationInfo.target.kind !== 'VanishedSourceVariable') {
     // highlight source
-    appendHighlightedCell(staticViz, coordinatesFrom, widthFrom, 'source')
+    appendHighlightedCell(staticViz, sourceCoordinates, sourceWidth, 'source')
   }
   // highlight target
-  appendHighlightedCell(staticViz, coordinatesTo, widthTo, 'target')
+  appendHighlightedCell(staticViz, targetCoordinates, targetWidth, 'target')
 
-  updateDuration(coordinatesFrom, coordinatesTo, copyAnimations)
-  copyAnimations.data.push({
-    coordinatesFrom,
-    coordinatesTo,
-    widthFrom,
-    widthTo
+  updateDuration(sourceCoordinates, targetCoordinates, copyAnimationGroup)
+  copyAnimationGroup.copyAnimations.push({
+    sourceCoordinates,
+    targetCoordinates,
+    sourceWidth,
+    targetWidth
   })
 }
 
@@ -80,25 +80,25 @@ export function animateAlongPath (path: Selection<SVGPathElement, unknown, HTMLE
 }
 
 // sets the attributes for highlighting rectangles
-export function highlightRectAttributes (rect: SelectionOrTransition<any, ArrayIndex, BaseType, unknown>) {
-  (rect.attr('x', (d: ArrayIndex) => d.array.kind === 'TwoDimArrayNode'
-    ? -LAYOUT.indexes.row.xOffset - d.array.dimensions[1] * d.array.cellWidth
-    : 0) as Transition<any, ArrayIndex, BaseType, unknown>)
-    .attr('y', (d: ArrayIndex) => d.array.kind === 'TwoDimArrayNode' ? 0 : LAYOUT.indexes.col.yOffset)
-    .attr('width', (d: ArrayIndex) => d.array.kind === 'TwoDimArrayNode' ? d.array.dimensions[1] * d.array.cellWidth : d.array.cellWidth)
-    .attr('height', (d: ArrayIndex) => d.array.kind === 'TwoDimArrayChild'
-      ? d.array.parentDimensions[0] * SVG.cellHeight
+export function highlightRectAttributes (rect: SelectionOrTransition<any, IndexLabel, BaseType, unknown>) {
+  (rect.attr('x', (d: IndexLabel) => d.arrayBox.kind === 'TwoDimArrayBox'
+    ? -LAYOUT.indexes.row.xOffset - d.arrayBox.dimensions[1] * d.arrayBox.cellWidth
+    : 0) as Transition<any, IndexLabel, BaseType, unknown>)
+    .attr('y', (d: IndexLabel) => d.arrayBox.kind === 'TwoDimArrayBox' ? 0 : LAYOUT.indexes.col.yOffset)
+    .attr('width', (d: IndexLabel) => d.arrayBox.kind === 'TwoDimArrayBox' ? d.arrayBox.dimensions[1] * d.arrayBox.cellWidth : d.arrayBox.cellWidth)
+    .attr('height', (d: IndexLabel) => d.arrayBox.kind === 'TwoDimArrayRowBox'
+      ? d.arrayBox.parentDimensions[0] * SVG.cellHeight
       : SVG.cellHeight
     )
-    .style('fill', (d: ArrayIndex) => d.array.kind === 'TwoDimArrayNode' ? LAYOUT.indexes.highlightColor.horizontal : LAYOUT.indexes.highlightColor.vertical)
-    .style('opacity', d => d.value < 0 || d.value >= getArrayLength(d.array) ? '0' : '1')
+    .style('fill', (d: IndexLabel) => d.arrayBox.kind === 'TwoDimArrayBox' ? LAYOUT.indexes.highlightColor.horizontal : LAYOUT.indexes.highlightColor.vertical)
+    .style('opacity', d => d.cellIndex < 0 || d.cellIndex >= getArrayLength(d.arrayBox) ? '0' : '1')
 }
 
 // returns the array to be used for value copy animations
-export function getAnimationArray (arrayAccessValue: ArrayAccessValue, array: ArrayNode) {
-  if (array.kind === 'TwoDimArrayNode') {
-    return array.children[arrayAccessValue.indexValues[arrayAccessValue.indexValues.length - 1]]
+export function getAnimationArray (arrayAccessValue: ArrayAccessValue, arrayBox: ArrayBox) {
+  if (arrayBox.kind === 'TwoDimArrayBox') {
+    return arrayBox.childDataStructureGraphNodes[arrayAccessValue.indexValues[arrayAccessValue.indexValues.length - 1]]
   } else {
-    return array
+    return arrayBox
   }
 }

@@ -21,6 +21,9 @@ export class Debugger {
   private state: DebuggerState
   private compileErrorMessage: string | undefined
   private compiledClasses = reactive<string[]>([])
+  // Source files of the compilation in progress; published to compiledSources only when it succeeds.
+  private pendingSources: readonly DebuggerProtocol.ClassContent[] = []
+  private compiledSources = reactive<DebuggerProtocol.ClassContent[]>([])
   private generalStore
   private heapVizMetaStore
 
@@ -46,6 +49,15 @@ export class Debugger {
   /** Returns the reactive class list reported by the most recent successful compilation. */
   public getCompiledClasses (): readonly string[] {
     return this.compiledClasses
+  }
+
+  /**
+   * Returns the source files of the most recent successful compilation, which
+   * the current trace's file names and line numbers refer to. Later editor
+   * changes do not affect it. Reactive.
+   */
+  public getCompiledSources (): readonly DebuggerProtocol.ClassContent[] {
+    return this.compiledSources
   }
 
   public getCompileErrorMessage (): string | undefined {
@@ -160,7 +172,9 @@ export class Debugger {
           this.showNotification({ kind: 'FeatureWarning', warnings: data.featureWarnings })
         }
         this.generalStore.asts = data.asts
+        this.generalStore.javaExecutable = data.javaExecutable
         this.compiledClasses.splice(0, this.compiledClasses.length, ...data.compiledClasses)
+        this.compiledSources.splice(0, this.compiledSources.length, ...this.pendingSources)
         if (states && result.vmrunning) {
           this.trace.addTraceStates(states)
           this.handleDebugStateChange()
@@ -257,6 +271,7 @@ export class Debugger {
       return
     }
     this.state = COMPILING
+    this.pendingSources = classContents
     this.sendToDebugger({
       task: 'COMPILE',
       classContents,

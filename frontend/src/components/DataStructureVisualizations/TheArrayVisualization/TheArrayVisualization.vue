@@ -26,9 +26,9 @@
     </svg>
     <!--suppress MagicNumberJS -->
     <VizSetting
-      :zoom-in="zoomIn"
-      :zoom-out="zoomOut"
-      :zoom-reset="zoomReset"
+      :zoom-in="() => viewZoom.zoomIn()"
+      :zoom-out="() => viewZoom.zoomOut()"
+      :zoom-reset="() => viewZoom.reset()"
       :viz-id="visualizationStore.ARRAY.id">
       <div style="margin: auto">
         <label class="no-break"><input v-model="showArgs" :class="HTML.classes.marginButton" type="checkbox">Show Args</label><br>
@@ -90,27 +90,30 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(index, i) in indexes" :key="i">
+          <tr v-for="(indexLabelSetting, i) in indexLabelSettings" :key="i">
             <td>
               <input
-                v-model="index.displayString"
+                v-model="indexLabelSetting.expression"
                 style="width: 100%;"
-                :disabled="index.isDetected"
+                :disabled="indexLabelSetting.isDetected"
                 :title="inputTitle(i)"
-                :class="processedIndexes[i].isValid ? '' : 'invalid-input'"
-                @change="saveIndexes()">
+                :class="parsedIndexLabelSettings[i].isValid ? '' : 'invalid-input'"
+                @change="saveIndexLabelSettings()">
             </td>
             <td>
-              <button v-if="!index.isDetected" class="index-button" @click="indexes.splice(indexes.indexOf(index), 1); saveIndexes()">
+              <button
+                v-if="!indexLabelSetting.isDetected"
+                class="index-button"
+                @click="indexLabelSettings.splice(indexLabelSettings.indexOf(indexLabelSetting), 1); saveIndexLabelSettings()">
                 <img src="../../../assets/icons/array-viz/delete.svg" class="button-svg" alt="delete index">
               </button>
               <button
                 v-else
                 style="width: 100%; height: 100%"
                 class="index-button"
-                @click="index.isHidden = !index.isHidden; redraw()">
+                @click="indexLabelSetting.isHidden = !indexLabelSetting.isHidden; redraw()">
                 <img
-                  v-if="index.isHidden"
+                  v-if="indexLabelSetting.isHidden"
                   src="../../../assets/icons/array-viz/eye_hidden.svg"
                   class="button-svg"
                   alt="show index">
@@ -125,7 +128,7 @@
           <tr>
             <td />
             <td>
-              <button class="index-button" @click="addIndex">
+              <button class="index-button" @click="addIndexLabelSetting">
                 <img src="../../../assets/icons/array-viz/add.svg" class="button-svg" alt="add index">
               </button>
             </td>
@@ -139,48 +142,39 @@
 <script setup lang="ts">
 import { HTML, LAYOUT, LOCAL_STORAGE } from './constants'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
-import { BaseType, select, Selection } from 'd3-selection'
-import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom'
-import { transform, setTransform, levelCoordinates } from './state'
+import { select } from 'd3-selection'
+import { rowYCoordinates } from './state'
 import IconWithTooltip from '@/components/TheToolbar/IconWithTooltip.vue'
 import VizSetting from '@/components/VizSetting.vue'
-import { SettingsIndex } from './types'
 import { getCoordinatesOfChange } from './utils'
-import { processIndex } from './index-processing'
-import { animateValueCopies, drawArrays, drawIndexes, drawPointers, drawTempVariables } from './drawing'
+import { parseSavedIndexLabelSettings, parseIndexLabelSetting } from './index-processing'
+import { animateValueCopies, drawArrayBoxes, drawIndexLabels, drawVariablePointers, drawTemporaryVariableBoxes } from './drawing'
 import {
-  createArrayAndPointerStructure,
-  createGhostIdxAndTempVarsStruct,
-  createIndexesStructure,
-  createTempVariablesStructure,
+  createArrayBoxesAndVariablePointers,
+  createGhostIndexLabelsAndCopyAnimations,
+  createIndexLabels,
+  createTemporaryVariableBoxes,
   detectArrayAccesses,
-  createLevelCoordinates
+  createRowYCoordinates
 } from './preprocessing'
 import { CSS, SVG } from '../constants'
-import { getNavigationClearTransform, zoomToChange } from '../zooming'
-import { getHeapTree, removeChildren } from '../utils'
+import { getDataStructureGraph, removeChildren } from '../utils'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
-import { DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/helpers/constants'
+import { ViewZoom } from '@/helpers/zooming'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
 import help from '../../../assets/icons/controls/help.svg'
 
 const visualizationStore = useVisualizationStore()
 
-const indexes = ref(localStorage.getItem(LOCAL_STORAGE.indexes) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE.indexes)!) as SettingsIndex[] : [] as SettingsIndex[])
+const indexLabelSettings = ref(parseSavedIndexLabelSettings(localStorage.getItem(LOCAL_STORAGE.indexes)))
 const showArgs = ref(localStorage.getItem(LOCAL_STORAGE.showArgs) ? localStorage.getItem(LOCAL_STORAGE.showArgs) === 'true' : true)
 const onlyCurrentStackFrame = ref(localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame)
   ? localStorage.getItem(LOCAL_STORAGE.onlyCurrentStackFrame) === 'true'
   : false)
 const highlightIndexes = ref(localStorage.getItem(LOCAL_STORAGE.highlightIndexes) ? localStorage.getItem(LOCAL_STORAGE.highlightIndexes) === 'true' : false)
-let initialPositionPending = true
-// Track handle replacement without deep-proxying imperative browser and D3 objects.
-const resizeObserver = shallowRef<ResizeObserver>(null as any)
-const zoomCall = shallowRef(zoom().on('zoom', (event) => {
-  if (event.sourceEvent) initialPositionPending = false
-  setTransform(event.transform)
-  select(`#${HTML.ids.arrayViz}`).attr('transform', event.transform)
-}))
+const viewZoom = new ViewZoom(`#${HTML.ids.arrayViz}`)
+viewZoom.contentLeft = measureContentLeft
 const svg = shallowRef(select(`#${HTML.ids.arraySvg}`))
 
 const generalStore = useGeneralStore()
@@ -201,13 +195,13 @@ const cssVariables = {
 }
 const minCellWidth = SVG.cellHeight * LAYOUT.arrays.cells.widthMultiplier.min
 const svgWidth = minCellWidth * (LAYOUT.defaultNumberOrCells + 1) + LAYOUT.xOrigin
-const processedIndexes = computed(() => indexes.value.map(index => processIndex(index)))
+const parsedIndexLabelSettings = computed(() => indexLabelSettings.value.map(index => parseIndexLabelSetting(index)))
 
 function inputTitle (i: number) {
-  const index = processedIndexes.value[i]
-  if (!index.isValid) return 'invalid'
-  return `array name: ${index.arrayName}` +
-    `\nvariable name(s): ${index.variableNames}`
+  const parsedIndexLabelSetting = parsedIndexLabelSettings.value[i]
+  if (!parsedIndexLabelSetting.isValid) return 'invalid'
+  return `array name: ${parsedIndexLabelSetting.arrayName}` +
+    `\nvariable name(s): ${parsedIndexLabelSetting.variableNames}`
 }
 
 function deleteViz () {
@@ -219,102 +213,69 @@ function deleteViz () {
   removeChildren(`#${HTML.ids.arrayWriteAccesses.static}`)
 }
 
-function addIndex () {
-  indexes.value.push({ displayString: 'arr[i]', isDetected: false })
-  saveIndexes()
+function addIndexLabelSetting () {
+  indexLabelSettings.value.push({ expression: 'arr[i]', isDetected: false })
+  saveIndexLabelSettings()
 }
-function saveIndexes () {
-  localStorage.setItem(LOCAL_STORAGE.indexes, JSON.stringify(indexes.value.filter(index => !index.isDetected)))
+function saveIndexLabelSettings () {
+  localStorage.setItem(LOCAL_STORAGE.indexes, JSON.stringify(indexLabelSettings.value.filter(index => !index.isDetected)))
   redraw()
 }
 
-function getTransition () {
-  return svg.value.transition().duration(TRANSFORMATION.duration)
-    .ease(TRANSFORMATION.ease) as any
-}
-function zoomIn () {
-  initialPositionPending = false
-  zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
-}
-function zoomOut () {
-  initialPositionPending = false
-  zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
-}
-function zoomReset () {
-  initialPositionPending = true
-  zoomCall.value.transform(getTransition().on('end.navigation', positionInitially), zoomIdentity)
-}
-
-/** Clears the icons once content exists; later redraws preserve the user's camera. */
-function positionInitially () {
-  const node = svg.value.node() as SVGSVGElement | null
-  if (!initialPositionPending || !node?.isConnected || !node.clientWidth) return
-  // Wait for the resize observer to replace the template's placeholder viewBox;
-  // otherwise its temporary scale would turn the pixel inset into extra space.
-  if (node.viewBox.baseVal.width !== svgWidth) return
+/** Left edge of the drawn arrays and pointers in screen pixels, or Infinity while nothing is drawn. */
+function measureContentLeft () {
   // Pointer labels are right-aligned inside wide foreignObjects. Measure their
   // actual divs rather than moving the camera for unpainted label padding.
-  const content = node.querySelector(`#${HTML.ids.arrayViz}`)?.querySelectorAll('rect, line, path, foreignObject > div')
-  const left = Array.from(content ?? [], element => element.getBoundingClientRect())
+  const content = (svg.value.node() as SVGSVGElement | null)?.querySelector(`#${HTML.ids.arrayViz}`)?.querySelectorAll('rect, line, path, foreignObject > div')
+  return Array.from(content ?? [], element => element.getBoundingClientRect())
     .filter(bounds => bounds.width || bounds.height)
     .reduce((left, bounds) => Math.min(left, bounds.left), Infinity)
-  if (!Number.isFinite(left)) return
-  initialPositionPending = false
-  zoomCall.value.transform(svg.value as any, getNavigationClearTransform(node, zoomTransform(node), left))
 }
 
 function redraw () {
   // process heap
-  const { root: heapTree } = getHeapTree(stateIndex.value, traceState.value, firstState.value, onlyCurrentStackFrame.value)
+  const { rootDataStructureGraphNode } = getDataStructureGraph(stateIndex.value, traceState.value, firstState.value, onlyCurrentStackFrame.value)
 
   // reset detected indexes
-  const hiddenIndexes = indexes.value.filter(index => index.isHidden)
-  indexes.value = indexes.value.filter(index => !index.isDetected)
+  const hiddenIndexLabelSettings = indexLabelSettings.value.filter(index => index.isHidden)
+  indexLabelSettings.value = indexLabelSettings.value.filter(index => !index.isDetected)
 
   // create structures
-  const tempVariables = createTempVariablesStructure(heapTree, { traceState: traceState.value, minCellWidth, onlyCurrentStackFrame: onlyCurrentStackFrame.value })
-  const { arrays, arrayPointers } = createArrayAndPointerStructure(heapTree, { showArgs: showArgs.value, minCellWidth })
-  levelCoordinates.value = createLevelCoordinates(arrayPointers, arrays)
+  const temporaryVariableBoxes = createTemporaryVariableBoxes(
+    rootDataStructureGraphNode,
+    { traceState: traceState.value, minCellWidth, onlyCurrentStackFrame: onlyCurrentStackFrame.value }
+  )
+  const { arrayBoxes, variableToArrayPointers } = createArrayBoxesAndVariablePointers(rootDataStructureGraphNode, { showArgs: showArgs.value, minCellWidth })
+  rowYCoordinates.value = createRowYCoordinates(variableToArrayPointers, arrayBoxes)
   // find writes
-  let { ghostIndexes, copyAnimations, missingSources, changeCoordinates } = createGhostIdxAndTempVarsStruct(
-    arrays,
-    tempVariables,
+  let { ghostIndexLabelCandidates, copyAnimationGroup, vanishedSourceVariables, changeCoordinates } = createGhostIndexLabelsAndCopyAnimations(
+    arrayBoxes,
+    temporaryVariableBoxes,
     svg.value.select(`#${HTML.ids.arrayWriteAccesses.writeAccesses}`),
     {traceState: traceState.value}
   )
   // detect indexes and add to settings
-  detectArrayAccesses(arrays, hiddenIndexes, { traceState: traceState.value, processedIndexes: processedIndexes, indexes: indexes.value })
+  detectArrayAccesses(arrayBoxes, hiddenIndexLabelSettings, { traceState: traceState.value, parsedIndexLabelSettings, indexLabelSettings: indexLabelSettings.value })
 
-  const indices = createIndexesStructure(arrays, heapTree, ghostIndexes, { processedIndexes: processedIndexes.value })
+  const indexLabels = createIndexLabels(arrayBoxes, rootDataStructureGraphNode, ghostIndexLabelCandidates, { parsedIndexLabelSettings: parsedIndexLabelSettings.value })
 
   // visualize arrays
-  drawTempVariables(svg.value, tempVariables, missingSources, copyAnimations)
-  drawArrays(svg.value, arrays)
-  drawPointers(svg.value, arrayPointers)
-  drawIndexes(svg.value, indices)
-  animateValueCopies(copyAnimations)
-
-  // add ability to zoom and pan
-  svg.value.call(zoomCall.value as any)
+  drawTemporaryVariableBoxes(svg.value, temporaryVariableBoxes, vanishedSourceVariables, copyAnimationGroup)
+  drawArrayBoxes(svg.value, arrayBoxes)
+  drawVariablePointers(svg.value, variableToArrayPointers)
+  drawIndexLabels(svg.value, indexLabels)
+  animateValueCopies(copyAnimationGroup)
 
   // search changes
   if (!changeCoordinates) {
-    changeCoordinates = getCoordinatesOfChange(arrayPointers, indices)
+    changeCoordinates = getCoordinatesOfChange(variableToArrayPointers, indexLabels)
   }
 
-  // zoom to changes
+  // move the view to the change; the first drawing also moves clear of the navigation icons
   if (changeCoordinates) {
-    zoomToChange(
-      changeCoordinates[0],
-      changeCoordinates[1],
-      transform,
-      zoomCall.value,
-      HTML.ids.parentDiv,
-      svgWidth,
-      svg.value as Selection<BaseType, unknown, HTMLElement, any>)
-      .on('end.navigation', positionInitially)
+    viewZoom.followChange(changeCoordinates[0], changeCoordinates[1], { width: SVG.cellWidth, height: 2 * SVG.cellHeight })
   } else {
-    positionInitially()
+    viewZoom.positionClearOfNavigation()
   }
 }
 
@@ -332,30 +293,20 @@ watch(highlightIndexes, () => {
 })
 
 onMounted(() => {
-  setTransform(zoomIdentity)
   // selection was empty when component was created, since template was not inserted yet
   svg.value = select(`#${HTML.ids.arraySvg}`)
-
-  const div = document.getElementById(HTML.ids.parentDiv)
-  resizeObserver.value = new ResizeObserver(() => {
-    if (div) {
-      const height = div.offsetHeight / div.offsetWidth * svgWidth
-      if (height) {
-        svg.value.attr('viewBox', `0 0 ${svgWidth} ${height}`)
-        // Retry initial positioning with the real viewport; an empty view keeps
-        // it pending until a later redraw supplies the first array.
-        if (initialPositionPending) redraw()
-      }
-    }
+  viewZoom.attach(svg.value.node() as SVGSVGElement)
+  viewZoom.observeViewport(document.getElementById(HTML.ids.parentDiv)!, () => svgWidth, () => {
+    // Retry initial positioning with the real viewport; an empty view keeps
+    // it pending until a later redraw supplies the first array.
+    if (viewZoom.initialPositionPending) redraw()
   })
-  resizeObserver.value.observe(div!)
   deleteViz()
   redraw()
 })
 
 onUnmounted(() => {
-  resizeObserver.value?.disconnect()
-  svg.value.interrupt()
+  viewZoom.detach()
 })
 </script>
 

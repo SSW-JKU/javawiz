@@ -1,7 +1,7 @@
 package at.jku.ssw.wsdebug.debugger.recording.stream
 
 /**
- * The display types that StreamViz assigns itself, as sent in `StreamEvent.type` and `MarbleDiagramMarble.type`.
+ * The display types that the Stream View assigns itself, as sent in `StreamEvent.type` and `MarbleDiagramMarble.type`.
  * Other types are Java type names such as `int` or `java.lang.String`. `TheStreamViz.vue` compares the same labels.
  */
 enum class StreamDisplayType(val label: String) {

@@ -123,7 +123,7 @@ class JDIVirtualMachine(
 
             latestSingleStepStartTime = System.currentTimeMillis()
             // The last stream operation can finish after the last source-line step. Before main
-            // returns, send any StreamViz data missing from the previous trace state to the frontend.
+            // returns, send any Stream View data missing from the previous trace state to the frontend.
             val mainExits = eventSet.filterIsInstance<MethodExitEvent>().filter { it.request() == mainExitRequest }
             val entryExit = mainExits.firstOrNull {
                 it.method() == entryMainMethod && it.thread().frameCount() == entryMainDepth
@@ -393,7 +393,7 @@ class JDIVirtualMachine(
                 val operationParameter = readJavaWizStaticString(javaWizFrame, "completedOperationParameter")
                 val resultText = readJavaWizStaticString(javaWizFrame, "completedResultText")
                 if (executionId != 0) {
-                    // The value returned by collect is what the program sees, so StreamViz shows it as the final collect marble.
+                    // The value returned by collect is what the program sees, so the Stream View shows it as the final collect marble.
                     val collectResult = if (operationName == "collect") {
                         readCollectorState(readJavaWizStaticValue(javaWizFrame, "latestCompletedStreamResult"), resultText, event.thread())
                     } else {
@@ -555,7 +555,7 @@ class JDIVirtualMachine(
     /**
      * Requests notification when the main method that started the program returns, while JDI
      * can still read its local variables. If main's closing brace shares the last stream
-     * statement's line, there may be no source-line step at which to send its StreamViz results.
+     * statement's line, there may be no source-line step at which to send its Stream View results.
      *
      * JDI filters this request by class and thread, not by individual method call. Save the
      * method and stack depth so handleSingleStep can ignore other methods and recursive calls.

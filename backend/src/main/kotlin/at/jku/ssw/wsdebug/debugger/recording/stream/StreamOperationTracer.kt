@@ -320,7 +320,7 @@ class StreamOperationTracer {
     }
 
     /**
-     * Compares two states the way StreamViz shows them. Sets and maps are compared without regard to order,
+     * Compares two states the way the Stream View shows them. Sets and maps are compared without regard to order,
      * because `toUnmodifiableSet` and `toUnmodifiableMap` iterate in a different order than the running `HashSet`/`HashMap`.
      */
     private fun sameContent(a: CollectorState, b: CollectorState): Boolean = when {
@@ -363,7 +363,7 @@ class StreamOperationTracer {
         )
     }
 
-    /** Converts Optional return text into the value and type that StreamViz should display. */
+    /** Converts Optional return text into the value and type that the Stream View should display. */
     private fun normalizeReductionCompletion(type: String?, observedValue: String?): ReductionCompletionValue {
         val text = observedValue ?: "null"
         return when {
@@ -411,7 +411,7 @@ class StreamOperationTracer {
                 operationId,
                 elementId,
                 parentIds,
-                // StreamViz draws void terminals as an ellipse, also when no element reached forEach.
+                // The Stream View draws void terminals as an ellipse, also when no element reached forEach.
                 collectResult?.displayType ?: type ?: if (operation == "forEach" || operation == "forEachOrdered") "void" else null,
                 collectResult ?: resultText,
                 operationParameter

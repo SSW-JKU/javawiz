@@ -1,5 +1,8 @@
 import { HoverInfo } from './types'
 
+// Hover infos describe an element by its data (class, method, name, referenced object), not by an
+// identifier string, so every view can match them against its own elements without knowing their ids.
+
 export function createHoverLine (lineNr: number, localUri: string): HoverInfo {
   return {
     kind: 'Line',

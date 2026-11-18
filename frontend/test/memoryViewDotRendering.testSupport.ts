@@ -11,6 +11,7 @@ import { HeapVizReferenceVal } from '@/components/TheHeapVisualization/Types/Hea
 import { HeapVizStackFrame } from '@/components/TheHeapVisualization/Types/HeapVizStackFrame'
 import { HeapVizVar } from '@/components/TheHeapVisualization/Types/HeapVizVar'
 import { renderRootsNode } from '@/components/TheHeapVisualization/RootsNodeRenderer'
+import { createHoverHeapObject } from '@/hover/hoverinfo-builder'
 
 export interface MemoryViewDotCase {
   name: string
@@ -54,7 +55,10 @@ const intVariable: StaticVar = {
   class: 'Example'
 }
 
-/** Handwritten full-row contract shared by primitive-size cases. */
+/**
+ * Handwritten full-row contract shared by primitive-size cases. `identifier` is a local's identifier,
+ * such as `local_0_count`, which is also the port of its cell in the roots table.
+ */
 function expectedMemoryVariableRow (
   identifier: string,
   name: string,
@@ -63,19 +67,19 @@ function expectedMemoryVariableRow (
   value: string
 ): string {
   return `<tr>
-    <td width="30" align="right" title="id=&quot;${identifier}:bytes&quot;" bgcolor="#ffffff" >
+    <td width="30" align="right" title="id=&quot;${identifier}--bytes&quot;" bgcolor="#ffffff" >
       <b>${bytes}</b>
     </td>
-    <td colspan="2" width="30" align="right" title="id=&quot;${identifier}:typeandname&quot;" bgcolor="#ffffff">
+    <td colspan="2" width="30" align="right" title="id=&quot;${identifier}--typeandname&quot;" bgcolor="#ffffff">
       <font color="#007bff">
         <b>&nbsp;${type}</b>
       </font>
-      <font color="#000000">${name}</font>
+      <font color="#000000"><font>${name}</font></font>
     </td>
-    <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;${identifier}:pseudo&quot;" port="${identifier.split(':')[1]}" sides="LTB" bgcolor="#ffffff">
+    <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;${identifier}--pseudo&quot;" port="${identifier}" sides="LTB" bgcolor="#ffffff">
       <font color="#ffffff">xx</font>
     </td>
-    <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;${identifier}:value&quot;" sides="RTB" bgcolor="#ffffff">
+    <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;${identifier}--value&quot;" sides="RTB" bgcolor="#ffffff">
       <b><font color="#000000" face="Arial">&nbsp;${value}&nbsp;</font></b>
     </td>
   </tr>`
@@ -85,12 +89,29 @@ function expectedMemoryVariableRow (
 function expectedHeapNode (identifier: string, type: string, cssClass: string, body: string): string {
   return `${identifier}[label=<<font face="Courier" point-size="9">
     <table border="0" cellborder="1" cellspacing="0"><tr>
-      <td align="center" colspan="5" title="id=&quot;${identifier}:header&quot;" bgcolor="#315277" port="heap_object_header">
+      <td align="center" colspan="5" title="id=&quot;${identifier}--header&quot;" bgcolor="#315277" port="heap_object_header">
         <font color="#ffffff"><b>${type}</b></font>
       </td>
     </tr>
     ${body}
     </table>  </font>> , class="${cssClass}"];`
+}
+
+/**
+ * Handwritten heap-node wrapper of an item that is new in the shown step (JW-753): a red frame, drawn as an outer
+ * table so that the inner table can reset the cell borders to black, and light red header text.
+ */
+function expectedNewHeapNode (identifier: string, type: string, cssClass: string, body: string): string {
+  return `${identifier}[label=<<font face="Courier" point-size="9">
+    <table border="2" color="#ff0000" cellborder="0" cellspacing="0" cellpadding="0"><tr><td>
+    <table border="0" cellborder="1" cellspacing="0" color="#000000"><tr>
+      <td align="center" colspan="5" title="id=&quot;${identifier}--header&quot;" bgcolor="#315277" port="heap_object_header">
+        <font color="#ff8a80"><b>${type}</b></font>
+      </td>
+    </tr>
+    ${body}
+    </table>
+    </td></tr></table>  </font>> , class="${cssClass}"];`
 }
 
 function expectedRootsNode (stackRows: string): string {
@@ -101,9 +122,9 @@ function expectedRootsNode (stackRows: string): string {
       label=<
         <font face="Courier" point-size="9">
           <table border="0" cellborder="1" cellspacing="0" id="rootsTable">
-            <tr><td colspan="5" bgcolor="#315277" id="staticsHeader"><font face="Arial" point-size="12" color="#ffffff"><b>Statics</b></font></td></tr>
+            <tr><td colspan="5" bgcolor="#315277" height="24" id="staticsHeader"><font face="Arial" point-size="12" color="#ffffff"><b>Statics</b></font></td></tr>
             <tr><td colspan="5" border="0" height="15"></td></tr>
-            <tr><td colspan="5" bgcolor="#315277" id="stackHeader"><font face="Arial" point-size="12" color="#ffffff"><b>Stack</b></font></td></tr>
+            <tr><td colspan="5" bgcolor="#315277" height="24" id="stackHeader" port="stack_header"><font face="Arial" point-size="12" color="#ffffff"><b>Stack</b></font></td></tr>
             ${stackRows}
           </table></font>
       >
@@ -154,7 +175,8 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
   const primitive = new HeapVizPrimitiveVal(intValue, 'primitive_count', 'int', memoryContext)
   const nullValue = new HeapVizNullVal({ kind: 'NullVal' }, 'null_item', memoryContext)
   const reference = new HeapVizReferenceVal({ kind: 'ReferenceVal', reference: 2 }, 'reference_item', memoryContext)
-  const memoryVariable = new HeapVizVar(intVariable, 'roots:l_0_count', memoryContext)
+  const memoryVariable = new HeapVizVar(intVariable, { node: 'roots', port: 'local_0_count' }, memoryContext)
+  const changedMemoryVariable = new HeapVizVar({ ...intVariable, changed: true }, { node: 'roots', port: 'local_0_count' }, memoryContext)
   const additionalPrimitiveVariables = [
     ['boolean', 'flag', 'true', 1],
     ['byte', 'small', '1', 1],
@@ -163,7 +185,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
     ['long', 'largeNumber', '9', 8],
     ['double', 'ratio', '1.5', 8]
   ].map(([type, name, value, bytes]) => {
-    const identifier = `roots:l_0_${name}`
+    const identifier = `local_0_${name}`
     const variable = new HeapVizVar({
       ...intVariable,
       name: name as string,
@@ -174,7 +196,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         vizValue: value as string,
         title: undefined
       }
-    }, identifier, memoryContext)
+    }, { node: 'roots', port: identifier }, memoryContext)
     return {
       name: `memory ${type} variable row`,
       actual: variable.render(),
@@ -189,7 +211,15 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
     value: { kind: 'NullVal' },
     changed: false,
     class: 'Example'
-  }, 'roots:l_0_item', compactContext)
+  }, { node: 'roots', port: 'local_0_item' }, compactContext)
+  const compactChangedNullVariable = new HeapVizVar({
+    kind: 'Var',
+    name: 'item',
+    type: 'java.lang.Object',
+    value: { kind: 'NullVal' },
+    changed: true,
+    class: 'Example'
+  }, { node: 'roots', port: 'local_0_item' }, compactContext)
 
   const stackFrame = new HeapVizStackFrame({
     kind: 'StackFrame',
@@ -316,6 +346,36 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       changed: false
     }))
   }, memoryContext)
+  // Arrays whose second element changed in the last step; only that element may be highlighted.
+  const changedPrimitiveArray = new HeapVizHeapArray({
+    ...primitiveArrayModel,
+    id: 15,
+    elements: [
+      { ...primitiveArrayModel.elements[0], arrayId: 15, index: 0 },
+      {
+        ...primitiveArrayModel.elements[0],
+        arrayId: 15,
+        index: 1,
+        value: { ...intValue, primitiveValue: '8', vizValue: '8' },
+        changed: true
+      }
+    ]
+  }, memoryContext)
+  const changedReferenceArray = new HeapVizHeapArray({
+    kind: 'HeapArray',
+    id: 16,
+    type: 'java.lang.Object[]',
+    faked: false,
+    loadedClass: undefined,
+    elements: [1, 2].map((reference, index) => ({
+      kind: 'HeapArrayElementVar' as const,
+      arrayId: 16,
+      index,
+      type: 'java.lang.Object',
+      value: { kind: 'ReferenceVal' as const, reference },
+      changed: index === 1
+    }))
+  }, memoryContext)
   const fourBooleanArray = new HeapVizHeapArray({
     kind: 'HeapArray',
     id: 12,
@@ -350,9 +410,16 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
     }
   }
   const heapString = new HeapVizHeapString(stringModel, memoryContext)
+  const changedHeapString = new HeapVizHeapString({ ...stringModel, id: 14, charArr: { ...stringModel.charArr, changed: true } }, memoryContext)
   const longHeapString = new HeapVizHeapString({ ...stringModel, id: 13, string: 'Main Street 7', vizString: 'Main Street 7' }, memoryContext)
   const detailedHeapString = new HeapVizHeapString({ ...stringModel, id: 11 }, detailedMemoryContext)
+  const hoveredStringContext = new MemoryViewRenderContext()
+  hoveredStringContext.setShowMemory(true)
+  hoveredStringContext.setHoverInfos([createHoverHeapObject(17)])
+  const hoveredHeapString = new HeapVizHeapString({ ...stringModel, id: 17 }, hoveredStringContext)
   const compactEmptyNode = new HeapVizHeapObject({ ...objectModel, id: 8, fields: [] }, compactContext)
+  // JW-753: an object that did not exist in the state shown before.
+  const compactNewEmptyNode = new HeapVizHeapObject({ ...objectModel, id: 18, fields: [], isNew: true }, compactContext)
 
   const rootsNode = (stackAfterExecution: HeapVizStackFrame[]): string => {
     return renderRootsNode({ loadedClassesAfterExecution: [], stackAfterExecution })
@@ -381,20 +448,42 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory primitive variable row',
       actual: memoryVariable.render(),
       expected: `<tr>
-        <td width="30" align="right" title="id=&quot;roots:l_0_count:bytes&quot;" bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;local_0_count--bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
-        <td colspan="2" width="30" align="right" title="id=&quot;roots:l_0_count:typeandname&quot;" bgcolor="#ffffff">
+        <td colspan="2" width="30" align="right" title="id=&quot;local_0_count--typeandname&quot;" bgcolor="#ffffff">
           <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
-          <font color="#000000">count</font>
+          <font color="#000000"><font>count</font></font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;roots:l_0_count:pseudo&quot;" port="l_0_count" sides="LTB" bgcolor="#ffffff">
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;local_0_count--pseudo&quot;" port="local_0_count" sides="LTB" bgcolor="#ffffff">
           <font color="#ffffff">xx</font>
         </td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;roots:l_0_count:value&quot;" sides="RTB" bgcolor="#ffffff">
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;local_0_count--value&quot;" sides="RTB" bgcolor="#ffffff">
           <b><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></b>
+        </td>
+      </tr>`,
+      graphviz: 'rows'
+    },
+    {
+      name: 'memory changed primitive variable row',
+      actual: changedMemoryVariable.render(),
+      expected: `<tr>
+        <td width="30" align="right" title="id=&quot;local_0_count--bytes&quot;" bgcolor="#ffffff" >
+          <b>4</b>
+        </td>
+        <td colspan="2" width="30" align="right" title="id=&quot;local_0_count--typeandname&quot;" bgcolor="#ffffff">
+          <font color="#007bff">
+            <b>&nbsp;int</b>
+          </font>
+          <font color="#ff0000"><b>count</b></font>
+        </td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;local_0_count--pseudo&quot;" port="local_0_count" sides="LTB" bgcolor="#ffffff">
+          <font color="#ffffff">xx</font>
+        </td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;local_0_count--value&quot;" sides="RTB" bgcolor="#ffffff">
+          <b><font color="#ff0000" face="Arial">&nbsp;7&nbsp;</font></b>
         </td>
       </tr>`,
       graphviz: 'rows'
@@ -404,16 +493,35 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'compact null variable row',
       actual: compactNullVariable.render(),
       expected: `<tr>
-        <td colspan="3" width="30" align="right" title="id=&quot;roots:l_0_item:typeandname&quot;" bgcolor="#ffffff">
+        <td colspan="3" width="30" align="right" title="id=&quot;local_0_item--typeandname&quot;" bgcolor="#ffffff">
           <font color="#007bff">
             <b>&nbsp;Object</b>
           </font>
-          <font color="#000000">item</font>
+          <font color="#000000"><font>item</font></font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;roots:l_0_item:pseudo&quot;" port="l_0_item" sides="LTB" bgcolor="#ffffff">
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;local_0_item--pseudo&quot;" port="local_0_item" sides="LTB" bgcolor="#ffffff">
           <font color="#ffffff">xx</font>
         </td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;roots:l_0_item:value&quot;" sides="RTB" bgcolor="#ffffff">
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;local_0_item--value&quot;" sides="RTB" bgcolor="#ffffff">
+          <b><i>null</i></b>
+        </td>
+      </tr>`,
+      graphviz: 'rows'
+    },
+    {
+      name: 'compact changed null variable row',
+      actual: compactChangedNullVariable.render(),
+      expected: `<tr>
+        <td colspan="3" width="30" align="right" title="id=&quot;local_0_item--typeandname&quot;" bgcolor="#ffffff">
+          <font color="#007bff">
+            <b>&nbsp;Object</b>
+          </font>
+          <font color="#ff0000"><b>item</b></font>
+        </td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;local_0_item--pseudo&quot;" port="local_0_item" sides="LTB" bgcolor="#ffffff">
+          <font color="#ffffff">xx</font>
+        </td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;local_0_item--value&quot;" sides="RTB" bgcolor="#ffffff">
           <b><i>null</i></b>
         </td>
       </tr>`,
@@ -423,26 +531,26 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory stack frame with primitive local',
       actual: stackFrame.render(),
       expected: `<tr>
-        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_0:method&quot;">
+        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_0--method&quot;">
           <font face="Arial">
             <b>Example.main()</b>
           </font>
         </td>
       </tr>
       <tr>
-        <td width="30" align="right" title="id=&quot;roots:l_0_count:bytes&quot;" bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;local_0_count--bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
-        <td colspan="2" width="30" align="right" title="id=&quot;roots:l_0_count:typeandname&quot;" bgcolor="#ffffff">
+        <td colspan="2" width="30" align="right" title="id=&quot;local_0_count--typeandname&quot;" bgcolor="#ffffff">
           <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
-          <font color="#000000">count</font>
+          <font color="#000000"><font>count</font></font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;roots:l_0_count:pseudo&quot;" port="l_0_count" sides="LTB" bgcolor="#ffffff">
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;local_0_count--pseudo&quot;" port="local_0_count" sides="LTB" bgcolor="#ffffff">
           <font color="#ffffff">xx</font>
         </td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;roots:l_0_count:value&quot;" sides="RTB" bgcolor="#ffffff">
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;local_0_count--value&quot;" sides="RTB" bgcolor="#ffffff">
           <b><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></b>
         </td>
       </tr>
@@ -453,7 +561,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory empty stack frame',
       actual: emptyStackFrame.render(),
       expected: `<tr>
-        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_1:method&quot;">
+        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_1--method&quot;">
           <font face="Arial"><b>Example.empty()</b></font>
         </td>
       </tr>
@@ -464,12 +572,12 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory stack frame with mixed locals',
       actual: mixedStackFrame.render(),
       expected: `<tr>
-        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_2:method&quot;">
+        <td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_2--method&quot;">
           <font face="Arial"><b>Example.mixed()</b></font>
         </td>
       </tr>
-      ${expectedMemoryVariableRow('roots:l_2_count', 'count', 'int', 4, '7')}
-      ${expectedMemoryVariableRow('roots:l_2_flag', 'flag', 'boolean', 1, 'true')}
+      ${expectedMemoryVariableRow('local_2_count', 'count', 'int', 4, '7')}
+      ${expectedMemoryVariableRow('local_2_flag', 'flag', 'boolean', 1, 'true')}
       <tr><td sides="BL" align="right"><font><b align="right">8</b></font></td><td sides="BR" colspan="4"></td></tr>`,
       graphviz: 'rows'
     },
@@ -478,19 +586,19 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       actual: loadedClass.render(),
       expected: `<tr><td bgcolor="#c8d8e8" colspan="5"><font face="Arial"><b>Example </b></font></td></tr>
       <tr>
-        <td width="30" align="right" title="id=&quot;roots:s_Example_count:bytes&quot;" bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;static_Example_count--bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
-        <td colspan="2" width="30" align="right" title="id=&quot;roots:s_Example_count:typeandname&quot;" bgcolor="#ffffff">
+        <td colspan="2" width="30" align="right" title="id=&quot;static_Example_count--typeandname&quot;" bgcolor="#ffffff">
           <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
-          <font color="#000000">count</font>
+          <font color="#000000"><font>count</font></font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;roots:s_Example_count:pseudo&quot;" port="s_Example_count" sides="LTB" bgcolor="#ffffff">
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;static_Example_count--pseudo&quot;" port="static_Example_count" sides="LTB" bgcolor="#ffffff">
           <font color="#ffffff">xx</font>
         </td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;roots:s_Example_count:value&quot;" sides="RTB" bgcolor="#ffffff">
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;static_Example_count--value&quot;" sides="RTB" bgcolor="#ffffff">
           <b><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></b>
         </td>
       </tr>
@@ -505,19 +613,19 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td colspan="4" width="30">Header</td>
       </tr>
       <tr>
-        <td width="30" align="right" title="id=&quot;o_1:count:bytes&quot;" bgcolor="#ffffff" >
+        <td width="30" align="right" title="id=&quot;obj_1-count--bytes&quot;" bgcolor="#ffffff" >
           <b>4</b>
         </td>
-        <td colspan="2" width="30" align="right" title="id=&quot;o_1:count:typeandname&quot;" bgcolor="#ffffff">
+        <td colspan="2" width="30" align="right" title="id=&quot;obj_1-count--typeandname&quot;" bgcolor="#ffffff">
           <font color="#007bff">
             <b>&nbsp;int</b>
           </font>
-          <font color="#000000">count</font>
+          <font color="#000000"><font>count</font></font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_1:count:pseudo&quot;" port="count" sides="LTB" bgcolor="#ffffff">
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_1-count--pseudo&quot;" port="count" sides="LTB" bgcolor="#ffffff">
           <font color="#ffffff">xx</font>
         </td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_1:count:value&quot;" sides="RTB" bgcolor="#ffffff">
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_1-count--value&quot;" sides="RTB" bgcolor="#ffffff">
           <b><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></b>
         </td>
       </tr>
@@ -552,8 +660,8 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       <tr>
         <td colspan="5" border="0" cellpadding="0" cellspacing="0">
           <table border="0" cellborder="1" cellspacing="0">
-            <tr><td width="30" title="id=&quot;o_3:i_0:index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td></tr>
-            <tr><td width="30" title="id=&quot;o_3:i_0:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></font></td></tr>
+            <tr><td width="30" title="id=&quot;obj_3-0--index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td></tr>
+            <tr><td width="30" title="id=&quot;obj_3-0--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></font></td></tr>
             <tr><td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>4</b></font></td></tr>
           </table>
         </td>
@@ -573,15 +681,15 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td>
       </tr><tr>
         <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
-        <td colspan="2" width="30" title="id=&quot;o_4:i_0:index&quot;" bgcolor="#c8d8e8">
+        <td colspan="2" width="30" title="id=&quot;obj_4-0--index&quot;" bgcolor="#c8d8e8">
           <font color="#000000">
             <font>[0]</font>
           </font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_4:i_0:pseudo&quot;" port="i_0" sides="LTB" bgcolor="#ffffff">
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_4-0--pseudo&quot;" port="0" sides="LTB" bgcolor="#ffffff">
           <font color="white">&nbsp;</font>
         </td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_4:i_0:value&quot;" sides="RTB" bgcolor="#ffffff">
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_4-0--value&quot;" sides="RTB" bgcolor="#ffffff">
           <font><font color="white">xx</font></font>
         </td>
       </tr>
@@ -603,12 +711,12 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td colspan="5" border="0" cellpadding="0" cellspacing="0">
           <table border="0" cellborder="1" cellspacing="0">
             <tr>
-              <td width="30" title="id=&quot;o_9:i_0:index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td>
-              <td width="30" title="id=&quot;o_9:i_1:index&quot;" bgcolor="#ffffff"><font color="#000000">[1]</font></td>
+              <td width="30" title="id=&quot;obj_9-0--index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td>
+              <td width="30" title="id=&quot;obj_9-1--index&quot;" bgcolor="#ffffff"><font color="#000000">[1]</font></td>
             </tr>
             <tr>
-              <td width="30" title="id=&quot;o_9:i_0:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></font></td>
-              <td width="30" title="id=&quot;o_9:i_1:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;8&nbsp;</font></font></td>
+              <td width="30" title="id=&quot;obj_9-0--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></font></td>
+              <td width="30" title="id=&quot;obj_9-1--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;8&nbsp;</font></font></td>
             </tr>
             <tr>
               <td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>4</b></font></td>
@@ -632,15 +740,72 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td>
       </tr><tr>
         <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
-        <td colspan="2" width="30" title="id=&quot;o_10:i_0:index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[0]</font></font></td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_0:pseudo&quot;" port="i_0" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_0:value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
+        <td colspan="2" width="30" title="id=&quot;obj_10-0--index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[0]</font></font></td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_10-0--pseudo&quot;" port="0" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_10-0--value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
       </tr>
       <tr>
         <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
-        <td colspan="2" width="30" title="id=&quot;o_10:i_1:index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[1]</font></font></td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_1:pseudo&quot;" port="i_1" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_10:i_1:value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
+        <td colspan="2" width="30" title="id=&quot;obj_10-1--index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[1]</font></font></td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_10-1--pseudo&quot;" port="1" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_10-1--value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
+      </tr>
+      <tr>
+        <td width="30" align="right"><b>36</b>&nbsp;(+4)</td>
+        <td colspan="4" width="30" align="right"><b>40</b></td>
+      </tr>`,
+      graphviz: 'rows'
+    },
+    {
+      name: 'memory primitive array with a changed element',
+      actual: changedPrimitiveArray.render(),
+      expected: `<tr>
+        <td width="30" align="right"><b>16</b></td><td colspan="4" width="30">Header</td>
+      </tr><tr>
+        <td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td>
+      </tr>
+      <tr>
+        <td colspan="5" border="0" cellpadding="0" cellspacing="0">
+          <table border="0" cellborder="1" cellspacing="0">
+            <tr>
+              <td width="30" title="id=&quot;obj_15-0--index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td>
+              <td width="30" title="id=&quot;obj_15-1--index&quot;" bgcolor="#ffffff"><font color="#ff0000">[1]</font></td>
+            </tr>
+            <tr>
+              <td width="30" title="id=&quot;obj_15-0--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;7&nbsp;</font></font></td>
+              <td width="30" title="id=&quot;obj_15-1--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#ff0000" face="Arial">&nbsp;8&nbsp;</font></font></td>
+            </tr>
+            <tr>
+              <td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>4</b></font></td>
+              <td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>4</b></font></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td width="30" align="right"><b>28</b>&nbsp;(+4)</td>
+        <td colspan="4" width="30" align="right"><b>32</b></td>
+      </tr>`,
+      graphviz: 'rows'
+    },
+    {
+      name: 'memory reference array with a changed element',
+      actual: changedReferenceArray.render(),
+      expected: `<tr>
+        <td width="30" align="right"><b>16</b></td><td colspan="4" width="30">Header</td>
+      </tr><tr>
+        <td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td>
+      </tr><tr>
+        <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
+        <td colspan="2" width="30" title="id=&quot;obj_16-0--index&quot;" bgcolor="#c8d8e8"><font color="#000000"><font>[0]</font></font></td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_16-0--pseudo&quot;" port="0" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_16-0--value&quot;" sides="RTB" bgcolor="#ffffff"><font><font color="white">xx</font></font></td>
+      </tr>
+      <tr>
+        <td width="30" align="right" bgcolor="#ffffff"><b>8</b></td>
+        <td colspan="2" width="30" title="id=&quot;obj_16-1--index&quot;" bgcolor="#c8d8e8"><font color="#ff0000"><b>[1]</b></font></td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_16-1--pseudo&quot;" port="1" sides="LTB" bgcolor="#ffffff"><font color="white">&nbsp;</font></td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_16-1--value&quot;" sides="RTB" bgcolor="#ffffff"><b><font color="white">xx</font></b></td>
       </tr>
       <tr>
         <td width="30" align="right"><b>36</b>&nbsp;(+4)</td>
@@ -670,15 +835,15 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       <tr><td width="30" align="right"><b>4</b></td><td colspan="4" width="30">Length</td></tr>
       <tr><td colspan="5" border="0" cellpadding="0" cellspacing="0"><table border="0" cellborder="1" cellspacing="0">
         <tr>
-          <td width="30" title="id=&quot;o_12:i_0:index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td>
-          <td width="30" title="id=&quot;o_12:i_1:index&quot;" bgcolor="#ffffff"><font color="#000000">[1]</font></td>
-          <td width="30" title="id=&quot;o_12:i_2:index&quot;" bgcolor="#ffffff"><font color="#000000">[2]</font></td>
-          <td width="30" title="id=&quot;o_12:i_3:index&quot;" bgcolor="#ffffff"><font color="#000000">[3]</font></td>
+          <td width="30" title="id=&quot;obj_12-0--index&quot;" bgcolor="#ffffff"><font color="#000000">[0]</font></td>
+          <td width="30" title="id=&quot;obj_12-1--index&quot;" bgcolor="#ffffff"><font color="#000000">[1]</font></td>
+          <td width="30" title="id=&quot;obj_12-2--index&quot;" bgcolor="#ffffff"><font color="#000000">[2]</font></td>
+          <td width="30" title="id=&quot;obj_12-3--index&quot;" bgcolor="#ffffff"><font color="#000000">[3]</font></td>
         </tr><tr>
-          <td width="30" title="id=&quot;o_12:i_0:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
-          <td width="30" title="id=&quot;o_12:i_1:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
-          <td width="30" title="id=&quot;o_12:i_2:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
-          <td width="30" title="id=&quot;o_12:i_3:value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
+          <td width="30" title="id=&quot;obj_12-0--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
+          <td width="30" title="id=&quot;obj_12-1--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
+          <td width="30" title="id=&quot;obj_12-2--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
+          <td width="30" title="id=&quot;obj_12-3--value&quot; data-tooltip=&quot;HeapVizHeapArray&quot;" pointer-events="none" bgcolor="#ffffff"><font color="#ffffff"><font color="#000000" face="Arial">&nbsp;true&nbsp;</font></font></td>
         </tr><tr>
           <td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>1</b></font></td><td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>1</b></font></td>
           <td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>1</b></font></td><td width="30" align="right" bgcolor="#ffffff"><font color="#000000"><b>1</b></font></td>
@@ -696,7 +861,49 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       </tr>
       <tr>
         <td width="30" align="right" bgcolor="#ffffff">32</td>
-        <td width="30" colspan="4" title="id=&quot;o_6:value&quot;" bgcolor="#c8d8e8">
+        <td width="30" colspan="4" title="id=&quot;obj_6--value&quot;" bgcolor="#ffffff">
+          <font color="#000000" face="Arial">
+            <font>"Tony"</font>
+          </font>
+        </td>
+      </tr>
+      <tr>
+        <td width="30" align="right"><b>48</b>&nbsp;(+0)</td>
+        <td colspan="4" width="30" align="right"><b>48</b></td>
+      </tr>`,
+      graphviz: 'rows'
+    },
+    {
+      name: 'memory compact changed string',
+      actual: changedHeapString.render(),
+      expected: `<tr>
+        <td width="30" align="right"><b>16</b></td>
+        <td colspan="4" width="30">Header</td>
+      </tr>
+      <tr>
+        <td width="30" align="right" bgcolor="#ffffff">32</td>
+        <td width="30" colspan="4" title="id=&quot;obj_14--value&quot;" bgcolor="#ffffff">
+          <font color="#ff0000" face="Arial">
+            <b>"Tony"</b>
+          </font>
+        </td>
+      </tr>
+      <tr>
+        <td width="30" align="right"><b>48</b>&nbsp;(+0)</td>
+        <td colspan="4" width="30" align="right"><b>48</b></td>
+      </tr>`,
+      graphviz: 'rows'
+    },
+    {
+      name: 'memory compact hovered string',
+      actual: hoveredHeapString.render(),
+      expected: `<tr>
+        <td width="30" align="right"><b>16</b></td>
+        <td colspan="4" width="30">Header</td>
+      </tr>
+      <tr>
+        <td width="30" align="right" bgcolor="#ffffff">32</td>
+        <td width="30" colspan="4" title="id=&quot;obj_17--value&quot;" bgcolor="#e3eee2">
           <font color="#000000" face="Arial">
             <font>"Tony"</font>
           </font>
@@ -712,7 +919,7 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
       name: 'memory compact long string',
       actual: longHeapString.render(),
       expected: `<tr><td width="30" align="right"><b>16</b></td><td colspan="4" width="30">Header</td></tr>
-      <tr><td width="30" align="right" bgcolor="#ffffff">48</td><td width="30" colspan="4" title="id=&quot;o_13:value&quot;" bgcolor="#c8d8e8">
+      <tr><td width="30" align="right" bgcolor="#ffffff">48</td><td width="30" colspan="4" title="id=&quot;obj_13--value&quot;" bgcolor="#ffffff">
         <font color="#000000" face="Arial"><font>"Main Street 7"</font></font>
       </td></tr>
       <tr><td width="30" align="right"><b>64</b>&nbsp;(+0)</td><td colspan="4" width="30" align="right"><b>64</b></td></tr>`,
@@ -725,12 +932,12 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
         <td width="30" align="right"><b>16</b></td><td colspan="4" width="30">Header</td>
       </tr>
       <tr>
-        <td width="30" align="right" title="id=&quot;o_11:value:bytes&quot;" bgcolor="#ffffff" ><b>8</b></td>
-        <td colspan="2" width="30" align="right" title="id=&quot;o_11:value:typeandname&quot;" bgcolor="#ffffff">
-          <font color="#007bff"><b>&nbsp;byte[]</b></font><font color="#000000">value</font>
+        <td width="30" align="right" title="id=&quot;obj_11-value--bytes&quot;" bgcolor="#ffffff" ><b>8</b></td>
+        <td colspan="2" width="30" align="right" title="id=&quot;obj_11-value--typeandname&quot;" bgcolor="#ffffff">
+          <font color="#007bff"><b>&nbsp;byte[]</b></font><font color="#000000"><font>value</font></font>
         </td>
-        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;o_11:value:pseudo&quot;" port="value" sides="LTB" bgcolor="#ffffff"><font color="#ffffff">xx</font></td>
-        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;o_11:value:value&quot;" sides="RTB" bgcolor="#ffffff"><b><font color="white">xx</font></b></td>
+        <td align="right" cellpadding="0" cellspacing="0" title="id=&quot;obj_11-value--pseudo&quot;" port="value" sides="LTB" bgcolor="#ffffff"><font color="#ffffff">xx</font></td>
+        <td align="left" cellpadding="0" cellspacing="0" title="id=&quot;obj_11-value--value&quot;" sides="RTB" bgcolor="#ffffff"><b><font color="white">xx</font></b></td>
       </tr>
       <tr><td width="30" align="right"><b>24</b>&nbsp;(+0)</td><td colspan="4" width="30" align="right"><b>24</b></td></tr>`,
       graphviz: 'rows'
@@ -744,46 +951,78 @@ export function createMemoryViewDotCases (): MemoryViewDotCase[] {
     {
       name: 'complete roots table with empty stack frame',
       actual: rootsNode([emptyStackFrame]),
-      expected: expectedRootsNode(`<tr><td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_1:method&quot;"><font face="Arial"><b>Example.empty()</b></font></td></tr>
+      expected: expectedRootsNode(`<tr><td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_1--method&quot;"><font face="Arial"><b>Example.empty()</b></font></td></tr>
         <tr><td sides="BL" align="right"><font><b align="right">0</b></font></td><td sides="BR" colspan="4"></td></tr>`),
       graphviz: false
     },
     {
       name: 'complete roots table with mixed stack frame',
       actual: rootsNode([mixedStackFrame]),
-      expected: expectedRootsNode(`<tr><td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_2:method&quot;"><font face="Arial"><b>Example.mixed()</b></font></td></tr>
-        ${expectedMemoryVariableRow('roots:l_2_count', 'count', 'int', 4, '7')}
-        ${expectedMemoryVariableRow('roots:l_2_flag', 'flag', 'boolean', 1, 'true')}
+      expected: expectedRootsNode(`<tr><td bgcolor="#c8d8e8" colspan="5" title="id=&quot;stackframe_2--method&quot;"><font face="Arial"><b>Example.mixed()</b></font></td></tr>
+        ${expectedMemoryVariableRow('local_2_count', 'count', 'int', 4, '7')}
+        ${expectedMemoryVariableRow('local_2_flag', 'flag', 'boolean', 1, 'true')}
         <tr><td sides="BL" align="right"><font><b align="right">8</b></font></td><td sides="BR" colspan="4"></td></tr>`),
       graphviz: false
     },
     {
       name: 'complete compact empty-object node',
       actual: compactEmptyNode.renderNode(),
-      expected: `o_8[label=<<font face="Courier" point-size="9">
+      expected: `obj_8[label=<<font face="Courier" point-size="9">
         <table border="0" cellborder="1" cellspacing="0"><tr>
-          <td align="center" colspan="5" title="id=&quot;o_8:header&quot;" bgcolor="#315277" port="heap_object_header">
+          <td align="center" colspan="5" title="id=&quot;obj_8--header&quot;" bgcolor="#315277" port="heap_object_header">
             <font color="#ffffff"><b>Example</b></font>
           </td>
         </tr>
         </table>  </font>> , class="heapvizheapobject"];`,
       graphviz: 'node'
+    },
+    {
+      name: 'complete compact new empty-object node',
+      actual: compactNewEmptyNode.renderNode(),
+      expected: expectedNewHeapNode('obj_18', 'Example', 'heapvizheapobject', ''),
+      graphviz: 'node'
     }
   ]
 
   const completeHeapNodes = new Map<string, [HeapVizHeapObject | HeapVizHeapArray | HeapVizHeapString, string, string, string]>([
-    ['memory object with primitive field', [memoryObject, 'o_1', 'Example', 'heapvizheapobject']],
-    ['memory empty object', [emptyObject, 'o_2', 'Example', 'heapvizheapobject']],
-    ['memory primitive array', [primitiveArray, 'o_3', 'int[]', 'heapvizheaparray']],
-    ['memory reference array', [referenceArray, 'o_4', 'Object[]', 'heapvizheaparray']],
-    ['memory primitive array with two elements', [multiPrimitiveArray, 'o_9', 'int[]', 'heapvizheaparray']],
-    ['memory reference array with two elements', [multiReferenceArray, 'o_10', 'Object[]', 'heapvizheaparray']],
-    ['memory empty array', [emptyArray, 'o_5', 'int[]', 'heapvizheaparray']],
-    ['memory array with four booleans', [fourBooleanArray, 'o_12', 'boolean[]', 'heapvizheaparray']],
-    ['memory compact string body', [heapString, 'o_6', 'String', 'heapvizheapstring']],
-    ['memory compact long string', [longHeapString, 'o_13', 'String', 'heapvizheapstring']],
-    ['memory detailed string', [detailedHeapString, 'o_11', 'String', 'heapvizheapstring']]
+    ['memory object with primitive field', [memoryObject, 'obj_1', 'Example', 'heapvizheapobject']],
+    ['memory empty object', [emptyObject, 'obj_2', 'Example', 'heapvizheapobject']],
+    ['memory primitive array', [primitiveArray, 'obj_3', 'int[]', 'heapvizheaparray']],
+    ['memory reference array', [referenceArray, 'obj_4', 'Object[]', 'heapvizheaparray']],
+    ['memory primitive array with two elements', [multiPrimitiveArray, 'obj_9', 'int[]', 'heapvizheaparray']],
+    ['memory reference array with two elements', [multiReferenceArray, 'obj_10', 'Object[]', 'heapvizheaparray']],
+    ['memory primitive array with a changed element', [changedPrimitiveArray, 'obj_15', 'int[]', 'heapvizheaparray']],
+    ['memory reference array with a changed element', [changedReferenceArray, 'obj_16', 'Object[]', 'heapvizheaparray']],
+    ['memory empty array', [emptyArray, 'obj_5', 'int[]', 'heapvizheaparray']],
+    ['memory array with four booleans', [fourBooleanArray, 'obj_12', 'boolean[]', 'heapvizheaparray']],
+    ['memory compact string body', [heapString, 'obj_6', 'String', 'heapvizheapstring']],
+    ['memory compact changed string', [changedHeapString, 'obj_14', 'String', 'heapvizheapstring']],
+    ['memory compact long string', [longHeapString, 'obj_13', 'String', 'heapvizheapstring']],
+    ['memory detailed string', [detailedHeapString, 'obj_11', 'String', 'heapvizheapstring']]
   ])
+
+  // JW-753: new heap items keep their body rows in every mode; only the wrapper and the header color change.
+  // Each entry reuses the expected body of an existing case, with the item id replaced.
+  const newPrimitiveArray = new HeapVizHeapArray({
+    ...primitiveArrayModel,
+    id: 19,
+    elements: primitiveArrayModel.elements.map(element => ({ ...element, arrayId: 19 })),
+    isNew: true
+  }, memoryContext)
+  const newDetailedHeapString = new HeapVizHeapString({ ...stringModel, id: 20, isNew: true }, detailedMemoryContext)
+  const newHeapNodes: [string, string, HeapVizHeapArray | HeapVizHeapString, string, string, string, string][] = [
+    ['complete memory new primitive array node', 'memory primitive array', newPrimitiveArray, 'obj_3', 'obj_19', 'int[]', 'heapvizheaparray'],
+    ['complete detailed new string node', 'memory detailed string', newDetailedHeapString, 'obj_11', 'obj_20', 'String', 'heapvizheapstring']
+  ]
+  for (const [name, bodyCaseName, item, bodyIdentifier, identifier, type, cssClass] of newHeapNodes) {
+    const body = cases.find(dotCase => dotCase.name === bodyCaseName)!.expected.replaceAll(bodyIdentifier, identifier)
+    cases.push({
+      name,
+      actual: item.renderNode(),
+      expected: expectedNewHeapNode(identifier, type, cssClass, body),
+      graphviz: 'node'
+    })
+  }
 
   for (const dotCase of cases) {
     const node = completeHeapNodes.get(dotCase.name)

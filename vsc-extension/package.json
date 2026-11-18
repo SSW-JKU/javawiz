@@ -2,7 +2,7 @@
   "name": "javawiz",
   "displayName": "JavaWiz",
   "description": "Visualize the execution of your Java programs",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "publisher": "ssw-jku",
   "engines": {
     "vscode": "^1.87.0"
@@ -73,9 +73,15 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "when": "resourceLangId == java && javawiz.activeFileHasMain",
+          "command": "javawiz.start"
+        }
+      ],
       "editor/context": [
         {
-          "when": "resourceLangId == java",
+          "when": "resourceLangId == java && javawiz.activeFileHasMain",
           "command": "javawiz.start"
         },
         {
@@ -89,7 +95,7 @@
       ],
       "editor/title/run": [
         {
-          "when": "resourceLangId == java",
+          "when": "resourceLangId == java && javawiz.activeFileHasMain",
           "command": "javawiz.start"
         }
       ],
@@ -106,7 +112,7 @@
     },
     "keybindings": [
       {
-        "when": "resourceLangId == java",
+        "when": "resourceLangId == java && javawiz.activeFileHasMain",
         "command": "javawiz.start",
         "key": "ctrl+shift+j"
       }

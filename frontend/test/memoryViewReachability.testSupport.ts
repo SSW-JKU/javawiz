@@ -111,8 +111,8 @@ export function runMemoryViewReachabilityAssertions (assert: typeof StrictAssert
   internals.calculateNodeVisibility()
   const compactDot = chart.render()
   assert.equal(internals.traceState.heapAfterExecution[2].isVisible, false)
-  assert.doesNotMatch(compactDot, /o_2:value:e -> o_3:heap_object_header:w/)
-  assert.doesNotMatch(compactDot, /o_3\[label=/)
+  assert.doesNotMatch(compactDot, /obj_2:value:e -> obj_3:heap_object_header:w/)
+  assert.doesNotMatch(compactDot, /obj_3\[label=/)
 
   internals.renderContext.setDataStructureVisibilitySettings({
     showDataStructureDetails: true,
@@ -122,8 +122,8 @@ export function runMemoryViewReachabilityAssertions (assert: typeof StrictAssert
   internals.calculateNodeVisibility()
   const detailedDot = chart.render()
   assert.equal(internals.traceState.heapAfterExecution[2].isVisible, true)
-  assert.match(detailedDot, /o_2:value:e -> o_3:heap_object_header:w/)
-  assert.match(detailedDot, /o_3\[label=<<font/)
+  assert.match(detailedDot, /obj_2:value:e -> obj_3:heap_object_header:w/)
+  assert.match(detailedDot, /obj_3\[label=<<font/)
 
   const graphviz = spawnSync('dot', ['-Tsvg'], { input: detailedDot, encoding: 'utf8' })
   assert.equal(graphviz.status, 0, graphviz.stderr)
@@ -233,14 +233,14 @@ export function runEntryParameterReachabilityAssertions (assert: typeof StrictAs
     const collapsed = render()
     assert.match(collapsed, /➕/)
     assert.doesNotMatch(collapsed, /o_[234]\[label=/)
-    assert.doesNotMatch(collapsed, /-> o_4:heap_object_header/)
+    assert.doesNotMatch(collapsed, /-> obj_4:heap_object_header/)
 
     const parameter = internals.traceState.stackAfterExecution[0].localVariables[0]
     const store = useHeapVizMetaStore()
     store.setExpandedIdentifier({ identifier: parameter.identifier, e: true })
     const expanded = render({ ...model, line: 2, stateIndex: 1 })
-    assert.match(expanded, new RegExp(`roots:l_0_${name}:e -> o_4:heap_object_header:w`))
-    assert.match(expanded, /o_4\[label=/)
+    assert.match(expanded, new RegExp(`roots:local_0_${name}:e -> obj_4:heap_object_header:w`))
+    assert.match(expanded, /obj_4\[label=/)
     assert.equal(internals.traceState.heapAfterExecution[1].isVisible, hasArguments, 'argument Strings follow array reachability')
     const graphviz = spawnSync('dot', ['-Tsvg'], { input: expanded, encoding: 'utf8' })
     assert.equal(graphviz.status, 0, graphviz.stderr)
@@ -249,9 +249,9 @@ export function runEntryParameterReachabilityAssertions (assert: typeof StrictAs
     store.setExpandedIdentifier({ identifier: parameter.identifier, e: false })
     const aliasedFrame = { ...main, localVariables: [...main.localVariables, { ...main.localVariables[0], name: 'alias' }] }
     const aliased = render({ ...model, stackAfterExecution: [aliasedFrame] })
-    assert.match(aliased, /roots:l_0_alias:e -> o_4:heap_object_header:w/)
-    assert.match(aliased, /o_4\[label=/)
-    assert.doesNotMatch(aliased, new RegExp(`roots:l_0_${name}:e ->`))
+    assert.match(aliased, /roots:local_0_alias:e -> obj_4:heap_object_header:w/)
+    assert.match(aliased, /obj_4\[label=/)
+    assert.doesNotMatch(aliased, new RegExp(`roots:local_0_${name}:e ->`))
     store.reset()
     assert.doesNotMatch(render(), /o_[234]\[label=/)
   }

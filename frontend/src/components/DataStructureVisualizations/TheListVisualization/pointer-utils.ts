@@ -1,36 +1,39 @@
-import { ListNode, ListNodePointer } from './types'
-import { calculateNodesXCoordinate, calculateNodesYCoordinate } from './node-utils'
+import { ListNodeBox, VariableToListNodePointer } from './types'
+import { calculateColumnXCoordinate, calculateRowYCoordinate } from './node-utils'
 import { LAYOUT } from './constants'
 import { HeapObject } from '@/dto/TraceState'
 
 // calculate coordinates of a pointer
-export function getPointerCoordinates (pointer: ListNodePointer, nodeToPointerDistance?: Map<ListNode | null, {count: number, distance: number}>): [number, number] {
+export function getPointerCoordinates (
+  pointer: VariableToListNodePointer,
+  pointerSpacingByTargetListNodeBox?: Map<ListNodeBox | null, {count: number, distance: number}>
+): [number, number] {
   return [
-    (calculateNodesXCoordinate(pointer.nodeIndex) + pointer.index *
-      (nodeToPointerDistance && nodeToPointerDistance.has(pointer.target ?? null)
-        ? nodeToPointerDistance.get(pointer.target ?? null)!.distance
+    (calculateColumnXCoordinate(pointer.targetColumn) + pointer.positionAtTarget *
+      (pointerSpacingByTargetListNodeBox && pointerSpacingByTargetListNodeBox.has(pointer.targetListNodeBox ?? null)
+        ? pointerSpacingByTargetListNodeBox.get(pointer.targetListNodeBox ?? null)!.distance
         : 0) +
       LAYOUT.pointers.xOffset),
-    calculateNodesYCoordinate(pointer.target ? pointer.target.level : 0)
+    calculateRowYCoordinate(pointer.targetListNodeBox ? pointer.targetListNodeBox.row : 0)
   ]
 }
 
 // calculates pointer length
-export function getPointerLength (pointer: ListNodePointer) {
+export function getPointerLength (pointer: VariableToListNodePointer) {
   return -(pointer.isNull ? LAYOUT.pointers.null.length : LAYOUT.pointers.length)
 }
 
 // calculates y-offset of the pointer's text
-export function getPointerTextYOffset (pointer: ListNodePointer) {
+export function getPointerTextYOffset (pointer: VariableToListNodePointer) {
   return getPointerLength(pointer) - LAYOUT.pointers.text.yOffset
 }
 
 // calculates text-width of pointer
-export function getPointerTextWidth (pointer: ListNodePointer, nodeToPointerDistance: Map<ListNode | null, {count: number, distance: number}>) {
-  return nodeToPointerDistance.get(pointer.target ?? null)!.distance
+export function getPointerTextWidth (pointer: VariableToListNodePointer, pointerSpacingByTargetListNodeBox: Map<ListNodeBox | null, {count: number, distance: number}>) {
+  return pointerSpacingByTargetListNodeBox.get(pointer.targetListNodeBox ?? null)!.distance
 }
 
-// return true, iff next-pointer of given node has changed
-export function hasNextPointerChanged (nextName: string, node: ListNode): boolean {
-  return (node.node?.element as HeapObject).fields.find(field => field.name === nextName && field.changed) !== undefined
+// return true, iff the next field of the given list node box has changed
+export function hasNextFieldPointerChanged (nextName: string, listNodeBox: ListNodeBox): boolean {
+  return (listNodeBox.dataStructureGraphNode?.traceElement as HeapObject).fields.find(field => field.name === nextName && field.changed) !== undefined
 }

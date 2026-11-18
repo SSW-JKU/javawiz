@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { graphviz } from 'd3-graphviz';
+import type { ZoomBehavior } from 'd3-zoom';
 import { ref, toRaw, watch } from 'vue';
 import { HoverInfo } from '@/hover/types';
 import { HeapVizHeapArray } from './Types/HeapVizHeapArray';
@@ -13,28 +14,26 @@ import { useHeapVizMetaStore } from '@/store/HeapVizMetaStore';
 import { useVisualizationStore } from '@/store/VisualizationStore';
 import { IHeapVizHeapItem } from './Types/HeapVizHeapItem';
 import { HeapVizHeapObject } from './Types/HeapVizHeapObject';
-import { getLocalOrStaticsToHeapItemHoverInfos, getMethodHoverInfos, getReferencesOfHoveredHeapItem } from './hover';
-import { createHoverArrayCell, createHoverClass, createHoverField, createHoverHeapObject } from '@/hover/hoverinfo-builder';
+import { collectHoverTargets, type HoverTarget, hoverInfosForTarget } from './hover';
 import {
-  BTN_ZOOM_FACTOR,
   CLUSTER_TITLE_FONT_SIZE,
   DEFAULT_TRANSITION_TIME,
   FONT_FACE_CLUSTER_TITLE,
   MAIN_HEADER_BG_COLOR,
   MAIN_HEADER_FONT_COLOR,
-  MAX_ZOOM_IN_FACTOR,
-  MAX_ZOOM_OUT_FACTOR,
-  NewLine,
-  TRANSFORMATION_DURATION
+  NewLine
 } from './constants';
+import { ZOOM, zoomBy, zoomTransition } from '@/helpers/zooming';
 import { linkHeapItemsToLoadedClasses } from '@/debugger/processedTraceState';
 import type { DataStructureVisibilitySettings } from './DataStructureVisibility'
 import { MemoryViewRenderContext } from './MemoryViewRenderContext'
 import { processInjectedTitles } from './HeapLookup'
 import { applyHoverStyles, type HoverStyles, hoverStylesFromDot } from './HoverRecoloring'
-import { desanitizeIdentifier, identifierFromSvgCellIdentifier, SVG_CELL_SUFFIXES } from '@/identifiers/trace-identifiers'
-import type { HeapVizVar } from './Types/HeapVizVar'
-import { renderRootsNode } from './RootsNodeRenderer'
+import { identifierFromSvgCellIdentifier, SVG_CELL_SUFFIXES, svgCellIdentifier } from '@/identifiers/trace-identifiers'
+import { renderRootsNode, STACK_HEADER_PORT } from './RootsNodeRenderer'
+
+/** Invisible node inside the Heap box that keeps the box to the right of the Stack header. */
+const HEAP_ANCHOR = 'heap_anchor'
 
 export class HeapVizChart {
 
@@ -42,7 +41,14 @@ export class HeapVizChart {
   private isInitialized = false
   private isMounted = false
   private chartRootElement: Element | null = null
-  private traceState!: HeapVizTraceState;
+  private currentTraceState!: HeapVizTraceState
+  /** The records of the drawn state by identifier, rebuilt whenever the state changes. */
+  private hoverTargets = new Map<string, HoverTarget>()
+  private get traceState (): HeapVizTraceState { return this.currentTraceState }
+  private set traceState (state: HeapVizTraceState) {
+    this.currentTraceState = state
+    this.hoverTargets = collectHoverTargets(state)
+  }
   private highlightedItems = ref<HoverInfo[]>([])
   private heapVizMetaStore = useHeapVizMetaStore()
   private lastRenderedDotString: string | null = null
@@ -95,6 +101,9 @@ export class HeapVizChart {
         })
         processedState.loadedClassesAfterExecution!.flatMap(clazz => clazz.staticFields).forEach(sf => {
           sf.changed = true
+        })
+        processedState.heapAfterExecution.forEach(item => {
+          item.isNew = true
         })
         cachedTraceState.value = new HeapVizTraceState(processedState, this.renderContext)
       }
@@ -188,23 +197,18 @@ export class HeapVizChart {
     this.drawnHoverStyles = nextHoverStyles
   }
   public zoomIn () {
-    this.scaleBy(BTN_ZOOM_FACTOR)
+    this.scaleBy(ZOOM.step)
   }
   public zoomOut () {
-    this.scaleBy(1 / BTN_ZOOM_FACTOR)
+    this.scaleBy(1 / ZOOM.step)
   }
   public zoomReset () {
     // resetZoom animates back to the graph's own layout position at scale 1.
     // d3-graphviz recomputes that position on every render, so it stays correct when the graph changes size.
     // It throws before the first render, when d3-graphviz has not attached its zoom behavior yet.
-    if (this.graphvizInstance?.zoomBehavior())
-      this.graphvizInstance.resetZoom(this.zoomTransition() as any)
-  }
-  /** Creates the animation shared by the zoom buttons. */
-  private zoomTransition () {
-    return d3.transition()
-      .duration(TRANSFORMATION_DURATION)
-      .ease(d3.easeCubic)
+    const svg = this.chartRootElement?.querySelector('svg')
+    if (this.graphvizInstance?.zoomBehavior() && svg)
+      this.graphvizInstance.resetZoom(zoomTransition(svg) as any)
   }
   /**
    * Animates the zoom by `factor` around the view center, using the zoom behavior that d3-graphviz attached
@@ -213,11 +217,10 @@ export class HeapVizChart {
    */
   private scaleBy (factor: number) {
     const zoomBehavior = this.graphvizInstance?.zoomBehavior()
-    if (!zoomBehavior)
-      return
-    d3.select(this.chartRootElement).select('svg')
-      .transition(this.zoomTransition() as any)
-      .call(zoomBehavior.scaleBy as any, factor)
+    const svg = this.chartRootElement?.querySelector('svg')
+    // d3-graphviz attached this behavior to the SVG, but its type only promises a generic element.
+    if (zoomBehavior && svg)
+      zoomBy(zoomBehavior as unknown as ZoomBehavior<SVGSVGElement, unknown>, svg, factor)
   }
 
   public close () {
@@ -246,6 +249,13 @@ export class HeapVizChart {
                             `
     dotString += this.getNodes()
     dotString += this.traceState.edges()
+    if (this.hasVisibleHeapItems()) {
+      // Pulls the heap anchor, and with it the Heap box, one column to the right of the Statics/Stack table. The
+      // high weight makes Graphviz keep this invisible edge straight. It starts at the bottom right corner (`se`)
+      // of the Stack header, which puts the anchor at the bottom of the Heap title strip. Because both bars are
+      // MAIN_HEADER_HEIGHT tall, the Heap and Stack bars and titles then line up.
+      dotString += `\nroots:${STACK_HEADER_PORT}:se -> ${HEAP_ANCHOR} [style="invis" weight="100"];`
+    }
     dotString += '\n}\n'
     return dotString;
   }
@@ -259,8 +269,8 @@ export class HeapVizChart {
       // reads the scale limits only at that point, so they must be set before anything is rendered.
       // The wheel and the buttons share these limits but step differently: the wheel uses d3-zoom's default
       // step (about 1.1-1.2x per notch, depending on browser and device), zooms around the mouse pointer and
-      // is not animated. The buttons zoom by BTN_ZOOM_FACTOR around the view center, with an animation.
-      .zoomScaleExtent([MAX_ZOOM_OUT_FACTOR, MAX_ZOOM_IN_FACTOR])
+      // is not animated. The buttons zoom by ZOOM.step around the view center, with an animation.
+      .zoomScaleExtent(ZOOM.scaleExtent)
       //.logEvents(true) // -> for large graphs, dataProcessPass1End is the event that takes the longest by far
       .onerror((msg: string) => console.error(msg))
       .on('initEnd', () => {
@@ -294,6 +304,14 @@ export class HeapVizChart {
    * title; the inner one is filled white and covers the outer one everywhere except the title strip at the top.
    * The inner cluster keeps the default margin around the heap nodes. Because the bar is part of the layout,
    * it follows zoom, animated transitions, and image export without extra code.
+   *
+   * Without help, Graphviz places each heap object at the height of the row that references it, so the Heap box
+   * would move up and down while stepping, or sit above the Stack when nothing references it. An invisible
+   * anchor node inside the heap, tied to the Stack header in `render()`, keeps the box to the right of the
+   * Stack instead, with the Heap title level with the Stack title.
+   *
+   * Objects without a reference that stay visible after a method returns are declared first, so they appear
+   * below the referenced objects instead of on top of them.
    */
   public getHeapNodeCluster (): string {
     let dotString = `subgraph cluster_heap {
@@ -310,14 +328,25 @@ export class HeapVizChart {
          fillcolor="white";
          color="black";
          label="";\n`
-    for (const heapItem of this.traceState.heapAfterExecution) {
-
-      if (heapItem.isVisible) {
-        dotString += heapItem.renderNode()
-      }
+    // Graphviz places nodes without incoming arrows by declaration order, and in this layout a later node goes
+    // higher. Right after a method returns, `faked` items are the objects it left without a reference; they have
+    // no incoming arrow. Declaring them first puts them below the referenced objects, so those keep their place
+    // instead of being pushed down for one step.
+    const visibleItems = this.traceState.heapAfterExecution.filter(heapItem => heapItem.isVisible)
+    for (const heapItem of [...visibleItems.filter(item => item.faked), ...visibleItems.filter(item => !item.faked)])
+      dotString += heapItem.renderNode()
+    if (this.hasVisibleHeapItems()) {
+      // Must be the last node: Graphviz places unconnected nodes in declaration order, and in this left-to-right
+      // layout the last one goes on top. Declared earlier, an unreferenced object could end up above the anchor.
+      dotString += `\n${HEAP_ANCHOR} [shape="point" style="invis" width="0" height="0" label=""];`
     }
     dotString += '\n}\n}\n'
     return dotString
+  }
+
+  /** An empty heap gets no anchor, so Graphviz keeps leaving the empty Heap box out of the drawing. */
+  private hasVisibleHeapItems (): boolean {
+    return this.traceState.heapAfterExecution.some(heapItem => heapItem.isVisible)
   }
 
   private calculateNodeVisibility (): void {
@@ -423,28 +452,20 @@ export class HeapVizChart {
     return null
   }
 
-  private referenceVariable (identifier: string): HeapVizVar | undefined {
-    const stackVariables = this.traceState.stackAfterExecution.flatMap(frame => [
-      ...(frame.this ? [frame.this] : []),
-      ...frame.localVariables
-    ])
-    const staticVariables = this.traceState.loadedClassesAfterExecution.flatMap(loadedClass => loadedClass.staticFields)
-    const objectVariables = this.traceState.heapAfterExecution.flatMap(heapItem => {
-      if (heapItem instanceof HeapVizHeapObject)
-        return heapItem.fields
-      if (heapItem instanceof HeapVizHeapString)
-        return [heapItem.charArr]
-      return []
-    })
-    return [...stackVariables, ...staticVariables, ...objectVariables]
-      .find(variable => variable.identifier === identifier && variable.value instanceof HeapVizReferenceVal)
-  }
-
-  private isReferenceArrayElement (identifier: string): boolean {
-    return this.traceState.heapAfterExecution
-      .filter((heapItem): heapItem is HeapVizHeapArray => heapItem instanceof HeapVizHeapArray)
-      .flatMap(heapItem => heapItem.elements)
-      .some(element => element.identifier === identifier && element.value instanceof HeapVizReferenceVal)
+  /** True when clicking `target` expands or collapses the object that it references. */
+  private isExpandableReference (target: HoverTarget | undefined): boolean {
+    switch (target?.kind) {
+      case 'local':
+      case 'this':
+      case 'static':
+      case 'field':
+      case 'stringValue':
+        return target.variable.value instanceof HeapVizReferenceVal
+      case 'arrayElement':
+        return target.element.value instanceof HeapVizReferenceVal
+      default:
+        return false
+    }
   }
 
   private installClickListener (): void {
@@ -454,13 +475,13 @@ export class HeapVizChart {
         return
 
       const identifier = identifierFromSvgCellIdentifier(cellIdentifier)
-      if (cellIdentifier.endsWith(`:${SVG_CELL_SUFFIXES.moreLess}`)) {
+      if (cellIdentifier === svgCellIdentifier(identifier, SVG_CELL_SUFFIXES.moreLess)) {
         this.heapVizMetaStore.setIsFullyVisibleIdentifier({
           identifier,
           e: !this.heapVizMetaStore.isFullyVisibleIdentifier(identifier)
         })
         this.redraw()
-      } else if (this.referenceVariable(identifier) || this.isReferenceArrayElement(identifier)) {
+      } else if (this.isExpandableReference(this.hoverTargets.get(identifier))) {
         this.heapVizMetaStore.setExpandedIdentifier({
           identifier,
           e: !this.heapVizMetaStore.isExpandedIdentifier(identifier)
@@ -469,69 +490,18 @@ export class HeapVizChart {
       }
     })
   }
-  private getHeapItemToHeapItemHoverInfos (sanitizedIdentifier: string, state: HeapVizTraceState): HoverInfo[] {
-    const identifier = desanitizeIdentifier(sanitizedIdentifier)
-    const hoverInfos: HoverInfo[] = []
-    const splitId = identifier.split(':')
-    const id = splitId[0].match(/\d+/g)
-    const fieldName = splitId.length > 1 ? splitId[1] : ''
-    let reference = -1
-    if (id === null) {
-      return []
-    }
-    const objId = Number(id[0])
-    const heapItem = state.heapAfterExecution.find(o => o.id === objId)
-    if (!heapItem) {
-      return []
-    }
-    if (heapItem instanceof HeapVizHeapObject && fieldName.length > 0) {
-      heapItem.fields.forEach(field => {
-        if (field.name === fieldName && field.value instanceof HeapVizReferenceVal) {
-          reference = field.value.reference
-        }
-      })
-      hoverInfos.push(createHoverField(heapItem.id, fieldName, reference))
-      if (reference !== -1) {
-        hoverInfos.push(createHoverHeapObject(reference))
-      }
-      hoverInfos.push(createHoverClass(heapItem.varType))
-      return hoverInfos
-    }
-    if (heapItem instanceof HeapVizHeapArray && fieldName.startsWith('i_')) {
-      const idx = Number(fieldName.match(/\d+/g)![0])
-      const arrayElement = heapItem.elements[idx]
-      hoverInfos.push(createHoverArrayCell(objId, idx))
-      if (arrayElement.value instanceof HeapVizReferenceVal) {
-        hoverInfos.push(createHoverHeapObject(arrayElement.value.reference))
-      }
-      return hoverInfos
-    }
-    hoverInfos.push(createHoverHeapObject(objId))
-    if (objId !== -1) {
-      hoverInfos.push(...getReferencesOfHoveredHeapItem(objId, state))
-    }
-    if (!(heapItem instanceof HeapVizHeapArray)) {
-      // info about which class the hovered object belongs to
-      hoverInfos.push(createHoverClass(heapItem.varType))
-    }
-    return hoverInfos
-  }
   private installMouseMoveListenersForHover () {
     d3.select(this.chartRootElement)
       .on('mousemove.heapviz', (event: MouseEvent) => {
-        // see JW-264 for an explanation on why we use mousemove on entire heapviz rather than mouseenter/exit on objects within the heapviz
+        // see JW-264 for an explanation on why we use mousemove on the entire Memory View rather than mouseenter/exit on objects within the Memory View
         const cellIdentifier = this.identifierAtEventTarget(event.target)
         if (cellIdentifier == null) {
           HoverSynchronizer.hover([])
           return
         }
-        const identifier = identifierFromSvgCellIdentifier(cellIdentifier)
-        const hoverInfos = identifier.charAt(0) === 'o'
-          ? this.getHeapItemToHeapItemHoverInfos(identifier, this.traceState)
-          : identifier.search('l_') >= 0 || identifier.search('s_') >= 0
-            ? getLocalOrStaticsToHeapItemHoverInfos(identifier.split(':')[1], this.traceState)
-            : getMethodHoverInfos(identifier, this.traceState)
-        HoverSynchronizer.hover(hoverInfos)
+        // Ids that are not records, such as edges or table headers, have no target and send no hover infos.
+        const target = this.hoverTargets.get(identifierFromSvgCellIdentifier(cellIdentifier))
+        HoverSynchronizer.hover(target ? hoverInfosForTarget(target, this.traceState) : [])
       })
   }
 

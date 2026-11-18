@@ -25,7 +25,7 @@ interface IMainMethod extends IMainClassOption {
   range: vscode.Range;
 }
 
-async function resolveMainMethods(uri: vscode.Uri): Promise<IMainMethod[]> {
+export async function resolveMainMethods(uri: vscode.Uri): Promise<IMainMethod[]> {
   return <Promise<IMainMethod[]>>vscode.commands.executeCommand(
     'java.execute.workspaceCommand', //java.execute.workspaceCommand is a command contributed by the java redhat extension
     'vscode.java.resolveMainMethod',

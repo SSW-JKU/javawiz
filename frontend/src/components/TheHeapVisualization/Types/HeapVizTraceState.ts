@@ -114,7 +114,10 @@ export class HeapVizTraceState {
 
     let dotString = ''
     for (const lClass of this.loadedClassesAfterExecution.filter(e => e.isVisible && e.showFieldDetails)) {
-      lClass.staticFields.filter(e => e.isVisible && e.value instanceof HeapVizReferenceVal && e.isExpanded).forEach(e => dotString += e.edges())
+      // The Statics rows lie above the Stack header, to which the Heap box is aligned. If these edges took part
+      // in the layout, Graphviz would place the objects they reference above the Heap box's anchor and stretch the
+      // box up past the Stack header.
+      lClass.staticFields.filter(e => e.isVisible && e.value instanceof HeapVizReferenceVal && e.isExpanded).forEach(e => dotString += e.edges(false))
     }
     return dotString;
   }

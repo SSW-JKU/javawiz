@@ -33,38 +33,54 @@
     <p class="text-gray-600 mb-8">Updates and stories from JavaWiz.</p>
     <noscript><p class="mb-6">Enable JavaScript to expand articles.</p></noscript>
     <div class="space-y-6">
-      <article id="2026-11-08-javawiz-2-4-1" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
+      <article id="2026-11-18-javawiz-2-4-2" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.2: a clearer Memory View, better data-structure views, and search in the Event History View</h2>
+          <time datetime="2026-11-18" class="block text-sm text-gray-500 mb-4">2026-11-18</time>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.2 makes the Memory View easier to follow, improves the List View and Tree View, and lets you search the Event History View for lines of your code. The Memory View shows what changed (again): We restored JavaWiz&#x27;s behavior that changed variables, fields, array elements, and strings are drawn in red. We newly added that freshly created objects stand out with a red header and border. …</p>
+          <div id="2026-11-18-javawiz-2-4-2-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.4.2 makes the <strong>Memory View</strong> easier to follow, improves the <strong>List View</strong> and <strong>Tree View</strong>, and lets you search the <strong>Event History View</strong> for lines of your code.</p>
+<p>The <strong>Memory View</strong> shows what changed (again): We restored JavaWiz's behavior that changed variables, fields, array elements, and strings are drawn in red. We newly added that freshly created objects stand out with a red header and border.
+Stepping is also calmer: the animations no longer flicker, the heap always stays to the right of the stack, and new objects appear below the existing ones instead of pushing them around.</p>
+<p>The <strong>List View</strong> and <strong>Tree View</strong> now show field names in their values, write each object only once, and shorten deeply nested values.
+The <strong>List View</strong> draws objects stored in a node with one row per field and keeps working when an object refers back to itself.</p>
+<p>Zooming now works the same way in every view, and the <strong>Stream View</strong> has zoom-in and zoom-out buttons. The <strong>Flowchart View</strong> shows complete statements by default instead of cutting them off.</p>
+<p>In the experimental <strong>Event History View</strong>, you can now search for any piece of your code, such as <code>counter + i</code>, to find every time that line ran. The filter manual explains all search options with everyday examples.
+Teaching annotations are now placed beside the element they explain, without covering it or each other.</p>
+<p>In Visual Studio Code, Debug with JavaWiz is now offered only for files with a <code>main</code> method, so it always starts the program you chose. JavaWiz also uses the Java installation you already set up for Java in Visual Studio Code.
+To see which Java installation JavaWiz runs on, click "developed @ JKU" in the toolbar.</p></div>
+          <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-11-18-javawiz-2-4-2-content" aria-label="Read more: JavaWiz 2.4.2: a clearer Memory View, better data-structure views, and search in the Event History View" data-toggle>Read more</button>
+        </article>
+<article id="2026-11-08-javawiz-2-4-1" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
           <h2 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.1 release notes</h2>
           <time datetime="2026-11-08" class="block text-sm text-gray-500 mb-4">2026-11-08</time>
-          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.1 is a small update that fixes a few problems with the memory views. The array view no longer stays empty when a program has static array fields. This happened most often in Visual Studio Code. …</p>
-          <div id="2026-11-08-javawiz-2-4-1-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.4.1 is a small update that fixes a few problems with the memory views.</p>
-<p>The array view no longer stays empty when a program has static array fields. This happened most often in Visual Studio Code.</p>
-<p>The list and tree views no longer stop stepping through a program when a static field points to one of their nodes.</p>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.1 is a small update that fixes a few problems with the data-structure views. The Array View no longer stays empty when a program has static array fields. This happened most often in Visual Studio Code. …</p>
+          <div id="2026-11-08-javawiz-2-4-1-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.4.1 is a small update that fixes a few problems with the data-structure views.</p>
+<p>The <strong>Array View</strong> no longer stays empty when a program has static array fields. This happened most often in Visual Studio Code.</p>
+<p>The <strong>List View</strong> and the <strong>Tree View</strong> no longer stop stepping through a program when a static field points to one of their nodes.</p>
 <p>Visual Studio Code now recognizes the same lists, trees, and other data structures as the browser and IntelliJ versions.</p></div>
           <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-11-08-javawiz-2-4-1-content" aria-label="Read more: JavaWiz 2.4.1 release notes" data-toggle>Read more</button>
         </article>
 <article id="2026-11-04-javawiz-2-4-0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better StreamViz and Memory Visualization, and design improvements</h2>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better Stream View and Memory View, and design improvements</h2>
           <time datetime="2026-11-04" class="block text-sm text-gray-500 mb-4">2026-11-04</time>
-          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.0 fixes various Java 27 problems, improves IntelliJ&#x27;s multi-main handling and makes StreamViz and Memory Viz far more reliable. On Java 27, there was a deprecation in javac that led to a crash when compiling user programs. In addition to that, JavaWiz could stop at the first String.format or printf and wrongly report that the program was waiting for input while it was actually processing. …</p>
-          <div id="2026-11-04-javawiz-2-4-0-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.4.0 fixes various Java 27 problems, improves IntelliJ's multi-main handling and makes StreamViz and Memory Viz far more reliable.</p>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.4.0 fixes various Java 27 problems, improves IntelliJ&#x27;s multi-main handling and makes the Stream View and the Memory View far more reliable. On Java 27, there was a deprecation in javac that led to a crash when compiling user programs. In addition to that, JavaWiz could stop at the first String.format or printf and wrongly report that the program was waiting for input while it was actually processing. …</p>
+          <div id="2026-11-04-javawiz-2-4-0-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.4.0 fixes various Java 27 problems, improves IntelliJ's multi-main handling and makes the <strong>Stream View</strong> and the <strong>Memory View</strong> far more reliable.</p>
 <p>On Java 27, there was a deprecation in javac that led to a crash when compiling user programs.
 In addition to that, JavaWiz could stop at the first <code>String.format</code> or <code>printf</code> and wrongly report that the program was waiting for input while it was actually processing.</p>
 <p>The IntelliJ plugin now starts exactly the program you chose, even if your project contains several <code>main</code> methods.
 The toolbar button and the Run menu follow the selected run configuration, the icon next to <code>main</code> and the right-click menus start the file you clicked, and Java scratch files can now be debugged too.
 And if the plugin runs into an error, you can now report it to us directly from within the IDE.</p>
-<p>StreamViz now shows the correct result for every collector and fixes various marble misplacements.
+<p>The <strong>Stream View</strong> now shows the correct result for every collector and fixes various marble misplacements.
 Arrays, lists, and objects in a stream are now drawn with their contents, so you can see exactly which values flow through each step.</p>
-<p>The memory view highlights related objects and arrows again when you hover over them, zooms more smoothly, and has a clear Heap header.
+<p>The <strong>Memory View</strong> highlights related objects and arrows again when you hover over them, zooms more smoothly, and has a clear Heap header.
 Visualizations no longer start partly covered by the navigation buttons, and refreshed colors make the views easier to read.</p></div>
-          <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-11-04-javawiz-2-4-0-content" aria-label="Read more: JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better StreamViz and Memory Visualization, and design improvements" data-toggle>Read more</button>
+          <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-11-04-javawiz-2-4-0-content" aria-label="Read more: JavaWiz 2.4.0: Java 27 fixes, improved multi-main handling, better Stream View and Memory View, and design improvements" data-toggle>Read more</button>
         </article>
 <article id="2026-10-27-javawiz-2-3-1-release-notes" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-news>
           <h2 class="text-2xl font-bold text-gray-900 mb-2">JavaWiz 2.3.1 release notes</h2>
           <time datetime="2026-10-27" class="block text-sm text-gray-500 mb-4">2026-10-27</time>
-          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.3.1 fixes a problem that prevented programs from running with Java 27. If you saw an error mentioning “endPositions,” this update should resolve it. The Heap memory view now collapses the args array by default to keep the display clearer. …</p>
+          <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.3.1 fixes a problem that prevented programs from running with Java 27. If you saw an error mentioning “endPositions,” this update should resolve it. The Memory View now collapses the args array by default to keep the display clearer. …</p>
           <div id="2026-10-27-javawiz-2-3-1-release-notes-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.3.1 fixes a problem that prevented programs from running with Java 27. If you saw an error mentioning “endPositions,” this update should resolve it.</p>
-<p>The Heap memory view now collapses the <code>args</code> array by default to keep the display clearer.</p>
+<p>The <strong>Memory View</strong> now collapses the <code>args</code> array by default to keep the display clearer.</p>
 <p>We have also improved our internal publishing tools to make future releases easier to prepare and deliver.</p></div>
           <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-10-27-javawiz-2-3-1-release-notes-content" aria-label="Read more: JavaWiz 2.3.1 release notes" data-toggle>Read more</button>
         </article>
@@ -73,9 +89,9 @@ Visualizations no longer start partly covered by the navigation buttons, and ref
           <time datetime="2026-10-12" class="block text-sm text-gray-500 mb-4">2026-10-12</time>
           <p class="text-gray-700 leading-relaxed" data-preview>JavaWiz 2.3.0 is here, bringing clearer visualizations and practical improvements for learning, teaching, and exploring Java. Whether you’re following your first program or explaining a complex example to a class, this release makes it easier to see what your code is doing. The Memory View gives you more control over how much detail you see, including separate options for looking inside Java’s built-in data structures. …</p>
           <div id="2026-10-12-javawiz-2-3-0-content" class="news-content text-gray-700" data-content hidden><p>JavaWiz 2.3.0 is here, bringing clearer visualizations and practical improvements for learning, teaching, and exploring Java. Whether you’re following your first program or explaining a complex example to a class, this release makes it easier to see what your code is doing.</p>
-<p>The Memory View gives you more control over how much detail you see, including separate options for looking inside Java’s built-in data structures. A new "Show Memory" mode displays clear size breakdowns and heap object size calculations, helping you explore how objects, arrays, and strings use space. Fixes to connecting arrows, expansion controls, and change highlighting also make the diagrams easier to follow.</p>
-<p>StreamViz follows more complete stream operations, even when your code spreads them across variables and methods. Results remain visible for empty streams and single-element calculations, while corrected labels, numbers, and connections make it easier to follow each value’s journey. If you use an unsupported parallel stream, JavaWiz now explains the limitation more clearly.</p>
-<p>Following changes over time is easier, too: the experimental History View offers separate filters for methods that share a name, clearer help for finding array changes, and fewer distracting entries from Java’s internal workings.</p>
+<p>The <strong>Memory View</strong> gives you more control over how much detail you see, including separate options for looking inside Java’s built-in data structures. A new "Show Memory" mode displays clear size breakdowns and heap object size calculations, helping you explore how objects, arrays, and strings use space. Fixes to connecting arrows, expansion controls, and change highlighting also make the diagrams easier to follow.</p>
+<p>The <strong>Stream View</strong> follows more complete stream operations, even when your code spreads them across variables and methods. Results remain visible for empty streams and single-element calculations, while corrected labels, numbers, and connections make it easier to follow each value’s journey. If you use an unsupported parallel stream, JavaWiz now explains the limitation more clearly.</p>
+<p>Following changes over time is easier, too: the experimental <strong>Event History View</strong> offers separate filters for methods that share a name, clearer help for finding array changes, and fewer distracting entries from Java’s internal workings.</p>
 <p>Small interface improvements help you find your way around: visualization buttons now explain their actions when you hover over them, and teaching annotations use lightbulb and question-mark icons. Exported images get filenames containing the date and time, with a notification telling you which file to look for.</p>
 <p>Opening projects is more reliable because both IDE integrations skip hidden files that can interfere with loading Java sources. Across the visualizations and editor, fixes also improve how views initialize, update, and close. Behind the scenes, broader checks and maintenance of the release tools support these improvements and future updates.</p></div>
           <button type="button" class="mt-4 text-blue-600 underline font-semibold" aria-expanded="false" aria-controls="2026-10-12-javawiz-2-3-0-content" aria-label="Read more: JavaWiz 2.3.0: Clearer views, easier exploration" data-toggle>Read more</button>

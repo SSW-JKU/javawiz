@@ -39,7 +39,9 @@ export type LayoutState = {
 
 export type VisualizationDescription = {
   id: number,
+  /** Full name of the view, used whenever text mentions it, e.g. 'Memory View' (see "View Names" in AGENTS.md). */
   name: string,
+  /** Label in the view picker and in export file names: the full name without ' View', e.g. 'Memory'. */
   shortName: string,
   userSelectable: boolean,
   icon: string,
@@ -89,8 +91,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const FLOWCHART: VisualizationDescription = {
       id: 2,
-      name: 'Flow Chart',
-      shortName: 'Flow Chart',
+      name: 'Flowchart View',
+      shortName: 'Flowchart',
       userSelectable: true,
       icon: flowchartIcon,
       currentlyShownAt: 'top-left', // default value, might be overwritten by localStorage
@@ -99,7 +101,7 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const MEMORY: VisualizationDescription = {
       id: 3,
-      name: 'Memory (Heap/Stack)',
+      name: 'Memory View',
       shortName: 'Memory',
       userSelectable: true,
       icon: stackIcon,
@@ -109,8 +111,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const DESKTEST: VisualizationDescription = {
       id: 4,
-      name: 'Tabular View (DeskTest)',
-      shortName: 'Tabular View',
+      name: 'Tabular View',
+      shortName: 'Tabular',
       userSelectable: true,
       icon: desktestIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -119,8 +121,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const ARRAY: VisualizationDescription = {
       id: 5,
-      name: 'Array Visualization',
-      shortName: 'Arrays',
+      name: 'Array View',
+      shortName: 'Array',
       userSelectable: true,
       icon: arrayIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -129,8 +131,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const LINKEDLIST: VisualizationDescription = {
       id: 6,
-      name: 'Linked List Visualization',
-      shortName: 'Linked Lists',
+      name: 'List View',
+      shortName: 'List',
       userSelectable: true,
       icon: listIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -139,8 +141,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const BINARYTREE: VisualizationDescription = {
       id: 7,
-      name: 'Binary Tree Visualization',
-      shortName: 'Binary Trees',
+      name: 'Tree View',
+      shortName: 'Tree',
       userSelectable: true,
       icon: treeIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -149,8 +151,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const SEQUENCEDIAGRAM: VisualizationDescription = {
       id: 8,
-      name: 'Sequence Diagrams',
-      shortName: 'Sequence Diagrams',
+      name: 'Sequence Diagram View',
+      shortName: 'Sequence Diagram',
       userSelectable: true,
       icon: sequenceDiagramIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -159,8 +161,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const INVIZ: VisualizationDescription = {
       id: 9,
-      name: 'Input/Output Visualization',
-      shortName: 'I/O',
+      name: 'Input View',
+      shortName: 'Input',
       userSelectable: true,
       icon: inputOutputIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -169,8 +171,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const STREAMVIZ: VisualizationDescription = {
       id: 10,
-      name: 'Stream Visualization',
-      shortName: 'Streams',
+      name: 'Stream View',
+      shortName: 'Stream',
       userSelectable: true,
       icon: marbleDiagramIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage
@@ -179,8 +181,8 @@ export const useVisualizationStore = defineStore('visualization', {
 
     const HISTORY: VisualizationDescription = {
       id: 11,
-      name: 'History View',
-      shortName: 'History',
+      name: 'Event History View',
+      shortName: 'Event History',
       userSelectable: true,
       icon: historyIcon,
       currentlyShownAt: 'hidden', // default value, might be overwritten by localStorage

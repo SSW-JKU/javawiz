@@ -73,7 +73,9 @@ export namespace DebuggerProtocol {
     readonly firstStepResult: StepResult,
     readonly compiledClasses: string[],
     readonly featureWarnings: string[],
-    readonly pets: PetAnnotation[]
+    readonly pets: PetAnnotation[],
+    /** Absolute path of the java program that runs the backend and the user's program. */
+    readonly javaExecutable: string
   }
 
   export type ErrorResponse = {

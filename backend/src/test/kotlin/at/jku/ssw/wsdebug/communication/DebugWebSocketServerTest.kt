@@ -49,7 +49,7 @@ internal class DebugWebSocketServerTest {
         val reductions: List<StoredStreamReduction>
     )
 
-    /** Describes one reduce expression whose terminal result must reach StreamViz. */
+    /** Describes one reduce expression whose terminal result must reach the Stream View. */
     internal data class ReduceCompletionCase(
         val name: String,
         val source: String,
@@ -128,7 +128,7 @@ internal class DebugWebSocketServerTest {
         const val STREAM_OPERATIONS = "$STREAM_VISUALIZATION/Operations"
 
         /**
-         * Lists the per-operation StreamViz cases: the JW-662 issue example, every intermediate operation, every terminal
+         * Lists the per-operation Stream View cases: the JW-662 issue example, every intermediate operation, every terminal
          * operation, and every collector. `Named` gives each case a readable test name instead of its data-class text.
          */
         @JvmStatic
@@ -1552,7 +1552,7 @@ internal class DebugWebSocketServerTest {
         assertNotNull(inputResult)
         val traceStates = runResult.traceStates + inputResult!!.traceStates
         assertTrue(traceStates.joinToString("") { it.output }.contains("read 7"))
-        // The field that installs the input tracker belongs to JavaWiz and must not appear in the memory view.
+        // The field that installs the input tracker belongs to JavaWiz and must not appear in the Memory View.
         traceStates.flatMap { it.loadedClasses }.filter { it.`class` == mainClass }.forEach { loadedClass ->
             assertTrue(loadedClass.staticFields.none { it.name.startsWith("\$javaWiz") }) {
                 "JavaWiz's own field is visible in $mainClass: ${loadedClass.staticFields.map { it.name }}"
@@ -2261,6 +2261,27 @@ internal class DebugWebSocketServerTest {
         val response = requestCompile(listOf(FilepathAndContent("Main.java", source)), vscExtensionActive = true)
 
         assertTrue(response is CompileSuccessResponse) { (response as CompileFailResponse).error }
+    }
+
+    @Test
+    fun compileResponseNamesTheRunningJavaExecutable() {
+        val source = """
+            class Main {
+                void main() {
+                    System.out.println(1);
+                }
+            }
+        """.trimIndent()
+
+        val response = requestCompile(listOf(FilepathAndContent("Main.java", source)), vscExtensionActive = true)
+        assertTrue(response is CompileSuccessResponse) { (response as CompileFailResponse).error }
+
+        // The server runs inside the test JVM, so it must report the java program of this process.
+        val json = jacksonObjectMapper().valueToTree<JsonNode>(response)
+        val javaExecutable = json.path("data").path("javaExecutable").asText()
+        assertEquals(ProcessHandle.current().info().command().get(), javaExecutable) { "data: ${json.path("data").fieldNames().asSequence().toList()}" }
+        assertTrue(java.io.File(javaExecutable).isAbsolute) { javaExecutable }
+        assertTrue(java.io.File(javaExecutable).canExecute()) { javaExecutable }
     }
 
     @ParameterizedTest
@@ -3065,7 +3086,7 @@ internal class DebugWebSocketServerTest {
     }
 
     /**
-     * Compares the complete StreamViz payload of one operation case with its `streamviz.txt` golden file,
+     * Compares the complete Stream View payload of one operation case with its `streamviz.txt` golden file,
      * covering both the recorded event order (playback) and the final lanes, marble columns, and links.
      */
     @ParameterizedTest(name = "{0}")

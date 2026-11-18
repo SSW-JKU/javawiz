@@ -1,0 +1,75 @@
+name: Frontend Checks
+
+on:
+  # Check every pushed commit and tag, pull requests, published releases, and allow manual runs.
+  push:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# When new commits arrive quickly, only the newest run matters. Release runs are always completed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+# Reading the repository is enough, so pull requests from forks work the same way.
+permissions:
+  contents: read
+
+jobs:
+  frontend-checks:
+    name: Frontend checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          # The checks do not need Git credentials after checkout.
+          persist-credentials: false
+
+      # setup-node installs Node and caches npm downloads between runs. The version matches the
+      # Node version that the Gradle build pins, so CI checks with the Node that builds releases.
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: |
+            shared/package-lock.json
+            frontend/package-lock.json
+
+      # The frontend imports code from the shared folder, which needs its own npm packages.
+      - name: Install shared dependencies
+        working-directory: shared
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      # The build type-checks first and then creates the production bundle.
+      # Later checks also run after a failure, so one problem does not hide others.
+      - name: Type-check and build
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: npm run build
+
+      # Runs every test/*.test.ts file.
+      - name: Run tests
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: npm test

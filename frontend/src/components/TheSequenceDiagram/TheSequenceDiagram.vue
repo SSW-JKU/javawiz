@@ -14,9 +14,9 @@
       </g>
     </svg>
     <VizSetting
-      :zoom-in="zoomIn"
-      :zoom-out="zoomOut"
-      :zoom-reset="zoomReset"
+      :zoom-in="() => viewZoom.zoomIn()"
+      :zoom-out="() => viewZoom.zoomOut()"
+      :zoom-reset="() => viewZoom.reset()"
       :settings-button="false"
       :viz-id="visualizationStore.SEQUENCEDIAGRAM.id" />
   </div>
@@ -26,8 +26,7 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { select } from 'd3-selection'
 import { drawLifeLines, drawArrows, drawBoxes } from '@/components/TheSequenceDiagram/drawing'
-import { zoom, zoomIdentity } from 'd3-zoom'
-import { HTML, SVG, DEFAULT_ZOOM_FACTOR, TRANSFORMATION } from '@/components/TheSequenceDiagram/constants'
+import { HTML, SVG } from '@/components/TheSequenceDiagram/constants'
 import { removeChildren } from '@/components/DataStructureVisualizations/utils'
 import VizSetting from '@/components/VizSetting.vue'
 import SvgDefinitions from '@/helpers/SvgDefinitions.vue'
@@ -43,7 +42,8 @@ import {
   setHiddenBoxesAfterStepOver,
   isMainBox
 } from '@/components/TheSequenceDiagram/data-utils'
-import { getCoordinatesOfChange, zoomToChange } from './zooming-utils'
+import { getCoordinatesOfChange } from './change-coordinates'
+import { ViewZoom } from '@/helpers/zooming'
 import { useVisualizationStore } from '@/store/VisualizationStore'
 import { useGeneralStore } from '@/store/GeneralStore'
 import { Box, Elements, LifeLine } from './types'
@@ -56,12 +56,7 @@ import { SequenceDiagramHistory } from './SequenceDiagramHistory'
 
 // Track handle replacement without deep-proxying imperative browser and D3 objects.
 const svg = shallowRef(select('#sequence-diagram-svg'))
-const resizeObserver = shallowRef<ResizeObserver>()
-let transform: any = zoomIdentity // holds the current zoom-state
-const zoomCall = shallowRef(zoom().on('zoom', (event) => {
-  transform = event.transform
-  select('#sequence-diagram').attr('transform', event.transform)
-}))
+const viewZoom = new ViewZoom('#sequence-diagram')
 const hiddenIntervals = ref<Box[]>([])
 const hiddenLifeLines = ref<LifeLine[]>([])
 const hoveredInfos = ref([] as HoverInfo[])
@@ -346,22 +341,11 @@ function redraw (hoveredInfos: HoverInfo[] = []) {
   drawArrows(svg.value, elems, activeTimeIndices, hiddenLifeLines.value, hoveredInfos, timeIdx.value, currentHeapVizTraceState.value)
   drawBoxes(svg.value, elems, timeIdx.value, hiddenIntervals.value, hiddenLifeLines.value, activeTimeIndices, { redraw }, hoveredInfos, currentHeapVizTraceState.value)
 
-  // add ability to zoom and pan
-  svg.value.call(zoomCall.value as any)
-
   // get coordinates of change
   const coordinatesOfChange = getCoordinatesOfChange(elems, timeIdx.value, activeTimeIndices)
   if (coordinatesOfChange) {
-    // translate zoom to make x and y visible
-    zoomToChange(
-      coordinatesOfChange[0],
-      coordinatesOfChange[1],
-      transform,
-      zoomCall.value,
-      HTML.ids.parentDiv,
-      svgWidth.value,
-      svg.value
-    )
+    // move the view to make x and y visible
+    viewZoom.followChange(coordinatesOfChange[0], coordinatesOfChange[1], { width: SVG.lifeLineWidth, height: SVG.lifeLineHeight })
   }
 }
 function deleteViz () {
@@ -371,23 +355,15 @@ function deleteViz () {
 }
 onMounted(() => {
   svg.value = select('#sequence-diagram-svg')
+  viewZoom.attach(svg.value.node() as SVGSVGElement)
   HoverSynchronizer.onHover(onHover)
-  const div = document.getElementById(HTML.ids.parentDiv)
-  resizeObserver.value = new ResizeObserver(() => { // receive notifications when size of element changes
-    if (div) {
-      const height = div.offsetHeight / div.offsetWidth * svgWidth.value
-      if (height) {
-        svg.value.attr('viewBox', `0 0 ${svgWidth.value} ${height}`)
-      }
-    }
-  })
-  resizeObserver.value.observe(div as any)
+  viewZoom.observeViewport(document.getElementById(HTML.ids.parentDiv)!, () => svgWidth.value)
   // delete old visualization
   deleteViz()
   redraw(hoveredInfos.value)
 })
 onUnmounted(() => {
-  resizeObserver.value?.disconnect()
+  viewZoom.detach()
   HoverSynchronizer.removeOnHover(onHover)
 })
 
@@ -397,20 +373,6 @@ watch(vmRunning, () => redraw(hoveredInfos.value))
 watch(lifeLines, () => redraw(hoveredInfos.value))
 watch(arrows, () => redraw(hoveredInfos.value))
 watch(boxes, () => redraw(hoveredInfos.value))
-
-function getTransition () {
-  return svg.value.transition().duration(TRANSFORMATION.duration)
-    .ease(TRANSFORMATION.ease) as any
-}
-function zoomIn () {
-  zoomCall.value.scaleBy(getTransition(), DEFAULT_ZOOM_FACTOR)
-}
-function zoomOut () {
-  zoomCall.value.scaleBy(getTransition(), 1 / DEFAULT_ZOOM_FACTOR)
-}
-function zoomReset () {
-  zoomCall.value.transform(getTransition(), zoomIdentity)
-}
 </script>
 
 <style scoped>

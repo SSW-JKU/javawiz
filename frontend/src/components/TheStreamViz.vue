@@ -1,7 +1,9 @@
 <template>
   <div id="stream-viz-wrapper">
     <VizSetting
-      :zoom-reset="zoomAndCenter"
+      :zoom-in="() => viewZoom.zoomIn()"
+      :zoom-out="() => viewZoom.zoomOut()"
+      :zoom-reset="() => viewZoom.reset()"
       :viz-id="STREAMVIZ_ID" />
     <div v-if="allMarbles.length > 0" id="stream-viz">
       <div class="controls">
@@ -68,6 +70,7 @@ import {collectionDirection, latestTopLevelStream, placeTracks} from '@/debugger
 import * as d3 from 'd3'
 import { colors } from '@/helpers/colors'
 import { NAVIGATION_CONTENT_INSET } from '@/helpers/constants'
+import { getFitTransform, ViewZoom } from '@/helpers/zooming'
 import type {HeapObject, Val, MarbleDiagramMarble, MarbleDiagramItem, MarbleDiagramLink, MarbleDiagramLane} from '@/dto/TraceState';
 
 defineComponent({
@@ -168,9 +171,15 @@ let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | undefined;
 let container: ContainerGroup | undefined;
 let linkGroup: ContainerGroup | undefined;
 let nodeGroup: ContainerGroup | undefined;
-let zoom = d3.zoom<SVGSVGElement, unknown>()
-  .scaleExtent([0.1, 10])
-  .on('zoom', zoomed);
+const viewZoom = new ViewZoom('#stream-viz-svg > g.container');
+// Home: the whole diagram, centered and filling 80 % of the view.
+viewZoom.home = () => {
+  const svgElement = svg?.node();
+  const content = container?.node();
+  if (!svgElement || !content) return null;
+  const { width, height } = svgElement.getBoundingClientRect();
+  return getFitTransform(width, height, content.getBBox());
+};
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let animationSpeed = 800;
 let visibleMarblesForCount: MarbleDiagramMarble[] = [];
@@ -1051,38 +1060,6 @@ function pausePlayback () {
   }
 }
 
-function zoomed (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) {
-  container?.attr('transform', event.transform.toString());
-}
-
-function zoomAndCenter () {
-  if (!svg || !container) return;
-
-  const svgElement = svg.node();
-  if (!svgElement) return;
-  const { width: svgWidth, height: svgHeight } = svgElement.getBoundingClientRect();
-
-  const bounds = container.node()?.getBBox() as DOMRect;
-  const fullWidth = bounds.width || 0;
-  const fullHeight = bounds.height || 0;
-
-  const midX = bounds.x + fullWidth / 2;
-  const midY = bounds.y + fullHeight / 2;
-
-  if (fullWidth === 0 || fullHeight === 0) return;
-
-  const scale = Math.min(svgWidth / fullWidth, svgHeight / fullHeight) * 0.8;
-
-  const translateX = svgWidth / 2 - scale * midX;
-  const translateY = svgHeight / 2 - scale * midY;
-
-  const transform = d3.zoomIdentity
-    .translate(translateX, translateY)
-    .scale(scale);
-
-  svg.call(zoom.transform, transform);
-}
-
 watch(streamVisualizationData, (newVal, oldVal) => {
   pausePlayback();
   if ((newVal?.marbles.length ?? 0) > 0 && JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
@@ -1216,9 +1193,9 @@ watch(streamVisualizationData, (newVal, oldVal) => {
       nodeGroup = container.append('g').attr('class', 'nodes');
       marbleSizes = new Map();
 
-      svg.call(zoom);
+      viewZoom.attach(svgElement);
       render();
-      zoomAndCenter();
+      viewZoom.reset(false);
     });
   }
 }, { immediate: true });
@@ -1239,6 +1216,7 @@ watch(editMode, (val) => {
 
 onUnmounted(() => {
   pausePlayback();
+  viewZoom.detach();
 })
 </script>
 

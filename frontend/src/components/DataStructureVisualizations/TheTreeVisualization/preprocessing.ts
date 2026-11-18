@@ -1,217 +1,217 @@
-import { ChildPointer, TreeNode, TreeNodePointer } from './types'
+import { ChildFieldPointer, TreeNodeBox, VariableToTreeNodePointer } from './types'
 import { HeapObject, ReferenceVal, Var } from '@/dto/TraceState'
-import { heapObjectFieldIdentifier, idAttributeSelector, rootVariableIdentifier } from '@/identifiers/trace-identifiers'
-import { hasSuccessorPointerChanged } from './child-pointer-utils'
-import { HeapTreeNode } from '../heapBFS'
+import { heapObjectFieldIdentifier, rootVariableIdentifier } from '@/identifiers/trace-identifiers'
+import { hasSuccessorPointerChanged } from './child-field-pointer-utils'
+import { DataStructureGraphNode } from '../dataStructureGraph'
 import { HTML, LAYOUT } from './constants'
 import { select } from 'd3-selection'
 import { SVG } from '../constants'
 import { moveElemInArray } from '../utils'
 import { getVariablePointers } from '../preprocessing-utils'
-import { getFieldIndex, setChangesInFields } from '../heap-tree-node-utils'
+import { getFieldIndex, setChildChangedFlags } from '../data-structure-graph-node-utils'
 import { calcTreeWidth } from './layout'
 
-function updateLevelCoordinates (childNode: TreeNode, levelCoordinates: number[][]) {
-  const treeLevelCoordinates = levelCoordinates[childNode.treeLevel]
-  const levelDepth = treeLevelCoordinates[childNode.level] + childNode.height + LAYOUT.nodes.distanceBetween
-  if (childNode.level + 1 >= treeLevelCoordinates.length) {
+function updateLevelCoordinates (childTreeNodeBox: TreeNodeBox, yCoordinatesByTreeRowAndDepth: number[][]) {
+  const treeLevelCoordinates = yCoordinatesByTreeRowAndDepth[childTreeNodeBox.treeRow]
+  const levelDepth = treeLevelCoordinates[childTreeNodeBox.depth] + childTreeNodeBox.height + LAYOUT.nodes.distanceBetween
+  if (childTreeNodeBox.depth + 1 >= treeLevelCoordinates.length) {
     treeLevelCoordinates.push(levelDepth)
-  } else if (levelDepth > treeLevelCoordinates[childNode.level + 1]) {
-    treeLevelCoordinates[childNode.level + 1] = levelDepth
+  } else if (levelDepth > treeLevelCoordinates[childTreeNodeBox.depth + 1]) {
+    treeLevelCoordinates[childTreeNodeBox.depth + 1] = levelDepth
   }
 }
 
-// processes child node: adds it to the visualization if needed and add child-pointer
+// processes a child box: adds it to the visualization if needed and adds the child field pointer to it
 function processChildNode (
-  childNode: TreeNode,
-  parentNode: TreeNode,
+  childTreeNodeBox: TreeNodeBox,
+  parentTreeNodeBox: TreeNodeBox,
   layoutInfo: {
-    treeLevel: number,
-    direction: 'left' | 'right'
+    treeRow: number,
+    side: 'left' | 'right'
   },
   structures: {
-    treeNodes: TreeNode[],
-    childPointers: ChildPointer[],
-    levelCoordinates: number[][]
+    treeNodeBoxes: TreeNodeBox[],
+    childFieldPointers: ChildFieldPointer[],
+    yCoordinatesByTreeRowAndDepth: number[][]
   },
   component: { nodeClassNames: ReadonlySet<string>, valueName: string, leftName: string; rightName: string }
 ) {
-  let actualChildNode: TreeNode = childNode
-  let depth = parentNode.level
-  if (childNode.node?.element?.kind === 'HeapObject') {
-    if (!component.nodeClassNames.has(childNode.node.element.type)) {
+  let actualChildTreeNodeBox: TreeNodeBox = childTreeNodeBox
+  let depth = parentTreeNodeBox.depth
+  if (childTreeNodeBox.dataStructureGraphNode?.traceElement?.kind === 'HeapObject') {
+    if (!component.nodeClassNames.has(childTreeNodeBox.dataStructureGraphNode.traceElement.type)) {
       return depth
     }
-    const existing = structures.treeNodes.find(treeNode =>
-      (treeNode.node?.element as HeapObject).id === (childNode.node!.element as HeapObject).id)
+    const existing = structures.treeNodeBoxes.find(treeNodeBox =>
+      (treeNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id === (childTreeNodeBox.dataStructureGraphNode!.traceElement as HeapObject).id)
     if (existing) {
-      actualChildNode = existing
+      actualChildTreeNodeBox = existing
     } else {
-      structures.treeNodes.push(actualChildNode)
-      updateLevelCoordinates(childNode, structures.levelCoordinates)
-      depth = exploreTree(childNode, layoutInfo.treeLevel, structures, component)
+      structures.treeNodeBoxes.push(actualChildTreeNodeBox)
+      updateLevelCoordinates(childTreeNodeBox, structures.yCoordinatesByTreeRowAndDepth)
+      depth = exploreTree(childTreeNodeBox, layoutInfo.treeRow, structures, component)
     }
   } else {
-    actualChildNode.node = undefined
+    actualChildTreeNodeBox.dataStructureGraphNode = undefined
   }
-  structures.childPointers.push({
-    parent: parentNode,
-    child: actualChildNode!,
-    direction: layoutInfo.direction,
-    changed: hasSuccessorPointerChanged(layoutInfo.direction === 'left' ? component.leftName : component.rightName, parentNode)
+  structures.childFieldPointers.push({
+    sourceTreeNodeBox: parentTreeNodeBox,
+    targetTreeNodeBox: actualChildTreeNodeBox!,
+    side: layoutInfo.side,
+    changed: hasSuccessorPointerChanged(layoutInfo.side === 'left' ? component.leftName : component.rightName, parentTreeNodeBox)
   })
   return depth
 }
 
-// explores tree and adds tree-nodes to given array
+// explores the tree below the given box and adds the boxes of its descendants to structures.treeNodeBoxes; returns the deepest depth reached
 export function exploreTree (
-  treeNode: TreeNode,
-  treeLevel: number,
+  treeNodeBox: TreeNodeBox,
+  treeRow: number,
   structures: {
-    treeNodes: TreeNode[],
-    childPointers: ChildPointer[],
-    levelCoordinates: number[][]
+    treeNodeBoxes: TreeNodeBox[],
+    childFieldPointers: ChildFieldPointer[],
+    yCoordinatesByTreeRowAndDepth: number[][]
   },
   component: { nodeClassNames: ReadonlySet<string>, valueName: string, leftName: string; rightName: string }
 ) {
-  if (treeNode.node) {
-    const leftChild = treeNode.node?.children[treeNode.leftFieldIndex]
-    const rightChild = treeNode.node?.children[treeNode.rightFieldIndex]
+  if (treeNodeBox.dataStructureGraphNode) {
+    const leftChild = treeNodeBox.dataStructureGraphNode?.childDataStructureGraphNodes[treeNodeBox.leftFieldPosition]
+    const rightChild = treeNodeBox.dataStructureGraphNode?.childDataStructureGraphNodes[treeNodeBox.rightFieldPosition]
     if (leftChild && rightChild) {
-      const leftNode: TreeNode = {
-        node: leftChild,
-        index: treeNode.index * 2,
-        level: treeNode.level + 1,
-        treeLevel,
-        height: (leftChild.children.length - 1) * SVG.cellHeight,
-        valFieldIndex: getFieldIndex(leftChild, component.valueName),
-        leftFieldIndex: getFieldIndex(leftChild, component.leftName),
-        rightFieldIndex: getFieldIndex(leftChild, component.rightName)
+      const leftTreeNodeBox: TreeNodeBox = {
+        dataStructureGraphNode: leftChild,
+        slotInDepth: treeNodeBox.slotInDepth * 2,
+        depth: treeNodeBox.depth + 1,
+        treeRow,
+        height: (leftChild.childDataStructureGraphNodes.length - 1) * SVG.cellHeight,
+        valueFieldPosition: getFieldIndex(leftChild, component.valueName),
+        leftFieldPosition: getFieldIndex(leftChild, component.leftName),
+        rightFieldPosition: getFieldIndex(leftChild, component.rightName)
       }
 
-      const rightNode: TreeNode = {
-        node: rightChild,
-        index: treeNode.index * 2 + 1,
-        level: treeNode.level + 1,
-        treeLevel,
-        height: (rightChild.children.length - 1) * SVG.cellHeight,
-        valFieldIndex: getFieldIndex(rightChild, component.valueName),
-        leftFieldIndex: getFieldIndex(rightChild, component.leftName),
-        rightFieldIndex: getFieldIndex(rightChild, component.rightName)
+      const rightTreeNodeBox: TreeNodeBox = {
+        dataStructureGraphNode: rightChild,
+        slotInDepth: treeNodeBox.slotInDepth * 2 + 1,
+        depth: treeNodeBox.depth + 1,
+        treeRow,
+        height: (rightChild.childDataStructureGraphNodes.length - 1) * SVG.cellHeight,
+        valueFieldPosition: getFieldIndex(rightChild, component.valueName),
+        leftFieldPosition: getFieldIndex(rightChild, component.leftName),
+        rightFieldPosition: getFieldIndex(rightChild, component.rightName)
       }
 
-      const leftDepth = processChildNode(leftNode, treeNode, { treeLevel, direction: 'left' }, structures, component)
-      const rightDepth = processChildNode(rightNode, treeNode, { treeLevel, direction: 'right' }, structures, component)
+      const leftDepth = processChildNode(leftTreeNodeBox, treeNodeBox, { treeRow, side: 'left' }, structures, component)
+      const rightDepth = processChildNode(rightTreeNodeBox, treeNodeBox, { treeRow, side: 'right' }, structures, component)
       return Math.max(leftDepth, rightDepth)
     }
   }
-  return treeNode.level
+  return treeNodeBox.depth
 }
 
-export function createTreeAndChildPointerStructs (
-  heapTree: HeapTreeNode,
-  trees: HeapTreeNode[],
-  levelCoordinates: number[][],
-  levelWidths: number[],
+export function createTreeNodeBoxesAndChildFieldPointers (
+  rootDataStructureGraphNode: DataStructureGraphNode,
+  treeDataStructureGraphNodes: DataStructureGraphNode[],
+  yCoordinatesByTreeRowAndDepth: number[][],
+  treeRowWidths: number[],
   component: { nodeClassNames: ReadonlySet<string>, valueName: string, leftName: string, rightName: string }
 ) {
   // get all variables that point to a node
-  const pointers = getVariablePointers(heapTree, component.nodeClassNames)
+  const variableDataStructureGraphNodes = getVariablePointers(rootDataStructureGraphNode, component.nodeClassNames)
 
   // collect nodes
-  const heapNodes = trees
+  const treeNodeDataStructureGraphNodes = treeDataStructureGraphNodes
     .flatMap(tree =>
-      tree.children.filter(child => child.element?.kind === 'HeapObject' && component.nodeClassNames.has(child.element.type))
+      tree.childDataStructureGraphNodes.filter(child => child.traceElement?.kind === 'HeapObject' && component.nodeClassNames.has(child.traceElement.type))
     )
-  heapNodes.push(...pointers
-    .filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal' && pointer.children[0])
-    .map(pointer => pointer.children[0]))
+  treeNodeDataStructureGraphNodes.push(...variableDataStructureGraphNodes
+    .filter(pointer => (pointer.traceElement as Var).value.kind === 'ReferenceVal' && pointer.childDataStructureGraphNodes[0])
+    .map(pointer => pointer.childDataStructureGraphNodes[0]))
 
-  let treeLevel = 0
+  let treeRow = 0
   const structures = {
-    treeNodes: [] as TreeNode[],
-    childPointers: [] as ChildPointer[],
-    levelCoordinates
+    treeNodeBoxes: [] as TreeNodeBox[],
+    childFieldPointers: [] as ChildFieldPointer[],
+    yCoordinatesByTreeRowAndDepth
   }
 
-  heapNodes.forEach(node => {
-    if (!structures.treeNodes.find(treeNode => (treeNode.node?.element as HeapObject).id === (node.element as HeapObject).id)) {
-      levelCoordinates.push([
-        levelCoordinates.length >= 1
-          ? levelCoordinates[treeLevel - 1][levelCoordinates[treeLevel - 1].length - 1] - LAYOUT.nodes.distanceBetween + LAYOUT.distanceBetweenTrees
+  treeNodeDataStructureGraphNodes.forEach(node => {
+    if (!structures.treeNodeBoxes.find(treeNodeBox => (treeNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id === (node.traceElement as HeapObject).id)) {
+      yCoordinatesByTreeRowAndDepth.push([
+        yCoordinatesByTreeRowAndDepth.length >= 1
+          ? yCoordinatesByTreeRowAndDepth[treeRow - 1][yCoordinatesByTreeRowAndDepth[treeRow - 1].length - 1] - LAYOUT.nodes.distanceBetween + LAYOUT.distanceBetweenTrees
           : LAYOUT.nodes.yOrigin
       ])
-      const nrOfNodes = structures.treeNodes.push({
-        node,
-        index: 0,
-        level: 0,
-        treeLevel,
-        height: (node.children.length - 1) * SVG.cellHeight,
-        valFieldIndex: getFieldIndex(node, component.valueName),
-        leftFieldIndex: getFieldIndex(node, component.leftName),
-        rightFieldIndex: getFieldIndex(node, component.rightName)
+      const nrOfNodes = structures.treeNodeBoxes.push({
+        dataStructureGraphNode: node,
+        slotInDepth: 0,
+        depth: 0,
+        treeRow,
+        height: (node.childDataStructureGraphNodes.length - 1) * SVG.cellHeight,
+        valueFieldPosition: getFieldIndex(node, component.valueName),
+        leftFieldPosition: getFieldIndex(node, component.leftName),
+        rightFieldPosition: getFieldIndex(node, component.rightName)
       })
-      updateLevelCoordinates(structures.treeNodes[nrOfNodes - 1], structures.levelCoordinates)
-      const depth = exploreTree(structures.treeNodes[nrOfNodes - 1], treeLevel, structures, component)
-      if (treeLevel < levelWidths.length) {
-        levelWidths[treeLevel] = calcTreeWidth(depth)
+      updateLevelCoordinates(structures.treeNodeBoxes[nrOfNodes - 1], structures.yCoordinatesByTreeRowAndDepth)
+      const depth = exploreTree(structures.treeNodeBoxes[nrOfNodes - 1], treeRow, structures, component)
+      if (treeRow < treeRowWidths.length) {
+        treeRowWidths[treeRow] = calcTreeWidth(depth)
       } else {
-        levelWidths.push(calcTreeWidth(depth))
+        treeRowWidths.push(calcTreeWidth(depth))
       }
-      treeLevel++
+      treeRow++
     }
   })
 
   return {
-    treeNodes: structures.treeNodes,
-    childPointers: structures.childPointers,
-    pointers
+    treeNodeBoxes: structures.treeNodeBoxes,
+    childFieldPointers: structures.childFieldPointers,
+    variableDataStructureGraphNodes: variableDataStructureGraphNodes
   }
 }
 
-export function createPointerStructure (
-  treeNodes: TreeNode[],
-  pointers: HeapTreeNode[],
-  trees: HeapTreeNode[],
+export function createVariablePointers (
+  treeNodeBoxes: TreeNodeBox[],
+  variableDataStructureGraphNodes: DataStructureGraphNode[],
+  treeDataStructureGraphNodes: DataStructureGraphNode[],
   component: { parentName: string, nodeClassNames: ReadonlySet<string> }
 ) {
-  const nodePointers: TreeNodePointer[] = []
-  treeNodes.forEach(node => {
-    pointers.filter(pointer => (pointer.element as Var).value.kind === 'ReferenceVal' &&
-      ((pointer.element as Var).value as unknown as ReferenceVal).reference ===
-      (node.node?.element as HeapObject).id)
-      .forEach((pointer, index) => nodePointers.push({
-        name: pointer.name,
-        sourceVariableIdentifier: rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth),
-        source: pointer,
-        target: node,
-        index,
+  const variableToTreeNodePointers: VariableToTreeNodePointer[] = []
+  treeNodeBoxes.forEach(treeNodeBox => {
+    variableDataStructureGraphNodes.filter(pointer => (pointer.traceElement as Var).value.kind === 'ReferenceVal' &&
+      ((pointer.traceElement as Var).value as unknown as ReferenceVal).reference ===
+      (treeNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id)
+      .forEach((pointer, index) => variableToTreeNodePointers.push({
+        name: pointer.label,
+        sourceVariableIdentifier: rootVariableIdentifier(pointer.traceElement as Var, pointer.stackFrameNumber),
+        sourceDataStructureGraphNode: pointer,
+        targetTreeNodeBox: treeNodeBox,
+        positionAtTarget: index,
         isNull: false,
-        nodeIndex: node.index,
-        nodeLevel: node.level,
-        treeLevel: node.treeLevel,
-        changed: (pointer.element as Var).changed
+        targetSlot: treeNodeBox.slotInDepth,
+        targetDepth: treeNodeBox.depth,
+        targetTreeRow: treeNodeBox.treeRow,
+        changed: (pointer.traceElement as Var).changed
       }))
   })
 
   // find parent-pointer and move to front
-  const parentPointer = nodePointers.find(pointer => pointer.name === component.parentName)
+  const parentPointer = variableToTreeNodePointers.find(pointer => pointer.name === component.parentName)
   if (parentPointer) {
-    const otherPointers = nodePointers
-      .filter(pointer => pointer.target === parentPointer.target && pointer.name !== component.parentName)
-    parentPointer.index = 0
+    const otherPointers = variableToTreeNodePointers
+      .filter(pointer => pointer.targetTreeNodeBox === parentPointer.targetTreeNodeBox && pointer.name !== component.parentName)
+    parentPointer.positionAtTarget = 0
     otherPointers.forEach((pointer, index) => {
-      pointer.index = index + 1
+      pointer.positionAtTarget = index + 1
     })
   }
   // index for pointers that are null
   let nrOfNullPointers = 0
 
   // add variables of tree itself (root, ...)
-  trees.forEach(heapNode => {
-    const dataStructure = heapNode.element as HeapObject
+  treeDataStructureGraphNodes.forEach(heapNode => {
+    const dataStructure = heapNode.traceElement as HeapObject
     dataStructure.fields.filter(field => field.value.kind === 'ReferenceVal'
-      ? treeNodes.some(node => (node.node?.element as HeapObject).id === (field.value as ReferenceVal).reference)
+      ? treeNodeBoxes.some(treeNodeBox => (treeNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id === (field.value as ReferenceVal).reference)
       : field.value.kind === 'NullVal' && component.nodeClassNames.has(field.type))
       .slice()
       .reverse()
@@ -219,38 +219,38 @@ export function createPointerStructure (
         if (field.value.kind === 'ReferenceVal') {
           const fieldReference = field.value.reference
           // increment indices of all other pointers to same node, so list-pointers are displayed first
-          nodePointers.filter(pointer =>
-            (pointer.target?.node?.element as HeapObject | undefined)?.id === fieldReference)
+          variableToTreeNodePointers.filter(pointer =>
+            (pointer.targetTreeNodeBox?.dataStructureGraphNode?.traceElement as HeapObject | undefined)?.id === fieldReference)
             .forEach(pointer => {
-              pointer.index++
+              pointer.positionAtTarget++
             })
             // find node and add entry
-          const node = treeNodes.find(node =>
-            (node.node?.element as HeapObject).id === fieldReference)
-          if (node) {
-            nodePointers.push({
+          const targetTreeNodeBox = treeNodeBoxes.find(candidateTreeNodeBox =>
+            (candidateTreeNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id === fieldReference)
+          if (targetTreeNodeBox) {
+            variableToTreeNodePointers.push({
               name: field.name,
               sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
-              source: heapNode,
-              target: node,
-              index: 0,
+              sourceDataStructureGraphNode: heapNode,
+              targetTreeNodeBox: targetTreeNodeBox,
+              positionAtTarget: 0,
               isNull: false,
-              nodeIndex: node.index,
-              nodeLevel: node.level,
-              treeLevel: node.treeLevel,
+              targetSlot: targetTreeNodeBox.slotInDepth,
+              targetDepth: targetTreeNodeBox.depth,
+              targetTreeRow: targetTreeNodeBox.treeRow,
               changed: field.changed
             })
           }
         } else if (field.value.kind === 'NullVal') {
-          nodePointers.push({
+          variableToTreeNodePointers.push({
             name: field.name,
             sourceVariableIdentifier: heapObjectFieldIdentifier(dataStructure, field),
-            source: heapNode,
-            index: nrOfNullPointers,
+            sourceDataStructureGraphNode: heapNode,
+            positionAtTarget: nrOfNullPointers,
             isNull: true,
-            nodeIndex: LAYOUT.pointers.null.index,
-            nodeLevel: 0,
-            treeLevel: 0,
+            targetSlot: LAYOUT.pointers.null.index,
+            targetDepth: 0,
+            targetTreeRow: 0,
             changed: field.changed
           })
           nrOfNullPointers++
@@ -262,59 +262,58 @@ export function createPointerStructure (
   const indexMap = new Map()
   indexMap.set(0, nrOfNullPointers - 1)
   // variables null pointers (parent, ...)
-  pointers
-    .filter(pointer => (pointer.element as Var).value.kind === 'NullVal')
+  variableDataStructureGraphNodes
+    .filter(pointer => (pointer.traceElement as Var).value.kind === 'NullVal')
     .forEach(pointer => {
-      const sourceVariableIdentifier = rootVariableIdentifier(pointer.element as Var, pointer.stackFrameDepth)
-      // Identifiers contain `:`, so the previous pointer is found with an attribute selector.
-      const pointerSelection = select(idAttributeSelector(`${HTML.ids.prefixes.pointer}-${sourceVariableIdentifier}`))
-      const nodeLevel = pointerSelection.empty() || !pointerSelection.datum() ? 0 : ((pointerSelection.datum() as TreeNodePointer).nodeLevel)
-      const treeLevel = pointerSelection.empty() || !pointerSelection.datum() ? 0 : ((pointerSelection.datum() as TreeNodePointer).treeLevel)
-      if (nodeLevel && !indexMap.has(nodeLevel)) {
-        indexMap.set(nodeLevel, 0)
+      const sourceVariableIdentifier = rootVariableIdentifier(pointer.traceElement as Var, pointer.stackFrameNumber)
+      const pointerSelection = select(`#${HTML.ids.prefixes.pointer}-${sourceVariableIdentifier}`)
+      const targetDepth = pointerSelection.empty() || !pointerSelection.datum() ? 0 : ((pointerSelection.datum() as VariableToTreeNodePointer).targetDepth)
+      const targetTreeRow = pointerSelection.empty() || !pointerSelection.datum() ? 0 : ((pointerSelection.datum() as VariableToTreeNodePointer).targetTreeRow)
+      if (targetDepth && !indexMap.has(targetDepth)) {
+        indexMap.set(targetDepth, 0)
       } else {
-        indexMap.set(nodeLevel, indexMap.get(nodeLevel) + 1)
+        indexMap.set(targetDepth, indexMap.get(targetDepth) + 1)
       }
-      nodePointers.push({
-        name: (pointer.element as Var).name as string,
+      variableToTreeNodePointers.push({
+        name: (pointer.traceElement as Var).name as string,
         sourceVariableIdentifier,
-        source: pointer,
-        index: indexMap.get(nodeLevel),
+        sourceDataStructureGraphNode: pointer,
+        positionAtTarget: indexMap.get(targetDepth),
         isNull: true,
-        nodeIndex: LAYOUT.pointers.null.index,
-        nodeLevel,
-        treeLevel,
-        changed: (pointer.element as Var).changed
+        targetSlot: LAYOUT.pointers.null.index,
+        targetDepth,
+        targetTreeRow,
+        changed: (pointer.traceElement as Var).changed
       })
     })
-  return nodePointers
+  return variableToTreeNodePointers
 }
 
 // adds changed flag to children of nodes and moves left and right children to the end of the children-array
 export function processChildren (
-  treeNodes: TreeNode[],
+  treeNodeBoxes: TreeNodeBox[],
   component: { leftName: string, rightName: string }
 ) {
-  treeNodes
-    .map(node => node.node)
-    .filter(node => node && node.element?.kind === 'HeapObject')
+  treeNodeBoxes
+    .map(treeNodeBox => treeNodeBox.dataStructureGraphNode)
+    .filter(node => node && node.traceElement?.kind === 'HeapObject')
     .forEach(node => {
-      setChangesInFields(node!)
+      setChildChangedFlags(node!)
 
       const leftIndex = getFieldIndex(node!, component.leftName)
       const rightIndex = getFieldIndex(node!, component.rightName)
 
-      if (leftIndex >= 0 && node!.children[leftIndex]) {
-        node!.children[leftIndex].name = component.leftName
-        moveElemInArray(node!.children, leftIndex, -1)
-        moveElemInArray(node!.changesInFields, leftIndex, -1)
+      if (leftIndex >= 0 && node!.childDataStructureGraphNodes[leftIndex]) {
+        node!.childDataStructureGraphNodes[leftIndex].label = component.leftName
+        moveElemInArray(node!.childDataStructureGraphNodes, leftIndex, -1)
+        moveElemInArray(node!.childChangedFlags, leftIndex, -1)
       }
 
-      if (rightIndex >= 0 && node!.children[rightIndex]) {
+      if (rightIndex >= 0 && node!.childDataStructureGraphNodes[rightIndex]) {
         const rightIndexUpdated = rightIndex > leftIndex ? rightIndex - 1 : rightIndex
-        node!.children[rightIndexUpdated].name = component.rightName
-        moveElemInArray(node!.children, rightIndexUpdated, -1)
-        moveElemInArray(node!.changesInFields, rightIndexUpdated, -1)
+        node!.childDataStructureGraphNodes[rightIndexUpdated].label = component.rightName
+        moveElemInArray(node!.childDataStructureGraphNodes, rightIndexUpdated, -1)
+        moveElemInArray(node!.childChangedFlags, rightIndexUpdated, -1)
       }
     })
 }

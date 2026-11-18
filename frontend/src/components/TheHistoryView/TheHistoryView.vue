@@ -2,7 +2,7 @@
   <div id="history-wrapper">
     <VizSetting :viz-id="visualizationStore.HISTORY.id" />
     <div class="history-header">
-      <strong>The History View for {{ generalStore.debugger.fullTrace.traceLength }} trace states</strong>
+      <strong>The Event History View for {{ generalStore.debugger.fullTrace.traceLength }} trace states</strong>
       <div class="history-controls">
         <label class="history-option">
           <input v-model="showFieldAssignments" type="checkbox"> Show Field Assignments
@@ -41,7 +41,7 @@
     <div ref="historyListContainer" class="history-list-container" @scroll="updateStickToBottom">
       <div class="history-list">
         <div
-          v-for="historyState in filteredHistoryStates"
+          v-for="historyState in displayedHistoryStates"
           :key="historyState.state.stateIndex"
           :class="classes(historyState.traceIndex)">
           <div
@@ -49,6 +49,7 @@
             :key="entry.key"
             class="history-item"
             :class="{
+              'source-line-entry': entry.icon === 'source-line',
               'highlight-match': highlightedEntries.has(entry),
               'current-match-highlight': currentHighlightedEntry === entry
             }"
@@ -75,7 +76,7 @@
     
     <div class="search-bar">
       <input
-        v-model="searchQuery" type="text" placeholder="Filter history (e.g. counter = 12 or call sort) ..." @keydown.stop
+        v-model="searchQuery" type="text" placeholder="Filter history (e.g. counter = 12, call sort, or &quot;a + b&quot;) ..." @keydown.stop
         @keyup.stop>
       <div class="search-actions">
         <button
@@ -117,9 +118,11 @@ import staticInitIcon from '@/assets/icons/history-view/static-init.svg';
 import infoIcon from '@/assets/icons/info.png';
 import { useOverlayStore } from '@/store/OverlayStore';
 import {
+  addSourceLineMatches,
   buildFilteredHistoryStates,
   buildShownMethodFilters,
   createHistoryLookup,
+  createSourceLineLookup,
   findHighlightedHistoryEntries,
   shownMethodFilterKey,
   parseDslFilter
@@ -133,6 +136,7 @@ const historyEntryIcons = {
   constructor: constructorIcon,
   local: markerIcon,
   'object-field': layoutFluidIcon,
+  'source-line': markerIcon,
   'static-field': globeIcon,
   'static-initializer': staticInitIcon
 } satisfies Record<HistoryEntryIcon, string>;
@@ -170,8 +174,21 @@ const filteredHistoryStates = computed(() => {
     lookup: historyLookup
   });
 });
-const highlightedEntries = computed(() => findHighlightedHistoryEntries(filteredHistoryStates.value, dslFilter.value));
-const highlightedEntriesInOrder = computed(() => filteredHistoryStates.value
+const sourceLineLookup = computed(() => createSourceLineLookup(generalStore.debugger.getCompiledSources()));
+// A string, so typing a structured filter does not recompute the displayed rows.
+const sourceSearchText = computed(() => dslFilter.value?.kind === 'source' ? dslFilter.value.text : null);
+// Kept separate from filteredHistoryStates so a source search does not rebuild the formatted rows on every keystroke.
+const displayedHistoryStates = computed(() => sourceSearchText.value === null
+  ? filteredHistoryStates.value
+  : addSourceLineMatches(
+    generalStore.debugger.fullTrace.processedTrace,
+    filteredHistoryStates.value,
+    sourceSearchText.value,
+    sourceLineLookup.value,
+    isShownMethod
+  ));
+const highlightedEntries = computed(() => findHighlightedHistoryEntries(displayedHistoryStates.value, dslFilter.value));
+const highlightedEntriesInOrder = computed(() => displayedHistoryStates.value
   .flatMap(historyState => historyState.entries)
   .filter(entry => highlightedEntries.value.has(entry)));
 const currentHighlightedEntry = computed<FilteredHistoryEntry | null>(
@@ -541,6 +558,10 @@ function getIndentStyle (stack: StackFrame[], isCall: boolean = false, extraLeve
   background-color: #fffde7 !important;
   border-color: #fdd835 !important;
   color: #000 !important;
+}
+
+.source-line-entry {
+  border-style: dashed;
 }
 
 .current-match-highlight {

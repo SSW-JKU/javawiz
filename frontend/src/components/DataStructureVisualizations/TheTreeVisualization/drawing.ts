@@ -1,25 +1,26 @@
 import { BaseType, Selection } from 'd3-selection'
-import { ChildPointer, TreeNode, TreeNodePointer } from './types'
+import { ChildFieldPointer, TreeNodeBox, VariableToTreeNodePointer } from './types'
 import { HTML, LAYOUT } from './constants'
 import { HeapObject } from '@/dto/TraceState'
-import { getNodeCoordinates, joinFieldTexts } from './node-utils'
-import { childLineAttributes, getChildPointerCoordinates, updateChildPointerAttributes } from './child-pointer-utils'
+import { getTreeNodeBoxCoordinates, joinFieldTexts } from './node-utils'
+import { childLineAttributes, getChildFieldPointerCoordinates, updateChildFieldPointerAttributes } from './child-field-pointer-utils'
 import { getPointerCoordinates, getPointerLength, getPointerTextWidth, getPointerTextXOffset } from './pointer-utils'
 import { DEFINITIONS } from '@/helpers/SvgDefinitions'
 import { SVG } from '../constants'
 import { blendInAnimation, blendOutAnimation } from '../animations'
 import { getPointerDescription } from '../description-utils'
-import { isFieldChanged } from '../heap-tree-node-utils'
+import { isFieldChanged } from '../data-structure-graph-node-utils'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { HoverHeapObject, HoverInfo } from '@/hover/types'
 import { createHoverField } from '@/hover/hoverinfo-builder'
 import { createRootVariableHover, idOfOwningHeapObject, isField } from '../pointer-hover'
-import { getTreeNodeHoverInfo, isHighlighted, isHighlightedChildPointer, isHighlightedRef, onHover } from './hover'
+import { getTreeNodeHoverInfo, isHighlighted, isHighlightedChildFieldPointer, isHighlightedRef, onHover } from './hover'
 import { TRANSFORMATION } from '@/helpers/constants'
+import { heapItemIdentifier } from '@/identifiers/trace-identifiers'
 
 // appends a rectangle and lines for fields
-export function appendNodeRect (
-  group: Selection<SVGGElement, TreeNode, BaseType, unknown>,
+export function appendTreeNodeBoxFieldRects (
+  group: Selection<SVGGElement, TreeNodeBox, BaseType, unknown>,
   component: { leftName: string, rightName: string }
 ) {
   // append rectangle
@@ -45,7 +46,7 @@ export function appendNodeRect (
   group.append('g')
     .classed(HTML.classes.nodes.lineGroup, true)
     .selectAll('line')
-    .data(d => d.node ? d.node.children : [])
+    .data(d => d.dataStructureGraphNode ? d.dataStructureGraphNode.childDataStructureGraphNodes : [])
     .enter()
     .filter((_, i) => i > 1) // filter one line, since there are two children more than lines needed
     .append('line')
@@ -75,7 +76,7 @@ export function appendNodeRect (
     .attr('width', SVG.cellWidth / 2)
     .attr('height', SVG.cellHeight)
     .append('xhtml:div')
-    .classed(HTML.classes.changed, d => isFieldChanged(d.node, -2))
+    .classed(HTML.classes.changed, d => isFieldChanged(d.dataStructureGraphNode, -2))
     .classed(HTML.classes.fieldText, true)
     .text(component.leftName)
     .attr('title', component.leftName)
@@ -86,52 +87,54 @@ export function appendNodeRect (
     .attr('width', SVG.cellWidth / 2)
     .attr('height', SVG.cellHeight)
     .append('xhtml:div')
-    .classed(HTML.classes.changed, d => isFieldChanged(d.node, -1))
+    .classed(HTML.classes.changed, d => isFieldChanged(d.dataStructureGraphNode, -1))
     .classed(HTML.classes.fieldText, true)
     .text(component.rightName)
     .attr('title', component.rightName)
 
   textGroup.selectAll(`.${HTML.classes.nodes.field}`)
     .on('mouseenter', (_event, d) => {
-      const hoverInfos = getTreeNodeHoverInfo((d as any).element as HeapObject, 0)
+      const hoverInfos = getTreeNodeHoverInfo((d as any).traceElement as HeapObject, 0)
       HoverSynchronizer.hover(hoverInfos)
     })
     .on('mouseleave', () => HoverSynchronizer.clear())
 
-  textGroup.selectAll(`#${HTML.ids.nodes.leftField}`)
+  // Typing the selection lets D3 type `d` as the tree node box the field belongs to.
+  textGroup.selectAll<SVGForeignObjectElement, TreeNodeBox>(`#${HTML.ids.nodes.leftField}`)
     .on('mouseenter', (_event, d) => {
-      const hoverInfos = getTreeNodeHoverInfo((d as any).node.element as HeapObject, 1)
+      const hoverInfos = getTreeNodeHoverInfo(d.dataStructureGraphNode!.traceElement as HeapObject, 1)
       onHover(hoverInfos)
     })
     .on('mouseleave', () => HoverSynchronizer.clear())
 
-  textGroup.selectAll(`#${HTML.ids.nodes.rightField}`)
+  textGroup.selectAll<SVGForeignObjectElement, TreeNodeBox>(`#${HTML.ids.nodes.rightField}`)
     .on('mouseenter', (_event, d) => {
-      const hoverInfos = getTreeNodeHoverInfo((d as any).node.element as HeapObject, 2)
+      const hoverInfos = getTreeNodeHoverInfo(d.dataStructureGraphNode!.traceElement as HeapObject, 2)
       onHover(hoverInfos)
     })
     .on('mouseleave', () => HoverSynchronizer.clear())
 }
 
-export function drawNodeRectangles (
+export function drawTreeNodeBoxes (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
-  treeNodes: TreeNode[],
+  treeNodeBoxes: TreeNodeBox[],
   component: { leftName: string, rightName: string },
   hoveredInfos: HoverInfo[]
 ) {
   svg.select(`#${HTML.ids.treeNodes}`)
-    .selectAll(`.${HTML.classes.nodes.group}`)
-    .data(treeNodes, (d: any) => (d?.node.element as HeapObject).id)
+    // Typing the selection lets D3 type `d` in the key function and all callbacks below as TreeNodeBox.
+    .selectAll<SVGGElement, TreeNodeBox>(`.${HTML.classes.nodes.group}`)
+    .data(treeNodeBoxes, d => (d.dataStructureGraphNode!.traceElement as HeapObject).id)
     .join(
       entered => {
         const group = entered
           .append('g')
-          .attr('id', d => `${HTML.ids.prefixes.nodes}-${(d.node?.element as HeapObject).id}`)
-          .attr('transform', d => `translate(${getNodeCoordinates(d)})`)
+          .attr('id', d => `${HTML.ids.prefixes.nodes}-${heapItemIdentifier(d.dataStructureGraphNode?.traceElement as HeapObject)}`)
+          .attr('transform', d => `translate(${getTreeNodeBoxCoordinates(d)})`)
           .classed(HTML.classes.nodes.group, true)
           .classed(HTML.classes.changed, true)
         blendInAnimation(group)
-        appendNodeRect(group, component)
+        appendTreeNodeBoxFieldRects(group, component)
         return group
       },
       updated => {
@@ -143,7 +146,7 @@ export function drawNodeRectangles (
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('transform', d => `translate(${getNodeCoordinates(d)})`)
+          .attr('transform', d => `translate(${getTreeNodeBoxCoordinates(d)})`)
           .selection()
         // update fields
         joinFieldTexts(updated.select(`.${HTML.classes.nodes.textGroup}`), component)
@@ -152,12 +155,12 @@ export function drawNodeRectangles (
         // update left and right
         updated.select(`#${HTML.ids.nodes.leftField}`)
           .select('div')
-          .classed(HTML.classes.changed, d => isFieldChanged(d.node, -2))
+          .classed(HTML.classes.changed, d => isFieldChanged(d.dataStructureGraphNode, -2))
           .text(component.leftName)
           .attr('title', component.leftName)
         updated.select(`#${HTML.ids.nodes.rightField}`)
           .select('div')
-          .classed(HTML.classes.changed, d => isFieldChanged(d.node, -1))
+          .classed(HTML.classes.changed, d => isFieldChanged(d.dataStructureGraphNode, -1))
           .text(component.rightName)
           .attr('title', component.rightName)
         return updated
@@ -166,39 +169,42 @@ export function drawNodeRectangles (
     )
 }
 
-export function drawChildPointers (
+export function drawChildFieldPointers (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
-  childPointers: ChildPointer[],
+  childFieldPointers: ChildFieldPointer[],
   hoveredInfos: HoverInfo[]
 ) {
-  svg.select(`#${HTML.ids.childPointers}`).selectAll('g')
-    .data(childPointers, (pointer: any) =>
-      (pointer?.parent.node.element as HeapObject).id * (pointer?.direction === 'left' ? -1 : 1))
-    .on('mouseenter', (_event, pointer: any) => {
-      const hoverInfos = getTreeNodeHoverInfo(pointer.parent.node.element as HeapObject, pointer?.direction === 'left' ? 1 : 2)
+  svg.select(`#${HTML.ids.childPointers}`)
+    // Typing the selection lets D3 type `pointer` and `d` in the key function and all callbacks below as ChildFieldPointer.
+    .selectAll<SVGGElement, ChildFieldPointer>('g')
+    .data(childFieldPointers, pointer =>
+      (pointer.sourceTreeNodeBox.dataStructureGraphNode!.traceElement as HeapObject).id * (pointer.side === 'left' ? -1 : 1))
+    .on('mouseenter', (_event, pointer) => {
+      const hoverInfos = getTreeNodeHoverInfo(pointer.sourceTreeNodeBox.dataStructureGraphNode!.traceElement as HeapObject, pointer.side === 'left' ? 1 : 2)
       onHover(hoverInfos)
     })
     .on('mouseleave', () => HoverSynchronizer.clear())
     .join(
       entered => {
         const group = entered.append('g')
-          .attr('id', d => `${HTML.ids.prefixes.child}-${(d.parent.node?.element as HeapObject).id}-${d.direction}`)
+          // Not an object field identifier: a child field pointer only knows its side (`left`/`right`), not the field name.
+          .attr('id', d => `${HTML.ids.prefixes.child}-${(d.sourceTreeNodeBox.dataStructureGraphNode?.traceElement as HeapObject).id}-${d.side}`)
           .classed(HTML.classes.changed, true)
-          .attr('transform', d => `translate(${getChildPointerCoordinates(d)})`)
+          .attr('transform', d => `translate(${getChildFieldPointerCoordinates(d)})`)
         blendInAnimation(group)
         // normal pointer line, always visible
         const line = group.append('line')
         childLineAttributes(line)
         line.attr('id', HTML.ids.pointers.line)
-          .attr('marker-start', d => isHighlightedChildPointer(hoveredInfos, d) ? DEFINITIONS.urls.highlightedDot : DEFINITIONS.urls.redDot)
+          .attr('marker-start', d => isHighlightedChildFieldPointer(hoveredInfos, d) ? DEFINITIONS.urls.highlightedDot : DEFINITIONS.urls.redDot)
         // arrow line, only visible when not null
         const arrowLine = group.append('line')
         childLineAttributes(arrowLine)
         arrowLine.attr('id', HTML.ids.pointers.arrowLine)
-          .attr('marker-end', d => isHighlightedChildPointer(hoveredInfos, d)
+          .attr('marker-end', d => isHighlightedChildFieldPointer(hoveredInfos, d)
             ? DEFINITIONS.urls.highlightedArrow
             : DEFINITIONS.urls.redArrow)
-          .style('opacity', d => d.child.node ? '1' : '0')
+          .style('opacity', d => d.targetTreeNodeBox.dataStructureGraphNode ? '1' : '0')
         // null line, only visible when null
         group.append('line')
           .attr('id', HTML.ids.pointers.nullLine)
@@ -206,97 +212,97 @@ export function drawChildPointers (
           .attr('x2', LAYOUT.childPointers.null.lineLength / 2)
           .attr('y1', 0)
           .attr('y2', 0)
-          .style('opacity', d => d.child.node ? '0' : '1')
+          .style('opacity', d => d.targetTreeNodeBox.dataStructureGraphNode ? '0' : '1')
         return group
       },
       updated => {
         // update group position
         const toReturn = updated
           .classed(HTML.classes.changed, d => d.changed)
-          .classed(HTML.classes.highlighted.pointer, d => isHighlightedChildPointer(hoveredInfos, d))
+          .classed(HTML.classes.highlighted.pointer, d => isHighlightedChildFieldPointer(hoveredInfos, d))
           .style('opacity', '1')
           .interrupt()
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('transform', d => `translate(${getChildPointerCoordinates(d)})`)
+          .attr('transform', d => `translate(${getChildFieldPointerCoordinates(d)})`)
           .selection()
         // update pointer line
         const pointerLine = updated.select(`#${HTML.ids.pointers.line}`)
-          .attr('marker-start', d => isHighlightedChildPointer(hoveredInfos, d)
+          .attr('marker-start', d => isHighlightedChildFieldPointer(hoveredInfos, d)
             ? DEFINITIONS.urls.highlightedDot
             : d.changed
               ? DEFINITIONS.urls.redDot
               : DEFINITIONS.urls.dot)
-        updateChildPointerAttributes(pointerLine)
+        updateChildFieldPointerAttributes(pointerLine)
         // update arrow line
         const arrowLine = updated.select(`#${HTML.ids.pointers.arrowLine}`)
-          .attr('marker-end', d => isHighlightedChildPointer(hoveredInfos, d)
+          .attr('marker-end', d => isHighlightedChildFieldPointer(hoveredInfos, d)
             ? DEFINITIONS.urls.highlightedArrow
             : d.changed
               ? DEFINITIONS.urls.redArrow
               : DEFINITIONS.urls.arrow)
-        updateChildPointerAttributes(arrowLine)
-          .style('opacity', d => d.child.node ? '1' : '0')
+        updateChildFieldPointerAttributes(arrowLine)
+          .style('opacity', d => d.targetTreeNodeBox.dataStructureGraphNode ? '1' : '0')
         // update null line
         updated.select(`#${HTML.ids.pointers.nullLine}`)
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
-          .style('opacity', d => d.child.node ? '0' : '1')
+          .style('opacity', d => d.targetTreeNodeBox.dataStructureGraphNode ? '0' : '1')
         return toReturn
       },
       removed => blendOutAnimation(removed)
     )
 }
 
-export function drawPointers (
+export function drawVariablePointers (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
-  nodePointers: TreeNodePointer[],
+  variableToTreeNodePointers: VariableToTreeNodePointer[],
   hoveredInfos: HoverInfo[]
 ) {
   // count how many pointers point to each node
-  const nodeToPointerDistance = new Map<TreeNode, { count: number, distance: number }>()
-  nodePointers.forEach(pointer => {
-    if (pointer.target) {
-      if (nodeToPointerDistance.has(pointer.target)) {
-        nodeToPointerDistance.get(pointer.target)!.count++
+  const pointerSpacingByTargetTreeNodeBox = new Map<TreeNodeBox, { count: number, distance: number }>()
+  variableToTreeNodePointers.forEach(pointer => {
+    if (pointer.targetTreeNodeBox) {
+      if (pointerSpacingByTargetTreeNodeBox.has(pointer.targetTreeNodeBox)) {
+        pointerSpacingByTargetTreeNodeBox.get(pointer.targetTreeNodeBox)!.count++
       } else {
-        nodeToPointerDistance.set(pointer.target, { count: 1, distance: LAYOUT.pointers.distance })
+        pointerSpacingByTargetTreeNodeBox.set(pointer.targetTreeNodeBox, { count: 1, distance: LAYOUT.pointers.distance })
       }
     }
   })
   // calculate pointer distances, if there are too many
-  nodeToPointerDistance.forEach((value, key) => {
+  pointerSpacingByTargetTreeNodeBox.forEach((value, key) => {
     if ((value.count - 1) * value.distance > key.height - 2 * LAYOUT.pointers.yOffset) {
       value.distance = (key.height - 2 * LAYOUT.pointers.yOffset) / (value.count - 1)
     }
   })
   svg.select(`#${HTML.ids.nodePointers}`)
-    // Typing the selection lets D3 type `d` in the key function and all callbacks below as TreeNodePointer.
-    .selectAll<SVGGElement, TreeNodePointer>('g')
-    .data(nodePointers, d => d.sourceVariableIdentifier)
+    // Typing the selection lets D3 type `d` in the key function and all callbacks below as VariableToTreeNodePointer.
+    .selectAll<SVGGElement, VariableToTreeNodePointer>('g')
+    .data(variableToTreeNodePointers, d => d.sourceVariableIdentifier)
     .join(
       entered => {
         const group = entered.append('g')
           .on('mouseenter', (_event, pointer) => {
-            const node = pointer.target?.node
-            const currNode = node?.element as HeapObject
+            const node = pointer.targetTreeNodeBox?.dataStructureGraphNode
+            const currNode = node?.traceElement as HeapObject
 
             const hoverInfos = getTreeNodeHoverInfo(currNode)
 
             if (currNode) {
               // add the hovered pointer: a field of the tree object or a variable
-              hoverInfos.push(isField(pointer.source)
-                ? createHoverField(idOfOwningHeapObject(pointer.source), pointer.name, currNode.id)
-                : createRootVariableHover(pointer.source, currNode.id))
+              hoverInfos.push(isField(pointer.sourceDataStructureGraphNode)
+                ? createHoverField(idOfOwningHeapObject(pointer.sourceDataStructureGraphNode), pointer.name, currNode.id)
+                : createRootVariableHover(pointer.sourceDataStructureGraphNode, currNode.id))
             }
 
             onHover(hoverInfos)
           })
           .on('mouseleave', () => HoverSynchronizer.clear())
           .classed(HTML.classes.changed, true)
-          .attr('transform', d => `translate(${getPointerCoordinates(d, nodeToPointerDistance)})`)
+          .attr('transform', d => `translate(${getPointerCoordinates(d, pointerSpacingByTargetTreeNodeBox)})`)
           .attr('id', d => `${HTML.ids.prefixes.pointer}-${d.sourceVariableIdentifier}`)
         blendInAnimation(group)
         // normal pointer line, always visible
@@ -348,7 +354,7 @@ export function drawPointers (
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('transform', d => `translate(${getPointerCoordinates(d, nodeToPointerDistance)})`)
+          .attr('transform', d => `translate(${getPointerCoordinates(d, pointerSpacingByTargetTreeNodeBox)})`)
           .selection()
         // reset marker for pointer line and update length
         updated.select(`#${HTML.ids.pointers.line}`)

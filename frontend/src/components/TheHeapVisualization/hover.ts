@@ -8,6 +8,7 @@ import { HeapVizHeapObject } from './Types/HeapVizHeapObject'
 import { HeapVizHeapArrayElementVar } from './Types/HeapVizHeapArrayElementVar'
 import { HeapVizVar } from './Types/HeapVizVar'
 import {
+  createHoverClass,
   createHoverField,
   createHoverHeapObject,
   createHoverArrayCell,
@@ -20,88 +21,124 @@ import {
   MAIN_HEADER_BG_COLOR,
   MAIN_HEADER_BG_COLOR_HOVER,
   METHOD_HEADER_BG_COLOR_HOVER,
-  OBJECT_BG_HOVER,
-  REFERENCED_OBJECT_BG_HOVER,
-  SUB_HEADER_BG_COLOR,
-  WHITE
+  SUB_HEADER_BG_COLOR
 } from './constants'
 import { HeapVizReferenceVal } from './Types/HeapVizReferenceVal'
 
 import { HeapVizStackFrame } from './Types/HeapVizStackFrame'
-import { desanitizeIdentifier } from '@/identifiers/trace-identifiers'
+import { HeapVizLoadedClass } from './Types/HeapVizLoadedClass'
+import { HeapVizVal } from './Types/HeapVizVal'
+import { stackFrameIdentifier } from '@/identifiers/trace-identifiers'
 
-export function getLocalOrStaticsToHeapItemHoverInfos (sanitizedIdentifier: string, state: HeapVizTraceState): HoverInfo[] {
-  const identifier = desanitizeIdentifier(sanitizedIdentifier)
-  const loadedClasses = state.loadedClassesAfterExecution
-  const methods = state.stackAfterExecution
-  const methodId = Number(identifier.match(/\d+/g)?.[0])
-  const hoverInfos: HoverInfo[] = []
+/**
+ * What a record of the Memory View stands for, with the data needed to build its hover infos.
+ * A record is a table row or header that has its own identifier, such as a local or a heap object.
+ */
+export type HoverTarget =
+  | { kind: 'local', stackFrameNr: number, stackFrame: HeapVizStackFrame, variable: HeapVizVar }
+  | { kind: 'this', stackFrameNr: number, variable: HeapVizVar }
+  | { kind: 'static', loadedClass: HeapVizLoadedClass, variable: HeapVizVar }
+  | { kind: 'field', heapObject: HeapVizHeapObject, variable: HeapVizVar }
+  | { kind: 'arrayElement', array: HeapVizHeapArray, element: HeapVizHeapArrayElementVar }
+  /** The `value` field of a String: hovering it hovers the String, clicking it expands the backing array. */
+  | { kind: 'stringValue', heapString: HeapVizHeapString, variable: HeapVizVar }
+  | { kind: 'heapItem', heapItem: IHeapVizHeapItem }
+  | { kind: 'method', stackFrame: HeapVizStackFrame }
 
-  const isThisVar = identifier.startsWith('l_') && identifier.endsWith('_this')
-  const isStaticField = identifier.charAt(0) === 's' // s = static, l = local
-  const varOrFieldName = identifier
-    .split('_') // split identifier by underscores
-    .slice(2) // remove the first two elements (s_class_ or l_stackFrameNr_)
-    .join('_') // join everything else together which results in the var or field name
-  let className = ''
-  let reference = -1
-
-  if (isThisVar) {
-    const thisItem = methods[methodId].this
-    const refValue = (thisItem?.value as HeapVizReferenceVal)?.reference
-    if (refValue) {
-      hoverInfos.push(createHoverThisVar(methodId, 'this', refValue))
-      hoverInfos.push(createHoverHeapObject(refValue))
-    }
-    return hoverInfos
+/**
+ * Maps the identifier of every record in `state` to what it stands for. The kind of a record is known
+ * from where it sits in the state (a stack frame, a loaded class, a heap item), so no identifier is decoded.
+ *
+ * Example: for the local `n` in frame 1, `collectHoverTargets(state).get('local_1_n')` is
+ * `{ kind: 'local', stackFrameNr: 1, stackFrame, variable }`.
+ */
+export function collectHoverTargets (state: HeapVizTraceState): Map<string, HoverTarget> {
+  const targets = new Map<string, HoverTarget>()
+  state.stackAfterExecution.forEach((stackFrame, stackFrameNr) => {
+    targets.set(stackFrameIdentifier(stackFrameNr), { kind: 'method', stackFrame })
+    if (stackFrame.this)
+      targets.set(stackFrame.this.identifier, { kind: 'this', stackFrameNr, variable: stackFrame.this })
+    for (const variable of stackFrame.localVariables)
+      targets.set(variable.identifier, { kind: 'local', stackFrameNr, stackFrame, variable })
+  })
+  for (const loadedClass of state.loadedClassesAfterExecution) {
+    for (const variable of loadedClass.staticFields)
+      targets.set(variable.identifier, { kind: 'static', loadedClass, variable })
   }
-  if (isStaticField) {
-    for (const clazz of loadedClasses) {
-      for (const field of clazz.staticFields) {
-        className = clazz.class
-        if (field.name === varOrFieldName && field.value instanceof HeapVizReferenceVal && field.value.reference > 0) {
-          reference = field.value.reference
-          hoverInfos.push(createHoverHeapObject(reference))
-          break
-        }
-      }
-    }
-    hoverInfos.push(createHoverStatic(className, varOrFieldName, reference))
-    return hoverInfos
-  }
-  const currMethod = methods[methodId]
-  className = currMethod.class
-  const method = currMethod.method
-  for (const local of currMethod.localVariables) {
-    if (local.name === varOrFieldName && local.value  instanceof HeapVizReferenceVal) {
-      reference = local.value.reference
-      hoverInfos.push(createHoverHeapObject(reference))
-      break
+  for (const heapItem of state.heapAfterExecution) {
+    targets.set(heapItem.identifier, { kind: 'heapItem', heapItem })
+    if (heapItem instanceof HeapVizHeapObject) {
+      for (const variable of heapItem.fields)
+        targets.set(variable.identifier, { kind: 'field', heapObject: heapItem, variable })
+    } else if (heapItem instanceof HeapVizHeapArray) {
+      for (const element of heapItem.elements)
+        targets.set(element.identifier, { kind: 'arrayElement', array: heapItem, element })
+    } else if (heapItem instanceof HeapVizHeapString) {
+      targets.set(heapItem.charArr.identifier, { kind: 'stringValue', heapString: heapItem, variable: heapItem.charArr })
     }
   }
-
-  hoverInfos.push(createHoverLocal(className, method, varOrFieldName, reference, methodId))
-  return hoverInfos
+  return targets
 }
 
-export function getMethodHoverInfos (identifier: string, state: HeapVizTraceState): HoverInfo[] {
-  const hoverInfos: HoverInfo[] = []
-  const stackFrameNr = identifier.match(/^stackframe_(\d+)$/)?.[1]
-  if (stackFrameNr !== undefined) {
-    const stackFrame = state.stackAfterExecution[Number(stackFrameNr)]
-    if (stackFrame) {
-      hoverInfos.push(createHoverMethod(stackFrame.class, stackFrame.method))
-    }
-    return hoverInfos
-  }
+/** The referenced heap item id, or -1 for `null` and primitives. */
+function referenceOf (value: HeapVizVal): number {
+  return value instanceof HeapVizReferenceVal ? value.reference : -1
+}
 
-  for (const stackFrame of state.stackAfterExecution) {
-    if (stackFrame.displayText === identifier) {
-      hoverInfos.push(createHoverMethod(stackFrame.class, stackFrame.method))
-      break
+/** The hover infos for a heap item: the item, everything that references it, and its class unless it is an array. */
+function heapItemHoverInfos (heapItem: IHeapVizHeapItem, state: HeapVizTraceState): HoverInfo[] {
+  return [
+    createHoverHeapObject(heapItem.id),
+    ...getReferencesOfHoveredHeapItem(heapItem.id, state),
+    ...(heapItem instanceof HeapVizHeapArray ? [] : [createHoverClass(heapItem.varType)])
+  ]
+}
+
+/**
+ * The hover infos the Memory View sends while the mouse is over `target`, in the order the other views expect.
+ * A referenced object is included, so the object and the arrow to it are highlighted too.
+ */
+export function hoverInfosForTarget (target: HoverTarget, state: HeapVizTraceState): HoverInfo[] {
+  switch (target.kind) {
+    case 'local': {
+      const reference = referenceOf(target.variable.value)
+      return [
+        ...(target.variable.value instanceof HeapVizReferenceVal ? [createHoverHeapObject(reference)] : []),
+        createHoverLocal(target.stackFrame.class, target.stackFrame.method, target.variable.name, reference, target.stackFrameNr)
+      ]
     }
+    case 'this': {
+      const reference = referenceOf(target.variable.value)
+      // A `this` row always holds a reference; the check only guards against malformed traces.
+      return reference > 0 ? [createHoverThisVar(target.stackFrameNr, 'this', reference), createHoverHeapObject(reference)] : []
+    }
+    case 'static': {
+      const reference = referenceOf(target.variable.value)
+      return [
+        ...(reference > 0 ? [createHoverHeapObject(reference)] : []),
+        createHoverStatic(target.loadedClass.class, target.variable.name, reference)
+      ]
+    }
+    case 'field': {
+      const reference = referenceOf(target.variable.value)
+      return [
+        createHoverField(target.heapObject.id, target.variable.name, reference),
+        ...(reference !== -1 ? [createHoverHeapObject(reference)] : []),
+        createHoverClass(target.heapObject.varType)
+      ]
+    }
+    case 'arrayElement':
+      return [
+        createHoverArrayCell(target.array.id, target.element.index),
+        ...(target.element.value instanceof HeapVizReferenceVal ? [createHoverHeapObject(target.element.value.reference)] : [])
+      ]
+    case 'stringValue':
+      return heapItemHoverInfos(target.heapString, state)
+    case 'heapItem':
+      return heapItemHoverInfos(target.heapItem, state)
+    case 'method':
+      return [createHoverMethod(target.stackFrame.class, target.stackFrame.method)]
   }
-  return hoverInfos
 }
 
 export function getReferencesOfHoveredHeapItem (objId: number, state: HeapVizTraceState): HoverInfo[] {
@@ -152,95 +189,6 @@ export function getReferencesOfHoveredHeapItem (objId: number, state: HeapVizTra
   }
 
   return hoverInfos
-}
-
-function getHeapVizVarColorOnHover (
-  heapItem: HeapVizVar,
-  highlightedItems: HoverInfo[],
-  state: HeapVizTraceState
-): string {
-  for (const item of highlightedItems) {
-    if (item.kind !== 'Field') {
-      continue
-    }
-    if (heapItem.heapObjectId === item.objId && heapItem.name === item.name) {
-      return OBJECT_BG_HOVER
-    }
-    if (heapItem.heapObjectId === item.reference) {
-      return REFERENCED_OBJECT_BG_HOVER
-    }
-  }
-
-  const identifier = desanitizeIdentifier(heapItem.identifier).split(':')
-  const identifierFirst = identifier[1].charAt(0)
-  const classOrStackFrameNr = identifier[1].split('_')[1]
-
-  for (const item of highlightedItems) {
-    switch (item.kind) {
-      case 'ThisVar':
-        if (identifier[1].startsWith('localvar') && heapItem.name === 'this' && heapItem.value instanceof HeapVizReferenceVal && heapItem.value.reference === item.reference) {
-          return OBJECT_BG_HOVER
-        }
-        break
-      case 'Static':
-        if (identifierFirst === 's' && classOrStackFrameNr === item.class && heapItem.name === item.name) {
-          return OBJECT_BG_HOVER
-        }
-        break
-      case 'Local': {
-        if (identifierFirst !== 'l') {
-          break
-        }
-        const stackFrameNr = Number(classOrStackFrameNr)
-        const stackItem = state.stackAfterExecution[stackFrameNr] // method of the local variable
-        if (stackItem && stackItem.class === item.class && stackItem.method === item.method && heapItem.name === item.name) {
-          return OBJECT_BG_HOVER
-        }
-        break
-      }
-      case 'HeapObject': {
-        if (identifierFirst === 'o' && heapItem.heapObjectId === item.objId) {
-          return REFERENCED_OBJECT_BG_HOVER
-        }
-        break
-      }
-    }
-  }
-  return WHITE
-}
-
-export function getItemColorOnHover (
-  heapItem: HeapVizVar | HeapVizHeapArray | HeapVizHeapArrayElementVar | HeapVizHeapString,
-  highlightedItems: HoverInfo[],
-  state: HeapVizTraceState
-): string {
-  switch (true) {
-    case  heapItem instanceof HeapVizVar:
-      return getHeapVizVarColorOnHover(heapItem, highlightedItems, state)
-
-    case heapItem instanceof HeapVizHeapArrayElementVar:
-      for (const item of highlightedItems) {
-        if (item.kind === 'ArrayCell' && heapItem.arrayId === item.objId && heapItem.index === item.index) {
-          return OBJECT_BG_HOVER
-        }
-      }
-      for (const item of highlightedItems) {
-        if (item.kind === 'HeapObject' && heapItem.arrayId === item.objId) {
-          return REFERENCED_OBJECT_BG_HOVER
-        }
-      }
-      return WHITE
-    case heapItem instanceof HeapVizHeapArray:
-    case heapItem instanceof HeapVizHeapString:
-      for (const item of highlightedItems) {
-        if (item.kind === 'HeapObject' && heapItem.id === item.objId) {
-          return REFERENCED_OBJECT_BG_HOVER
-        }
-      }
-      return WHITE
-  }
-
-  throw new Error('Invalid type: ' + heapItem)
 }
 
 export function getMethodHeaderBGOnHover (stackFrame: HeapVizStackFrame, highlightedItems: HoverInfo[]): string {

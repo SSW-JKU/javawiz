@@ -17,7 +17,7 @@ import type { HeapArrayElementVar, HeapItem, TraceState, Var } from '@/dto/Trace
 import type { HeapVizHeapArrayElementVar } from './Types/HeapVizHeapArrayElementVar'
 import type { IHeapVizHeapItem } from './Types/HeapVizHeapItem'
 import type { HeapVizVar } from './Types/HeapVizVar'
-import { escapeIdForAttributeSelector, heapArrayElementIdentifier, heapItemIdentifier, idAttributeSelector, rawVarIdentifier } from '@/identifiers/trace-identifiers'
+import { heapArrayElementIdentifier, heapItemIdentifier, rawVarIdentifier } from '@/identifiers/trace-identifiers'
 
 export interface Point {
   readonly x: number
@@ -129,13 +129,15 @@ function unionBoundingRect (elements: Element[]): DOMRect | null {
  *    attributes to `parentElement`, and remove the `<title>`.
  *
  *  - **Cell-level** `xlink:title` attributes – for HTML-like `<td>` cells.
- *    Graphviz wraps every cell in an `<a>` element and forwards the `title=`
- *    value as `xlink:title="id=&quot;foo&quot; class=&quot;bar&quot;"` on that `<a>`.
- *    We parse **all** encoded attributes and hoist every one of them directly
- *    onto the parent `<g>`, then **unwrap** the `<a>` by moving its children
- *    up in its place.  The final SVG contains no `<a>` elements from our
- *    injected cells and every injected attribute (not just `id`) is present on
- *    the enclosing group.
+ *    Graphviz wraps every cell in `<g><a xlink:title="id=&quot;foo&quot;">…</a></g>`.
+ *    We copy **all** encoded attributes onto that `<g>` and remove the
+ *    `xlink:title`, so the browser shows no tooltip. The `<a>` itself stays.
+ *
+ * Only attributes and the invisible `<title>` elements change; visible shapes and
+ * text are never moved. d3-graphviz animates the next drawing by matching it against
+ * the elements it created, each one under its original parent. If a cell's polygon
+ * and text were moved out of the `<a>`, none of them would match on the next step, and
+ * d3-graphviz would fade every cell out and a new copy in, so the Memory View flickers.
  *
  * After both passes, all remaining Graphviz auto-generated `<title>` elements
  * (node/edge/cluster identifiers) are removed to prevent browser hover tooltips.
@@ -165,8 +167,8 @@ export function processInjectedTitles (root: Element): void {
 
   // Case 2: xlink:title attributes on <a> elements (cell-level).
   // Graphviz wraps every cell in an <a> and sets xlink:title="id=&quot;foo&quot;".
-  // We parse all encoded attributes, hoist ALL of them to the parent <g>, then
-  // unwrap the <a> by moving its children up in its place.
+  // We parse all encoded attributes and copy ALL of them to the parent <g>.
+  // The <a> stays in place so that d3-graphviz can still match the cell on the next step.
   root.querySelectorAll('a').forEach((aEl) => {
     const content = aEl.getAttributeNS(XLINK_NS, 'title') ?? ''
     if (!isInjectedTitle(content)) return
@@ -179,16 +181,11 @@ export function processInjectedTitles (root: Element): void {
     }
     aEl.removeAttributeNS(XLINK_NS, 'title')
 
-    // Hoist ALL injected attributes to the parent <g>, then unwrap <a>
     const parent = aEl.parentElement
     if (parent) {
       for (const [name, value] of Object.entries(attrs)) {
         parent.setAttribute(name, value)
       }
-      while (aEl.firstChild) {
-        parent.insertBefore(aEl.firstChild, aEl)
-      }
-      aEl.remove()
     }
   })
 
@@ -201,20 +198,20 @@ export function processInjectedTitles (root: Element): void {
 
 /**
  * Finds the first element inside `root` (defaults to the entire document) whose
- * `id` attribute equals `id`.  Uses an attribute selector so that IDs containing
- * special characters (`:`, `_`, `.`) are handled correctly.
+ * `id` equals `id`. Trace identifiers are valid CSS identifiers, so `#id` needs no escaping.
  */
 export function findHeapElementById (id: string, root: Element | Document = document): Element | null {
-  return root.querySelector(idAttributeSelector(id))
+  return root.querySelector(`#${id}`)
 }
 
 /**
  * Finds all SVG elements belonging to a heap visualization record.
  *
- * Variables and heap items render into one or more cells whose IDs are built as
- * `${identifier}:${suffix}`.  Heap object lookup therefore returns the header
- * plus child cells such as fields/elements whose IDs continue with the same
- * identifier prefix.
+ * Variables and heap items render into one or more cells whose IDs continue the record
+ * identifier with `-`: a cell suffix (`obj_1--header`, `obj_1-next--value`) or, for a heap item,
+ * a field or element (`obj_1-next`). A heap object lookup therefore returns the header plus the
+ * cells of its fields and elements. The `-` after the identifier keeps `obj_1` from matching
+ * `obj_12`, and a field `obj_1-next` from matching a field `obj_1-nextNode`.
  */
 export function findHeapElements (target: HeapLookupTarget, root: Element | Document = document, traceState?: TraceState): Element[] {
   if (typeof target === 'string') {
@@ -222,8 +219,8 @@ export function findHeapElements (target: HeapLookupTarget, root: Element | Docu
     return element ? [element] : []
   }
 
-  const escaped = escapeIdForAttributeSelector(heapLookupIdentifier(target, traceState))
-  return Array.from(root.querySelectorAll(`[id="${escaped}"], [id^="${escaped}:"]`))
+  const identifier = heapLookupIdentifier(target, traceState)
+  return Array.from(root.querySelectorAll(`[id="${identifier}"], [id^="${identifier}-"]`))
 }
 
 export function findHeapElement (target: HeapLookupTarget, root: Element | Document = document, traceState?: TraceState): Element | null {

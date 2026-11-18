@@ -5,6 +5,12 @@ export const DEFAULT_TRANSITION_TIME = 1250
 export const MIN_WIDTH = 30
 
 export const CLUSTER_TITLE_FONT_SIZE = 12
+/**
+ * Height of the Statics and Stack header cells. It matches the height Graphviz gives the Heap box's title strip
+ * for a bold Arial title of CLUSTER_TITLE_FONT_SIZE, so the three blue bars are equally tall and the Stack and
+ * Heap titles line up. Change it together with CLUSTER_TITLE_FONT_SIZE or FONT_FACE_CLUSTER_TITLE.
+ */
+export const MAIN_HEADER_HEIGHT = 24
 export const CONTENT_FONT_SIZE = 9
 
 export const MAX_ARRAY_ELEMENTS = 5
@@ -17,6 +23,8 @@ export const WHITE = '#ffffff'
 export const MAIN_HEADER_BG_COLOR = colors.secondaryBlue
 // Text on main headers is white, because black text on the dark header blue is hard to read.
 export const MAIN_HEADER_FONT_COLOR = WHITE
+// Header text of heap items that are new in this step. Light red, because pure red is hard to read on the dark header.
+export const NEW_HEAP_ITEM_HEADER_FONT_COLOR = '#ff8a80'
 // Hover recoloring changes only cell backgrounds, so this green must stay dark enough for the white header text.
 export const MAIN_HEADER_BG_COLOR_HOVER = '#4a7a46'
 export const METHOD_HEADER_BG_COLOR_HOVER = '#ffd9bb'
@@ -37,14 +45,6 @@ export const FONT_FACE_VALUES = 'Arial'
 
 // const NULL_VAL = '&#9679;'
 export const NULL_VAL = `<font face="${FONT_FACE_VALUES}"><i>null&nbsp;&nbsp;</i></font>`
-
-export const MAX_ZOOM_IN_FACTOR = 5
-export const MAX_ZOOM_OUT_FACTOR = 0.4
-// const DEFAULT_ZOOM_FACTOR = 0.7
-// Zoom step of the zoom buttons. The mouse wheel uses d3-zoom's smaller default step (see HeapVizChart.onMounted).
-export const BTN_ZOOM_FACTOR = 1.3
-
-export const TRANSFORMATION_DURATION = 600
 
 export const CHANGED_VAR_COLOR = '#ff0000'
 export const UNCHANGED_VAR_COLOR = '#000000'

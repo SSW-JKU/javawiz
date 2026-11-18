@@ -1,4 +1,3 @@
-import { easeCubic } from 'd3-ease'
 import { colors } from '@/helpers/colors'
 
 export const DATA = {
@@ -136,16 +135,4 @@ export const SVG = {
   multiplier: 0.2
 }
 
-export const ZOOM = {
-  offsetMultiplier: 1.1,
-  thresholdMultiplier: 1.2
-}
-
-export const DEFAULT_ZOOM_FACTOR = 1.3
-
 export const DURATION = 1000
-
-export const TRANSFORMATION = {
-  duration: 1800,
-  ease: easeCubic
-}

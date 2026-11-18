@@ -40,8 +40,3 @@ export const SVG = {
     return this.cellHeight * 3.6
   }
 }
-
-export const ZOOM = {
-  offsetMultiplier: 1.1,
-  thresholdMultiplier: 1.05
-}

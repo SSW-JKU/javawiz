@@ -179,7 +179,7 @@ onMounted(() => {
       // on given x/y relative to the viewport (that's why <body> is used above for retrieving the mouse position)
       const target = editor?.getTargetAtClientPoint(x, y)
 
-      // the retrieved lineNumber is then committed to the global store, DeskTest has a watcher on the lineNumber and can update the row highlight accordingly
+      // the retrieved lineNumber is then committed to the global store, the Tabular View has a watcher on the lineNumber and can update the row highlight accordingly
       hoverStore.changeLine({
         lineNr: target && target.position ? target.position.lineNumber : -1,
         localUri: null

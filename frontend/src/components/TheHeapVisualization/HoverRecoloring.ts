@@ -1,7 +1,7 @@
 import type { EdgeStyle } from './ReferenceEdge'
 
 /**
- * The hover-dependent styles of one memory view rendering, keyed by SVG id: the background color of
+ * The hover-dependent styles of one Memory View rendering, keyed by SVG id: the background color of
  * every table cell with an id, and the color and width of every reference edge.
  */
 export interface HoverStyles {
@@ -26,10 +26,10 @@ function decodeInjectedValue (value: string): string {
 }
 
 /**
- * Reads the hover-dependent styles from a DOT string built by the memory view. Using the DOT keeps a single
+ * Reads the hover-dependent styles from a DOT string built by the Memory View. Using the DOT keeps a single
  * rule for every color: the element classes decide colors while rendering, and recoloring copies them.
  *
- * Example: a cell `<td title="id=&quot;o_1:header&quot;" bgcolor="#b0d1ae">` gives `cells.get('o_1:header') === '#b0d1ae'`.
+ * Example: a cell `<td title="id=&quot;obj_1--header&quot;" bgcolor="#b0d1ae">` gives `cells.get('obj_1--header') === '#b0d1ae'`.
  */
 export function hoverStylesFromDot (dot: string): HoverStyles {
   const cells = new Map<string, string>()

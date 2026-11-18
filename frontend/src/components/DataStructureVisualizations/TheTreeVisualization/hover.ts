@@ -1,6 +1,6 @@
 import { HeapObject } from '@/dto/TraceState'
 import { HoverInfo, HoverHeapObject, HoverField } from '@/hover/types'
-import { TreeNode, TreeNodePointer, ChildPointer } from './types'
+import { TreeNodeBox, VariableToTreeNodePointer, ChildFieldPointer } from './types'
 import { HoverSynchronizer } from '@/hover/HoverSynchronizer'
 import { createHoverField, createHoverHeapObject } from '@/hover/hoverinfo-builder'
 import { isSameRootVariable } from '../pointer-hover'
@@ -24,27 +24,29 @@ export function getTreeNodeHoverInfo (node: HeapObject, fieldId: number = -1): H
   return hoverInfos
 }
 
-/** Tells a pointer apart from a tree node; both are passed to `isHighlighted`. */
-function isTreeNodePointer (nodeOrPointer: TreeNode | TreeNodePointer): nodeOrPointer is TreeNodePointer {
-  return 'sourceVariableIdentifier' in nodeOrPointer
+/** Tells a pointer apart from a tree node box; both are passed to `isHighlighted`. */
+function isVariableToTreeNodePointer (treeNodeBoxOrPointer: TreeNodeBox | VariableToTreeNodePointer): treeNodeBoxOrPointer is VariableToTreeNodePointer {
+  return 'sourceVariableIdentifier' in treeNodeBoxOrPointer
 }
 
-export function isHighlighted (hoveredInfos: HoverInfo[], nodeOrPointer: TreeNode | TreeNodePointer, fieldIndex: number = -1): boolean {
-  if (nodeOrPointer === undefined) return false
-  // a null pointer has no target, and a tree node without heap node shows nothing to highlight
-  if (isTreeNodePointer(nodeOrPointer) ? nodeOrPointer.target === undefined : nodeOrPointer.node === undefined) return false
+export function isHighlighted (hoveredInfos: HoverInfo[], treeNodeBoxOrPointer: TreeNodeBox | VariableToTreeNodePointer, fieldIndex: number = -1): boolean {
+  if (treeNodeBoxOrPointer === undefined) return false
+  // a null pointer has no target, and a placeholder box (without graph node) shows nothing to highlight
+  if (isVariableToTreeNodePointer(treeNodeBoxOrPointer)
+    ? treeNodeBoxOrPointer.targetTreeNodeBox === undefined
+    : treeNodeBoxOrPointer.dataStructureGraphNode === undefined) return false
   for (const hInfo of hoveredInfos) {
     if (hInfo.kind !== 'Field' && hInfo.kind !== 'Local' && hInfo.kind !== 'Static') {
       continue
     }
-    if (isTreeNodePointer(nodeOrPointer)) {
-      const pointerNode = nodeOrPointer.target!.node?.element as HeapObject
+    if (isVariableToTreeNodePointer(treeNodeBoxOrPointer)) {
+      const pointerNode = treeNodeBoxOrPointer.targetTreeNodeBox!.dataStructureGraphNode?.traceElement as HeapObject
 
-      if (pointerNode.id === hInfo.reference && nodeOrPointer.name === hInfo.name) {
-        return isSameRootVariable(nodeOrPointer.source, hInfo)
+      if (pointerNode.id === hInfo.reference && treeNodeBoxOrPointer.name === hInfo.name) {
+        return isSameRootVariable(treeNodeBoxOrPointer.sourceDataStructureGraphNode, hInfo)
       }
     } else if (hInfo.kind === 'Field') { // check if the next field of a list node is highlighted
-      const currNode = (nodeOrPointer.node as any).element
+      const currNode = (treeNodeBoxOrPointer.dataStructureGraphNode as any).traceElement
       const nodeId = 'id' in currNode ? Number(currNode.id) : Number(currNode.heapObjectId)
 
       if (fieldIndex !== -1) {
@@ -60,9 +62,9 @@ export function isHighlighted (hoveredInfos: HoverInfo[], nodeOrPointer: TreeNod
   return false
 }
 
-export function isHighlightedRef (hoveredRefs: HoverHeapObject[], node: TreeNode): boolean {
+export function isHighlightedRef (hoveredRefs: HoverHeapObject[], treeNodeBox: TreeNodeBox): boolean {
   for (const hInfo of hoveredRefs) {
-    const currNode = (node.node as any).element as HeapObject
+    const currNode = (treeNodeBox.dataStructureGraphNode as any).traceElement as HeapObject
     if (currNode.id === hInfo.objId) {
       return true
     }
@@ -70,10 +72,10 @@ export function isHighlightedRef (hoveredRefs: HoverHeapObject[], node: TreeNode
   return false
 }
 
-export function isHighlightedChildPointer (hoveredInfos: HoverInfo[], pointer: ChildPointer): boolean {
-  if (pointer.child.leftFieldIndex === -1 || pointer.child.rightFieldIndex === -1) return false
-  const fromNode = (pointer.parent.node?.element as HeapObject)
-  const toNode = (pointer.child.node?.element as HeapObject)
+export function isHighlightedChildFieldPointer (hoveredInfos: HoverInfo[], pointer: ChildFieldPointer): boolean {
+  if (pointer.targetTreeNodeBox.leftFieldPosition === -1 || pointer.targetTreeNodeBox.rightFieldPosition === -1) return false
+  const fromNode = (pointer.sourceTreeNodeBox.dataStructureGraphNode?.traceElement as HeapObject)
+  const toNode = (pointer.targetTreeNodeBox.dataStructureGraphNode?.traceElement as HeapObject)
 
   const fields = hoveredInfos.filter((i): i is HoverField => i.kind === 'Field')
   for (const hInfo of fields) {

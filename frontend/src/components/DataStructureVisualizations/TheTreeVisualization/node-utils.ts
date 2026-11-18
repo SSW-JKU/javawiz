@@ -2,43 +2,43 @@ import { calculateXCoordinate, calculateYCoordinate } from './layout'
 import { BaseType, Selection } from 'd3-selection'
 import { HTML, LAYOUT } from './constants'
 import { SVG } from '../constants'
-import { getNodeString, getNodeType, isFieldChanged } from '../heap-tree-node-utils'
-import { HeapTreeNode } from '../heapBFS'
-import { ChildPointer, TreeNode, TreeNodePointer } from './types'
-import { getChildPointerCoordinates } from './child-pointer-utils'
+import { DEFAULT_MAX_DEPTH, getNodeString, getNodeType, isFieldChanged } from '../data-structure-graph-node-utils'
+import { DataStructureGraphNode } from '../dataStructureGraph'
+import { ChildFieldPointer, TreeNodeBox, VariableToTreeNodePointer } from './types'
+import { getChildFieldPointerCoordinates } from './child-field-pointer-utils'
 import { getPointerCoordinates } from './pointer-utils'
 
 // calculate coordinates of a node, assuming yCoordinatesOfLevels and widthsOfLevels are set correctly
-export function getNodeCoordinates (node: TreeNode): [number, number] {
+export function getTreeNodeBoxCoordinates (treeNodeBox: TreeNodeBox): [number, number] {
   return [
-    calculateXCoordinate(node.index, node.level, node.treeLevel),
-    calculateYCoordinate(node.level, node.treeLevel)
+    calculateXCoordinate(treeNodeBox.slotInDepth, treeNodeBox.depth, treeNodeBox.treeRow),
+    calculateYCoordinate(treeNodeBox.depth, treeNodeBox.treeRow)
   ]
 }
 
 // sets attributes of the field-group
 export function fieldAttributes (
-  group: Selection<any, HeapTreeNode & { parent: HeapTreeNode }, BaseType, any>,
+  group: Selection<any, DataStructureGraphNode & { parent: DataStructureGraphNode }, BaseType, any>,
   ...specialNames: string[]
 ) {
   return group
     .classed(HTML.classes.changed, (d, i) => isFieldChanged(d.parent, i))
     .classed(HTML.classes.fieldText, d => getNodeType(d, ...specialNames) === 'name')
     .classed(HTML.classes.valueText, d => getNodeType(d, ...specialNames) === 'value')
-    .text(d => getNodeString(d, ...specialNames))
-    .attr('title', d => getNodeString(d, ...specialNames))
+    .text(d => getNodeString(d, DEFAULT_MAX_DEPTH, ...specialNames))
+    .attr('title', d => getNodeString(d, DEFAULT_MAX_DEPTH, ...specialNames))
 }
 
 // joins the texts of node fields
 export function joinFieldTexts (
-  group: Selection<any, TreeNode, BaseType, any>,
+  group: Selection<any, TreeNodeBox, BaseType, any>,
   component: { leftName: string, rightName: string }
 ) {
   group.selectAll(`.${HTML.classes.nodes.field}`)
-    .data(d => d.node!.children
-      .filter(child => child.name !== component.leftName && child.name !== component.rightName)
+    .data(d => d.dataStructureGraphNode!.childDataStructureGraphNodes
+      .filter(child => child.label !== component.leftName && child.label !== component.rightName)
       .map(child => {
-        return { ...child, parent: d.node! }
+        return { ...child, parent: d.dataStructureGraphNode! }
       }))
     .join(
       entered => fieldAttributes(
@@ -57,16 +57,16 @@ export function joinFieldTexts (
 
 /**
  * returns coordinates of changed pointer and pointer itself
- * checks for changed node pointers and changed successor pointers
- * @param nodePointers all pointers to a node
- * @param successorPointers all pointers to successor nodes (next or child pointers)
+ * checks for changed variable pointers and changed child field pointers
+ * @param variableToTreeNodePointers all pointers from variables to tree node boxes
+ * @param childFieldPointers all child field pointers
  */
 export function getCoordinatesOfChange (
-  nodePointers: TreeNodePointer[],
-  successorPointers: ChildPointer[]
+  variableToTreeNodePointers: VariableToTreeNodePointer[],
+  childFieldPointers: ChildFieldPointer[]
 ) {
-  // find changed node pointers
-  const changedPointers = nodePointers.filter(pointer => pointer.changed)
+  // find changed variable pointers
+  const changedPointers = variableToTreeNodePointers.filter(pointer => pointer.changed)
 
   // x and y coordinate which should be moved into frame
   let x: number = NaN
@@ -77,18 +77,18 @@ export function getCoordinatesOfChange (
     // get coordinates of the first changed pointer
     const changedPointer = changedPointers[0]
     // changed pointer is from tree
-    coordinates = changedPointer.target
-      ? getNodeCoordinates(changedPointer.target)
+    coordinates = changedPointer.targetTreeNodeBox
+      ? getTreeNodeBoxCoordinates(changedPointer.targetTreeNodeBox)
       : getPointerCoordinates(changedPointer)
   } else {
-    // check if successor-pointer was changed, if no node pointer changed
+    // check if a child field pointer was changed, if no variable pointer changed
     // find changed pointer and get its coordinates
-    const changedSuccessorPointers = successorPointers.filter(pointer => pointer.changed)
-    if (changedSuccessorPointers.length > 0) {
-      const changedSuccessorPointer = changedSuccessorPointers[0]
-      coordinates = changedSuccessorPointer.child.node
-        ? getNodeCoordinates(changedSuccessorPointer.child)
-        : getChildPointerCoordinates(changedSuccessorPointer)
+    const changedChildFieldPointers = childFieldPointers.filter(pointer => pointer.changed)
+    if (changedChildFieldPointers.length > 0) {
+      const changedChildFieldPointer = changedChildFieldPointers[0]
+      coordinates = changedChildFieldPointer.targetTreeNodeBox.dataStructureGraphNode
+        ? getTreeNodeBoxCoordinates(changedChildFieldPointer.targetTreeNodeBox)
+        : getChildFieldPointerCoordinates(changedChildFieldPointer)
     }
   }
   if (coordinates.length === 2) {

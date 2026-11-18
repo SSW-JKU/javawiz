@@ -194,8 +194,8 @@ interface VirtualMachine {
      * as `faked`, which tells the frontend to show them temporarily.
      *
      * Strings need their internal array to come along with them, but we do not want to force-show these backing arrays.
-     * The backing arrays are not marked as `faked`, which would show them in every memory view.
-     * The detailed memory view can still find it by following the String's reference.
+     * The backing arrays are not marked as `faked`, which would show them in every mode of the Memory View.
+     * The Memory View's detailed mode can still find it by following the String's reference.
      *
      * @param traceState the state to which the previous heap objects are added
      */

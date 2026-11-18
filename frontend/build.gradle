@@ -60,6 +60,28 @@ tasks.named("npm_run_lint") {
     outputs.file(layout.buildDirectory.file("eslint/.eslintcache"))
 }
 
+tasks.named("npm_run_test") {
+    // npm_run_test runs the package.json "test" script, which lets Node find every
+    // test/*.test.ts file. Tests import shared code, so its npm packages must exist.
+    dependsOn(":shared:npmInstall")
+
+    // Tests write no files, so Gradle has no outputs to compare and runs the task
+    // every time. The inputs only document what the tests read.
+    inputs.files(fileTree(projectDir) {
+        include "src/**"
+        include "test/**"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(fileTree(rootProject.file("shared")) {
+        include "src/**"
+        include "package.json"
+        include "package-lock.json"
+        include "tsconfig*.json"
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 build {
     dependsOn(":shared:build")
     dependsOn("npm_run_build")
@@ -69,6 +91,8 @@ check {
     // Make the standard Gradle verification lifecycle run the frontend linter,
     // so root `gradlew check` reports TypeScript/Vue style errors as well.
     dependsOn("npm_run_lint")
+    // Also run all frontend unit tests with the Node version pinned above.
+    dependsOn("npm_run_test")
 }
 
 tasks.register('run') {

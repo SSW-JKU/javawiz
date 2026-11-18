@@ -1,5 +1,5 @@
 import { BaseType, select, Selection } from 'd3-selection'
-import { ArrayIndex, ArrayNode, ArrayPointer, CopyAnimations, MissingSource, TempVariable, TwoDimArrayChild } from './types'
+import { IndexLabel, ArrayBox, VariableToArrayPointer, CopyAnimationGroup, VanishedSourceVariable, TemporaryVariableBox, TwoDimArrayRowBox } from './types'
 import { GHOST_INDEXES, HTML, LAYOUT } from './constants'
 import { Var } from '@/dto/TraceState'
 import { animateAlongPath, highlightRectAttributes, updateDuration, visualizeValueCopy } from './animation'
@@ -10,20 +10,21 @@ import { calculateIndexOffsetCoordinates, getIndexCoordinates, indexForeignObjec
 import { curveBasis, line } from 'd3'
 import { SVG } from '../constants'
 import { blendInAnimation, blendOutAnimation } from '../animations'
-import { getNodeString } from '../heap-tree-node-utils'
+import { getNodeString } from '../data-structure-graph-node-utils'
 
 import { getPointerDescription } from '../description-utils'
 import { TRANSFORMATION } from '@/helpers/constants'
+import { rootVariableIdentifier } from '@/identifiers/trace-identifiers'
 
-export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>, arrays: ArrayNode[]) {
+export function drawArrayBoxes (svg: Selection<BaseType, unknown, HTMLElement, any>, arrayBoxes: ArrayBox[]) {
   svg.select(`#${HTML.ids.arrays}`)
     .selectAll(`.${HTML.classes.nodes.group}`)
-    .data(arrays, (d: any) => `${getUniqueArrayString((d as ArrayNode))}`)
+    .data(arrayBoxes, (d: any) => `${getUniqueArrayString((d as ArrayBox))}`)
     .join(
       entered => {
         // create group for node
         const group = entered
-          .filter(d => d.kind !== 'TwoDimArrayNode')
+          .filter(d => d.kind !== 'TwoDimArrayBox')
           .append('g')
           .attr('id', d => `${HTML.ids.prefixes.arrays}-${getUniqueArrayString(d)}`)
           .attr('transform', d => `translate(${getArrayCoordinates(d)})`)
@@ -33,7 +34,7 @@ export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>,
         group.append('rect')
           .attr('x', 0)
           .attr('y', 0)
-          .attr('width', d => (d.children.length > 0 ? d.children.length : LAYOUT.arrays.cells.widthMultiplier.empty) * d.cellWidth)
+          .attr('width', d => (d.childDataStructureGraphNodes.length > 0 ? d.childDataStructureGraphNodes.length : LAYOUT.arrays.cells.widthMultiplier.empty) * d.cellWidth)
           .attr('height', SVG.cellHeight)
         // append lines
         joinDividerLines(
@@ -49,17 +50,17 @@ export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>,
             .classed(HTML.classes.indexes.numbers, true)
         )
         // append index for two-dim arrays
-        group.filter(d => d.kind === 'TwoDimArrayChild')
+        group.filter(d => d.kind === 'TwoDimArrayRowBox')
           .append('foreignObject')
           .classed(HTML.classes.indexes.number, true)
           .classed(HTML.classes.indexes.twoDim, true)
-          .attr('x', d => (d as TwoDimArrayChild).parentDimensions[1] * d.cellWidth)
+          .attr('x', d => (d as TwoDimArrayRowBox).parentDimensions[1] * d.cellWidth)
           .attr('y', 0)
           .attr('width', LAYOUT.indexes.row.text.width)
           .attr('height', SVG.cellHeight)
           .append('xhtml:div')
-          .text(d => (d as TwoDimArrayChild).indexInParent)
-          .attr('title', d => (d as TwoDimArrayChild).indexInParent)
+          .text(d => (d as TwoDimArrayRowBox).rowIndex)
+          .attr('title', d => (d as TwoDimArrayRowBox).rowIndex)
         // append elements
         joinElementTexts(
           group
@@ -82,7 +83,7 @@ export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>,
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('width', d => (d.children.length > 0 ? d.children.length : LAYOUT.arrays.cells.widthMultiplier.empty) * d.cellWidth)
+          .attr('width', d => (d.childDataStructureGraphNodes.length > 0 ? d.childDataStructureGraphNodes.length : LAYOUT.arrays.cells.widthMultiplier.empty) * d.cellWidth)
         // update lines
         joinDividerLines(updated.select(`.${HTML.classes.nodes.lines}`))
         // update indexes
@@ -91,10 +92,10 @@ export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>,
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('x', d => (d as TwoDimArrayChild).parentDimensions[1] * d.cellWidth)
+          .attr('x', d => (d as TwoDimArrayRowBox).parentDimensions[1] * d.cellWidth)
           .select('div')
-          .text(d => (d as TwoDimArrayChild).indexInParent)
-          .attr('title', d => (d as TwoDimArrayChild).indexInParent)
+          .text(d => (d as TwoDimArrayRowBox).rowIndex)
+          .attr('title', d => (d as TwoDimArrayRowBox).rowIndex)
         // update elements
         joinElementTexts(updated.select(`.${HTML.classes.textGroup}`))
         return updated
@@ -103,11 +104,11 @@ export function drawArrays (svg: Selection<BaseType, unknown, HTMLElement, any>,
     )
 }
 
-export function drawPointers (svg: Selection<BaseType, unknown, HTMLElement, any>, pointers: ArrayPointer[]) {
+export function drawVariablePointers (svg: Selection<BaseType, unknown, HTMLElement, any>, variableToArrayPointers: VariableToArrayPointer[]) {
   svg.select(`#${HTML.ids.arrayPointers}`)
-    // Typing the selection lets D3 type `d` in the key function and all callbacks below as ArrayPointer.
-    .selectAll<SVGGElement, ArrayPointer>(`.${HTML.classes.pointers.group}`)
-    .data(pointers, d => d.sourceVariableIdentifier)
+    // Typing the selection lets D3 type `d` in the key function and all callbacks below as VariableToArrayPointer.
+    .selectAll<SVGGElement, VariableToArrayPointer>(`.${HTML.classes.pointers.group}`)
+    .data(variableToArrayPointers, d => d.sourceVariableIdentifier)
     .join(
       entered => {
         const group = entered.append('g')
@@ -166,10 +167,11 @@ export function drawPointers (svg: Selection<BaseType, unknown, HTMLElement, any
     )
 }
 
-export function drawIndexes (svg: Selection<BaseType, unknown, HTMLElement, any>, indexes: ArrayIndex[]) {
+export function drawIndexLabels (svg: Selection<BaseType, unknown, HTMLElement, any>, indexLabels: IndexLabel[]) {
+  // Index labels are keyed by array name and label text (`i`, `i + 1`): they are expressions, not variables.
   svg.select(`#${HTML.ids.arrayIndexes}`)
     .selectAll(`.${HTML.classes.indexes.group}`)
-    .data(indexes, (d: any) => `${getArrayName(d?.array)} ${d?.name}`)
+    .data(indexLabels, (d: any) => `${getArrayName(d?.arrayBox)} ${d?.text}`)
     .join(
       entered => {
         const group = entered
@@ -177,23 +179,23 @@ export function drawIndexes (svg: Selection<BaseType, unknown, HTMLElement, any>
           .classed(HTML.classes.changed, d => d.changed)
           .classed(HTML.classes.indexes.group, true)
           .attr('transform', d => `translate(${getIndexCoordinates(d, true)})`)
-          .attr('id', d => `${HTML.ids.prefixes.indexes}-${getArrayName(d.array)}-${d.name}`)
+          .attr('id', d => `${HTML.ids.prefixes.indexes}-${getArrayName(d.arrayBox)}-${d.text}`)
         blendInAnimation(group.filter(d => !d.isGhost))
         blendInAnimation(group.filter(d => d.isGhost), GHOST_INDEXES.opacity, GHOST_INDEXES.blendAnimation)
         const nameGroup = group.append('g')
           .attr('transform', d => `translate(${calculateIndexOffsetCoordinates(d)})`)
         // add arrow
         nameGroup.append('use').attr('href', DEFINITIONS.triangle)
-          .filter(d => d.array.kind === 'TwoDimArrayNode')
+          .filter(d => d.arrayBox.kind === 'TwoDimArrayBox')
           .attr('transform', 'rotate(90)')
         // add text
         const foreignObject = nameGroup.append('foreignObject')
           .classed(HTML.classes.indexes.text, true)
         indexForeignObjectAttributes(foreignObject)
         foreignObject.append('xhtml:div')
-          .text(d => d.name)
-          .attr('title', d => d.name)
-          .filter(d => d.array.kind !== 'TwoDimArrayNode' && !d.rotated)
+          .text(d => d.text)
+          .attr('title', d => d.text)
+          .filter(d => d.arrayBox.kind !== 'TwoDimArrayBox' && !d.isRotated)
           .style('text-align', 'center')
         // add highlighting rectangle
         highlightRectAttributes(
@@ -247,19 +249,24 @@ export function drawIndexes (svg: Selection<BaseType, unknown, HTMLElement, any>
       removed => blendOutAnimation(removed)
     )
 }
-export function drawTempVariables (
+/** The identifier of the local variable a temporary-variable box shows, the same as in the Memory View (e.g. `local_0_tmp`). */
+function temporaryVariableBoxIdentifier (temporaryVariableBox: TemporaryVariableBox): string {
+  return rootVariableIdentifier(temporaryVariableBox.variableDataStructureGraphNode.traceElement as Var, temporaryVariableBox.variableDataStructureGraphNode.stackFrameNumber)
+}
+
+export function drawTemporaryVariableBoxes (
   svg: Selection<BaseType, unknown, HTMLElement, any>,
-  tempVariables: TempVariable[],
-  missingSources: MissingSource[],
-  copyAnimations: CopyAnimations
+  temporaryVariableBoxes: TemporaryVariableBox[],
+  vanishedSourceVariables: VanishedSourceVariable[],
+  copyAnimationGroup: CopyAnimationGroup
 ) {
   svg.select(`#${HTML.ids.tempVariables}`)
     .selectAll(`.${HTML.classes.tempVariables.group}`)
-    .data(tempVariables, (d: any) => `${d?.variable.name}-${d?.variable.stackFrameDepth}`)
+    .data(temporaryVariableBoxes, (d: any) => temporaryVariableBoxIdentifier(d))
     .join(
       entered => {
         const group = entered.append('g')
-          .attr('id', d => `${HTML.ids.prefixes.tempVariables}-${d.variable.name}-${d.variable.stackFrameDepth}`)
+          .attr('id', d => `${HTML.ids.prefixes.tempVariables}-${temporaryVariableBoxIdentifier(d)}`)
           .attr('transform', d => `translate(${d.coordinates})`)
           .classed(HTML.classes.tempVariables.group, true)
         blendInAnimation(group)
@@ -277,8 +284,8 @@ export function drawTempVariables (
           .attr('width', d => d.cellWidth)
           .attr('height', LAYOUT.tempVariables.height)
           .append('xhtml:div')
-          .text(d => d.variable.name)
-          .attr('title', d => d.variable.name)
+          .text(d => d.variableDataStructureGraphNode.label)
+          .attr('title', d => d.variableDataStructureGraphNode.label)
         // append text for value
         group.append('foreignObject')
           .classed(HTML.classes.textGroup, true)
@@ -288,9 +295,9 @@ export function drawTempVariables (
           .attr('height', SVG.cellHeight)
           .append('xhtml:div')
           .classed(HTML.classes.valueText, true)
-          .classed(HTML.classes.changed, d => (d.variable.element as Var).changed)
-          .text(d => getNodeString(d.variable))
-          .attr('title', d => getNodeString(d.variable))
+          .classed(HTML.classes.changed, d => (d.variableDataStructureGraphNode.traceElement as Var).changed)
+          .text(d => getNodeString(d.variableDataStructureGraphNode))
+          .attr('title', d => getNodeString(d.variableDataStructureGraphNode))
         return group
       },
       updated => {
@@ -317,8 +324,8 @@ export function drawTempVariables (
           .ease(TRANSFORMATION.ease)
           .attr('width', d => d.cellWidth)
         nameObject.select('div')
-          .text(d => d.variable.name)
-          .attr('title', d => d.variable.name)
+          .text(d => d.variableDataStructureGraphNode.label)
+          .attr('title', d => d.variableDataStructureGraphNode.label)
         // update value text
         const valueObject = updated.select(`.${HTML.classes.textGroup}`)
           .interrupt()
@@ -329,93 +336,95 @@ export function drawTempVariables (
           .ease(TRANSFORMATION.ease)
           .attr('width', d => d.cellWidth - 2 * LAYOUT.arrays.cells.padding)
         valueObject.select('div')
-          .classed(HTML.classes.changed, d => (d.variable.element as Var).changed)
-          .text(d => getNodeString(d.variable))
-          .attr('title', d => getNodeString(d.variable))
+          .classed(HTML.classes.changed, d => (d.variableDataStructureGraphNode.traceElement as Var).changed)
+          .text(d => getNodeString(d.variableDataStructureGraphNode))
+          .attr('title', d => getNodeString(d.variableDataStructureGraphNode))
         return updated
       },
       removed => {
         const staticViz = select(`#${HTML.ids.arrayWriteAccesses.static}`)
         // handle if variables was used as source in last step
-        const missingSourcesSelection = removed
+        const temporaryVariableBoxesWithVanishedSource = removed
           .each(d => {
-            const sources = missingSources.filter(missingSource => missingSource.name === d.variable.name && missingSource.stackDepth === d.variable.stackFrameDepth)
-            if (sources.length > 0) {
-              d.missingSource = sources[0]
+            const matchingVanishedSourceVariables = vanishedSourceVariables.filter(vanishedSourceVariable =>
+              vanishedSourceVariable.variableName === d.variableDataStructureGraphNode.label &&
+              vanishedSourceVariable.stackFrameNumber === d.variableDataStructureGraphNode.stackFrameNumber)
+            if (matchingVanishedSourceVariables.length > 0) {
+              d.vanishedSourceVariable = matchingVanishedSourceVariables[0]
               updateDuration(
                 d.coordinates,
-                sources[0].target.coordinates,
-                copyAnimations
+                matchingVanishedSourceVariables[0].targetCell.coordinates,
+                copyAnimationGroup
               )
 
-              for (let i = 1; i < sources.length; i++) {
+              for (let i = 1; i < matchingVanishedSourceVariables.length; i++) {
                 visualizeValueCopy(
-                  copyAnimations,
+                  copyAnimationGroup,
                   staticViz,
-                  { source: d, target: { kind: 'MissingSource', ...sources[i].target }, arrayCopy: false },
+                  { source: d, target: { kind: 'VanishedSourceVariable', ...matchingVanishedSourceVariables[i].targetCell }, isWholeArrayCopy: false },
                   { }
                 )
               }
             }
           })
-          .filter(d => !!d.missingSource)
+          .filter(d => !!d.vanishedSourceVariable)
         // blend out variable name and value
-        missingSourcesSelection.selectAll('foreignObject')
+        temporaryVariableBoxesWithVanishedSource.selectAll('foreignObject')
           .transition()
           .duration(TRANSFORMATION.duration)
           .ease(TRANSFORMATION.ease)
           .style('opacity', 0)
         // translate variable to target location and remove it afterward
-        missingSourcesSelection
+        temporaryVariableBoxesWithVanishedSource
           .transition()
-          .duration(copyAnimations.duration)
+          .duration(copyAnimationGroup.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('transform', d => `translate(${d.missingSource!.target.coordinates})`)
+          .attr('transform', d => `translate(${d.vanishedSourceVariable!.targetCell.coordinates})`)
           .transition()
           .remove()
         // transition cell width to target cell width
-        missingSourcesSelection.select('rect')
+        temporaryVariableBoxesWithVanishedSource.select('rect')
           .transition()
-          .duration(copyAnimations.duration)
+          .duration(copyAnimationGroup.duration)
           .ease(TRANSFORMATION.ease)
-          .attr('width', d => d.missingSource!.target.width)
+          .attr('width', d => d.vanishedSourceVariable!.targetCell.width)
         // blend out variables that where not used as source in last step
         blendOutAnimation(
           removed
-            .filter(d => !d.missingSource)
+            .filter(d => !d.vanishedSourceVariable)
         )
         return removed
       }
     )
 }
 
-export function animateValueCopies (copyAnimations: CopyAnimations) {
-  copyAnimations.data.forEach(copyAnimation => {
+export function animateValueCopies (copyAnimationGroup: CopyAnimationGroup) {
+  copyAnimationGroup.copyAnimations.forEach(copyAnimation => {
     const coordinatesMiddle = [
-      (copyAnimation.coordinatesFrom[0] + copyAnimation.coordinatesTo[0]) / 2,
-      copyAnimation.coordinatesFrom[1] === copyAnimation.coordinatesTo[1]
-        ? copyAnimation.coordinatesFrom[1] + LAYOUT.arrays.cells.copyInSameArrayYOffset
-        : (copyAnimation.coordinatesFrom[1] + copyAnimation.coordinatesTo[1]) / 2
+      (copyAnimation.sourceCoordinates[0] + copyAnimation.targetCoordinates[0]) / 2,
+      copyAnimation.sourceCoordinates[1] === copyAnimation.targetCoordinates[1]
+        ? copyAnimation.sourceCoordinates[1] + LAYOUT.arrays.cells.copyInSameArrayYOffset
+        : (copyAnimation.sourceCoordinates[1] + copyAnimation.targetCoordinates[1]) / 2
     ] as [number, number]
 
     const curve3 = line().curve(curveBasis)
-    const points3: [number, number][] = [copyAnimation.coordinatesFrom, coordinatesMiddle, copyAnimation.coordinatesTo]
-    const path = copyAnimations.movingViz.append('path')
+    const points3: [number, number][] = [copyAnimation.sourceCoordinates, coordinatesMiddle, copyAnimation.targetCoordinates]
+    const path = copyAnimationGroup.movingLayerSelection.append('path')
       .attr('d', curve3(points3)!)
       .attr('stroke', 'red')
       .attr('fill', 'none')
-    copyAnimations.movingViz.append('rect')
+    copyAnimationGroup.movingLayerSelection.append('rect')
       .attr('x', 0)
       .attr('y', 0)
-      .attr('width', copyAnimation.widthFrom)
+      .attr('width', copyAnimation.sourceWidth)
       .attr('height', SVG.cellHeight)
-      .attr('transform', 'translate(' + copyAnimation.coordinatesFrom + ')')
+      .attr('transform', 'translate(' + copyAnimation.sourceCoordinates + ')')
       .style('opacity', GHOST_INDEXES.opacity)
       .classed(HTML.classes.nodes.dividers, true)
       .transition()
       .ease(TRANSFORMATION.ease)
-      .duration(copyAnimations.duration)
-      .attr('width', copyAnimation.widthTo)
+      .duration(copyAnimationGroup.duration)
+      .attr('width', copyAnimation.targetWidth)
       .attrTween('transform', animateAlongPath(path))
       .transition()
       .remove()
