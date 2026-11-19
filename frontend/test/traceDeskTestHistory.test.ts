@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createServer } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
 async function runSupport (assertions: string): Promise<void> {
-  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
+  const vite = await createTestServer()
   try {
     const module = await vite.ssrLoadModule('/test/traceDeskTestHistory.testSupport.ts')
     await module[assertions](assert)

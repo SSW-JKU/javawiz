@@ -2,7 +2,7 @@ import { DebuggerProtocol } from '@/dto/DebuggerProtocol'
 import { StackFrame, TraceState } from '@/dto/TraceState'
 import { Trace } from '@/debugger/Trace'
 import * as d3 from 'd3'
-import { COMPILING, CONNECTED, DONE, DebuggerState, INITIAL, INPUT_EXPECTED, RUNNING, UNRESPONSIVE, WAITING, CONNECTING } from './DebuggerState'
+import { COMPILING, CONNECTED, DONE, DebuggerState, INITIAL, INPUT_EXPECTED, RUNNING, WAITING, CONNECTING } from './DebuggerState'
 import { ExtensionCommunication } from '@/helpers/ExtensionCommunication'
 import { TraceData } from './TraceData'
 import { useGeneralStore } from '@/store/GeneralStore'
@@ -19,6 +19,13 @@ export class Debugger {
   private undoStack: number[]
   private stateIndex: number
   private state: DebuggerState
+  /**
+   * Whether the shown step is the live step at which the program asked for input. Reading input
+   * adds no step: "landed on the line that reads" and "the read waits for input" are the same
+   * recorded step. After the user leaves it for the history, returning to it shows the first case,
+   * without input, until the user steps again and the program asks again. See {@link inputExpected}.
+   */
+  private inputRequestShown = false
   private compileErrorMessage: string | undefined
   private compiledClasses = reactive<string[]>([])
   // Source files of the compilation in progress; published to compiledSources only when it succeeds.
@@ -126,6 +133,9 @@ export class Debugger {
   }
 
   private handleDebugStateChange () {
+    if (!this.isLive) {
+      this.inputRequestShown = false
+    }
     if (this.generalStore.vscExtensionMode) {
       ExtensionCommunication.sendHighlightLine(this.latestTraceState?.line ?? -1, this.latestTraceState?.sourceFileUri ?? '')
       ExtensionCommunication.sendSetConsoleEnabled(this.inputExpected)
@@ -198,7 +208,6 @@ export class Debugger {
           break
         }
         const newStates = stepResult.traceStates
-        this.clearNotifications(NotificationGroups.unresponsive)
         if (!stepResult.vmrunning) {
           this.state = DONE
           if (newStates.length > 0) {
@@ -209,11 +218,8 @@ export class Debugger {
         }
         if (stepResult.isWaitingForInput) {
           this.state = INPUT_EXPECTED
+          this.inputRequestShown = true
           this.showNotification({ kind: 'InputExpected' })
-          this.handleDebugStateChange()
-        } else if (stepResult.isUnresponsive) {
-          this.state = UNRESPONSIVE
-          this.showNotification({ kind: 'Unresponsive' })
           this.handleDebugStateChange()
         } else {
           this.state = RUNNING
@@ -245,8 +251,13 @@ export class Debugger {
     return this.state.talking
   }
 
+  /**
+   * Whether the consoles accept input now: the program waits for input, and the user is at the live
+   * step where it asked. False while the user looks at the history, and also after returning to
+   * that step, until the program asks again (see {@link inputRequestShown}).
+   */
   public get inputExpected (): boolean {
-    return this.state.inputExpected
+    return this.state.inputExpected && this.inputRequestShown
   }
 
   public get running (): boolean {

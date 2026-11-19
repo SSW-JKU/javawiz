@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createServer, type Plugin } from 'vite'
+import { type Plugin } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
 const virtualGeneralStore = '\0memory-view-general-store'
 const virtualVisualizationStore = '\0memory-view-visualization-store'
@@ -33,10 +34,8 @@ for (const [name, assertion] of [
   ['Empty heap draws no Heap box', 'runEmptyHeapAssertions']
 ]) {
   test(name, async () => {
-    const vite = await createServer({
+    const vite = await createTestServer({
       plugins: [memoryViewStoreMocks()],
-      server: { middlewareMode: true, hmr: false },
-      appType: 'custom'
     })
     try {
       const module = await vite.ssrLoadModule('/test/memoryViewHeapPlacement.testSupport.ts')

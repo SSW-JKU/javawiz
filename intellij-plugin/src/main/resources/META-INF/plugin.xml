@@ -80,14 +80,6 @@
             <add-to-group group-id="EditorPopupMenu.Run" anchor="first"/>
             <add-to-group group-id="ProjectViewPopupMenuRunGroup" anchor="first"/>
         </action>
-
-        <!-- Temporary: throws an exception on purpose to check that error reports reach JetBrains Marketplace.
-             It is in no menu, so only Help | Find Action finds it, and it stays hidden unless the IDE property
-             javawiz.errorReportTest=true is set. Remove it once a report has arrived. -->
-        <action id="at.jku.ssw.javawiz.intellij.action.ThrowTestException"
-                class="at.jku.ssw.javawiz.intellij.action.ThrowTestException"
-                text="JavaWiz: Throw Test Exception"
-                description="Throws an exception on purpose to check that error reports reach JetBrains Marketplace"/>
     </actions>
 
     <!-- Extension points defined by the plugin.

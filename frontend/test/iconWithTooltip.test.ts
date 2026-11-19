@@ -1,14 +1,10 @@
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
-import { createServer } from 'vite'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
+import { createTestServer } from './viteTestServer.ts'
 
-const vite = await createServer({
-  server: { middlewareMode: true, hmr: false },
-  appType: 'custom',
-  optimizeDeps: { noDiscovery: true }
-})
+const vite = await createTestServer()
 after(async () => await vite.close())
 
 const { default: IconWithTooltip } = await vite.ssrLoadModule('/src/components/TheToolbar/IconWithTooltip.vue')

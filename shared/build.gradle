@@ -6,5 +6,5 @@ plugins {
 
 
 node {
-    version = '22.13.1'
+    version = '26.13.1'
 }

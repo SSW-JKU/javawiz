@@ -23,10 +23,6 @@ type InputExpected = {
   readonly kind: 'InputExpected'
 }
 
-type Unresponsive = {
-  readonly kind: 'Unresponsive'
-}
-
 type RuntimeError = {
   readonly kind: 'RuntimeError'
   readonly reason: string
@@ -73,7 +69,6 @@ type NotificationType = ConnectionFailed
 | ConnectionClosed
 | CompileSuccess
 | InputExpected
-| Unresponsive
 | RuntimeError
 | Compiling
 | LocalStorageLoadingError

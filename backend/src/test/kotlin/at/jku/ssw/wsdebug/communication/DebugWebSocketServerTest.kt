@@ -23,12 +23,14 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Named
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertTimeoutPreemptively
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
 import java.io.InputStreamReader
 import java.net.InetSocketAddress
+import java.time.Duration
 
 
 internal class DebugWebSocketServerTest {
@@ -1524,8 +1526,8 @@ internal class DebugWebSocketServerTest {
         }
     }
 
-    // JW-675: JavaWiz must wrap System.in before user fields capture it, or real input waits go unnoticed. The time
-    // limit catches a read that bypasses the wrapper, which would only be reported after 10 s, as unresponsive.
+    // JW-675: JavaWiz must wrap System.in before user fields capture it, or real input waits go unnoticed. A read that
+    // bypasses the wrapper is never reported, so the time limit ends the test instead of waiting forever.
     @ParameterizedTest
     @MethodSource("at.jku.ssw.wsdebug.communication.TestFlags#allTestFlagCombinations")
     fun staticScannerFieldInput(testFlags: TestFlags) {
@@ -1541,12 +1543,11 @@ internal class DebugWebSocketServerTest {
     private fun assertInputWaitThroughField(directoryPath: String, className: String, mainClass: String) {
         requestCompile(listOf(createFilePathAndContent(directoryPath, className)))
 
-        val start = System.currentTimeMillis()
-        val runResult = (request(RunToEnd()) as StepResultResponse).data
-        val elapsed = System.currentTimeMillis() - start
+        val runResult = assertTimeoutPreemptively(Duration.ofSeconds(5), "the input wait was not reported within 5 s") {
+            (request(RunToEnd()) as StepResultResponse).data
+        }
 
         assertTrue(runResult.isWaitingForInput) { "the read through the field was not reported as an input wait" }
-        assertTrue(elapsed < 5000) { "the input wait was reported only after ${elapsed}ms" }
 
         val inputResult = (request(Input("7")) as InputResponse).data
         assertNotNull(inputResult)
@@ -1560,23 +1561,51 @@ internal class DebugWebSocketServerTest {
         }
     }
 
-    // JW-675: a program that is silent for longer than 10 s without reading input is reported as unresponsive, not as
-    // waiting for input. A further step keeps waiting and then continues the program. Not parameterized, because each
-    // run takes about 12 s. The flag is read from the JSON that the frontend receives.
+    // A step ends only when its target is reached, the program ends, or the program reads input, however long a call
+    // runs. Each program sleeps 11 s, longer than the 10 s after which steps used to end early. Not parameterized
+    // with the test flags, because each run takes about 12 s.
+    @ParameterizedTest
+    @ValueSource(strings = ["into", "over", "out", "line", "end"])
+    fun slowCallDoesNotEndStepEarly(stepKind: String) {
+        val compiled = requestCompile(listOf(createFilePathAndContent("$INPUT/SlowStep", "SlowStep.java")))
+        assertEquals(3, (compiled as CompileSuccessResponse).data.firstStepResult.traceStates.last().line)
+
+        val step = when (stepKind) {
+            "into" -> StepInto()
+            "over" -> StepOver(1)
+            "out" -> StepOut(1) // from main, Step Out runs the program to its end
+            "line" -> RunToLine(4, "SlowStep")
+            else -> RunToEnd()
+        }
+        val result = (request(step) as StepResultResponse).data
+
+        assertFalse(result.isWaitingForInput)
+        if (stepKind == "out" || stepKind == "end") {
+            assertFalse(result.isVMRunning) { "the program did not run to its end" }
+            assertTrue(result.traceStates.joinToString("") { it.output }.contains("after sleep"))
+        } else {
+            assertEquals(4, result.traceStates.lastOrNull()?.line) { "the step ended before reaching the next line" }
+        }
+    }
+
     @Test
-    fun unresponsiveProgramCanContinue() {
-        requestCompile(listOf(createFilePathAndContent("$INPUT/UnresponsiveCall", "UnresponsiveCall.java")))
+    fun slowStartDoesNotEndFirstStepEarly() {
+        val compiled = requestCompile(listOf(createFilePathAndContent("$INPUT/SlowStart", "SlowStart.java")))
 
-        val firstResponse = request(RunToEnd()) as StepResultResponse
-        val firstJson = jacksonObjectMapper().valueToTree<JsonNode>(firstResponse.data)
-        assertTrue(firstJson.path("isUnresponsive").asBoolean(false)) { "not reported as unresponsive: $firstJson" }
-        assertFalse(firstResponse.data.isWaitingForInput)
-        assertTrue(firstResponse.data.isVMRunning)
+        val firstStep = (compiled as CompileSuccessResponse).data.firstStepResult
+        assertFalse(firstStep.isWaitingForInput)
+        assertEquals(11, firstStep.traceStates.lastOrNull()?.line) { "the first step ended before main started" }
+    }
 
-        val secondResponse = request(RunToEnd()) as StepResultResponse
-        assertFalse(secondResponse.data.isVMRunning)
-        val traceStates = firstResponse.data.traceStates + secondResponse.data.traceStates
-        assertTrue(traceStates.joinToString("") { it.output }.contains("after long sleep"))
+    @Test
+    fun slowCallAfterInputDoesNotEndStepEarly() {
+        requestCompile(listOf(createFilePathAndContent("$INPUT/SlowAfterInput", "SlowAfterInput.java")))
+        assertTrue((request(RunToEnd()) as StepResultResponse).data.isWaitingForInput)
+
+        val result = (request(Input("x")) as InputResponse).data
+        assertNotNull(result)
+        assertFalse(result!!.isVMRunning) { "the program did not run to its end after the input" }
+        assertTrue(result.traceStates.joinToString("") { it.output }.contains("read x"))
     }
 
     @ParameterizedTest

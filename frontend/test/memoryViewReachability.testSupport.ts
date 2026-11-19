@@ -1,5 +1,5 @@
 import type { strict as StrictAssert } from 'node:assert'
-import { spawnSync } from 'node:child_process'
+import { runDot } from './graphviz.testSupport'
 import { createPinia, setActivePinia } from 'pinia'
 import type {
   LoadedClass,
@@ -125,7 +125,7 @@ export function runMemoryViewReachabilityAssertions (assert: typeof StrictAssert
   assert.match(detailedDot, /obj_2:value:e -> obj_3:heap_object_header:w/)
   assert.match(detailedDot, /obj_3\[label=<<font/)
 
-  const graphviz = spawnSync('dot', ['-Tsvg'], { input: detailedDot, encoding: 'utf8' })
+  const graphviz = runDot(detailedDot, 'svg')
   assert.equal(graphviz.status, 0, graphviz.stderr)
   assert.match(graphviz.stdout, /<svg/)
 }
@@ -242,7 +242,7 @@ export function runEntryParameterReachabilityAssertions (assert: typeof StrictAs
     assert.match(expanded, new RegExp(`roots:local_0_${name}:e -> obj_4:heap_object_header:w`))
     assert.match(expanded, /obj_4\[label=/)
     assert.equal(internals.traceState.heapAfterExecution[1].isVisible, hasArguments, 'argument Strings follow array reachability')
-    const graphviz = spawnSync('dot', ['-Tsvg'], { input: expanded, encoding: 'utf8' })
+    const graphviz = runDot(expanded, 'svg')
     assert.equal(graphviz.status, 0, graphviz.stderr)
     assert.match(graphviz.stdout, /<svg/)
 

@@ -1,5 +1,6 @@
 package at.jku.ssw.javawiz.intellij.components
 
+import at.jku.ssw.javawiz.intellij.general.ConsoleHistoryItem
 import at.jku.ssw.javawiz.intellij.general.FileContent
 import at.jku.ssw.javawiz.intellij.general.FrontendMessage
 import at.jku.ssw.javawiz.intellij.general.Globals
@@ -20,6 +21,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.TextComponentEmptyText
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase5
 import com.intellij.util.ui.UIUtil
@@ -34,9 +37,12 @@ import org.junit.jupiter.api.Test
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.TimeUnit
+import java.util.function.Predicate
 import javax.swing.JTextPane
+import javax.swing.text.StyleConstants
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -231,6 +237,36 @@ internal class CommunicationTest :
     assertEquals(false, service.terminalToolWindowPanel.isWritingEnabled)
   }
 
+  /**
+   * While the program waits for input, the empty input field shows a hint. IntelliJ normally hides
+   * such placeholder text while the field has the focus, and the field always gets the focus on an
+   * input request, so the field sets its own visibility rule: enabled and empty, focused or not.
+   */
+  @Test
+  fun testInputFieldShowsHintOnlyWhileInputIsExpected() {
+    val field = service.terminalToolWindowPanel.writingTextField as JBTextField
+    @Suppress("UNCHECKED_CAST")
+    val hintVisible = field.getClientProperty(TextComponentEmptyText.STATUS_VISIBLE_FUNCTION) as Predicate<JBTextField>
+    assertEquals("Type your input and press Enter", field.emptyText.text)
+
+    process("""{"kind":"consoleEnabled","consoleEnabled":true}""")
+    assertTrue(hintVisible.test(field), "input expected, field empty")
+
+    process("""{"kind":"consoleEnabled","consoleEnabled":false}""")
+    assertFalse(hintVisible.test(field), "no input expected")
+  }
+
+  /**
+   * When input is requested, the service activates the I/O window. IntelliJ then focuses the
+   * content's preferred focusable component, which must be the input field, so the user can type
+   * right away instead of clicking into the field first.
+   */
+  @Test
+  fun testInputFieldGetsFocusWhenWindowIsActivated() {
+    val content = service.terminalToolWindow.contentManager.contents.single()
+    assertSame(service.terminalToolWindowPanel.writingTextField, content.preferredFocusableComponent)
+  }
+
   @Test
   fun testChangeConsoleHistoryRendersHistory() {
     val response = process(
@@ -242,6 +278,52 @@ internal class CommunicationTest :
     assertEquals("SUCCESS", response.result)
     flushEdt()
     assertEquals("Enter a number: 42\nResult: 84 Boom", terminalText())
+  }
+
+  /**
+   * The I/O window is shown again only when the console text grows, by output, error output or
+   * input. The frontend resends the whole history after every step, so an unchanged history and a
+   * shorter one (stepping back) must not count as new text.
+   * Headless tool windows ignore `show()`, so this checks the decision, not the window itself.
+   */
+  @Test
+  fun testShowsTerminalOnlyForNewConsoleText() {
+    fun item(output: String = "", input: String = "", error: String = "") = ConsoleHistoryItem(input, output, error)
+
+    // Other tests send histories to the same shared service, so start from an empty history.
+    assertFalse(service.hasNewConsoleText(emptyList()))
+    assertTrue(service.hasNewConsoleText(listOf(item(output = "a"))))
+    assertFalse(service.hasNewConsoleText(listOf(item(output = "a"))), "unchanged history")
+    val withInput = listOf(item(output = "a"), item(input = "5"))
+    assertTrue(service.hasNewConsoleText(withInput), "input")
+    assertFalse(service.hasNewConsoleText(withInput), "unchanged history with input")
+    val printedAgain = withInput + item(output = "b")
+    assertTrue(service.hasNewConsoleText(printedAgain))
+    assertFalse(service.hasNewConsoleText(listOf(item(output = "a"))), "stepped back")
+    assertTrue(service.hasNewConsoleText(withInput), "stepped forward onto the input")
+    assertTrue(service.hasNewConsoleText(printedAgain + item(error = "x")), "error output after a jump")
+  }
+
+  /**
+   * While the program waits for input, the output text ends with the same hint in italic, right
+   * after the program's prompt, where the typed input will appear.
+   */
+  @Test
+  fun testOutputShowsHintOnlyWhileInputIsExpected() {
+    val history = """{"kind":"changeConsoleHistory","newConsoleHistory":[{"output":"Enter a number: ","input":"","error":""}]}"""
+
+    process("""{"kind":"consoleEnabled","consoleEnabled":true}""")
+    process(history)
+    flushEdt()
+    assertEquals("Enter a number:  Type your input and press Enter", terminalText())
+    val pane = UIUtil.findComponentOfType(service.terminalToolWindowPanel, JTextPane::class.java)!!
+    val hintStart = terminalText().indexOf("Type")
+    assertTrue(StyleConstants.isItalic(pane.styledDocument.getCharacterElement(hintStart).attributes))
+
+    process("""{"kind":"consoleEnabled","consoleEnabled":false}""")
+    process(history)
+    flushEdt()
+    assertEquals("Enter a number: ", terminalText())
   }
 
   @Test

@@ -3,9 +3,7 @@ package at.jku.ssw.wsdebug.debugger.recording
 data class StepResult(
     val traceStates: List<TraceState> = mutableListOf(),
     val isWaitingForInput: Boolean = false,
-    val isVMRunning: Boolean = true,
-    /** The program sent no event for a long time without reading input; it may still be running. */
-    val isUnresponsive: Boolean = false
+    val isVMRunning: Boolean = true
 ) {
     constructor(newTraceState: TraceState, isWaitingForInput: Boolean = false, isVMRunning: Boolean = true) :
             this(mutableListOf(newTraceState), isWaitingForInput, isVMRunning)
@@ -14,7 +12,6 @@ data class StepResult(
         StepResult(
             this.traceStates + next.traceStates,
             this.isWaitingForInput || next.isWaitingForInput,
-            this.isVMRunning && next.isVMRunning,
-            this.isUnresponsive || next.isUnresponsive
+            this.isVMRunning && next.isVMRunning
         )
 }

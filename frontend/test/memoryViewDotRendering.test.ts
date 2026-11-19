@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
-import { spawnSync } from 'node:child_process'
-import { createServer } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
-const vite = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
+const vite = await createTestServer()
 after(async () => await vite.close())
 
 const support = await vite.ssrLoadModule('/test/memoryViewDotRendering.testSupport.ts')
+const { runDot } = await vite.ssrLoadModule('/test/graphviz.testSupport.ts')
 const cases = support.createMemoryViewDotCases()
 
 for (const dotCase of cases) {
@@ -19,10 +19,7 @@ for (const dotCase of cases) {
     const statement = dotCase.graphviz === 'node'
       ? dotCase.actual
       : `sample [label=<<table>${dotCase.actual}</table>>]`
-    const graphviz = spawnSync('dot', ['-Tsvg'], {
-      input: `digraph { node [shape="plaintext"] ${statement} }`,
-      encoding: 'utf8'
-    })
+    const graphviz = runDot(`digraph { node [shape="plaintext"] ${statement} }`, 'svg')
     assert.equal(graphviz.status, 0, graphviz.stderr)
     assert.match(graphviz.stdout, /<svg/)
   })
@@ -36,10 +33,7 @@ test('Memory View keeps byte text at the same horizontal positions on hover', ()
   }
 
   const renderSvg = (node: string): string => {
-    const graphviz = spawnSync('dot', ['-Tsvg'], {
-      input: `digraph { node [shape="plaintext"] ${node} }`,
-      encoding: 'utf8'
-    })
+    const graphviz = runDot(`digraph { node [shape="plaintext"] ${node} }`, 'svg')
     assert.equal(graphviz.status, 0, graphviz.stderr)
     return graphviz.stdout
   }

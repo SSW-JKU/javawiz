@@ -112,6 +112,14 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   @Volatile
   internal var launchFile: VirtualFile? = null
 
+  /**
+   * Number of characters in the console history last shown in the I/O window; see [hasNewConsoleText].
+   * [startDebug] resets it on the UI thread, and frontend messages update it on the connection's
+   * thread, so it is `@Volatile` like [launchFile].
+   */
+  @Volatile
+  private var shownConsoleTextLength = 0
+
   var frontendPort = -1
   var communicationPort = -1
   var debuggerPort = -1
@@ -156,6 +164,8 @@ class JavaWizProjectService(private val project: Project) : Disposable {
     }
 
     this.launchFile = launchFile
+    // The new session starts with an empty I/O window, so its first console text counts as new.
+    shownConsoleTextLength = 0
     attachDocumentListeners()
 
     findAvailablePorts()
@@ -440,6 +450,11 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   fun setWritingEnabled(enabled: Boolean) {
     project.service<LoggerProjectService>().log(LogSource.PLUGIN, "Setting writing enabled: $enabled")
     terminalToolWindowPanel.isWritingEnabled = enabled
+    // The header then reads "JavaWiz I/O: waiting for input", so the request is visible even when
+    // the user looks at another window. Tool window changes must run on the UI thread.
+    ApplicationManager.getApplication().invokeLater {
+      terminalToolWindow.title = if (enabled) "waiting for input" else ""
+    }
     // set the focus to the right tool window
     setFocusToToolWindow(if (enabled) terminalToolWindow else frontendToolWindow)
 
@@ -471,6 +486,30 @@ class JavaWizProjectService(private val project: Project) : Disposable {
   fun changeConsoleHistory(history: List<ConsoleHistoryItem>) {
     project.service<LoggerProjectService>().log(LogSource.PLUGIN, "Changing console history")
     terminalToolWindowPanel.setHistory(history)
+    if (hasNewConsoleText(history)) {
+      // show() reopens the window if the user closed it, but leaves the keyboard focus in the
+      // JavaWiz window, so stepping with the keyboard continues. Input requests use activate()
+      // instead (see setWritingEnabled), because the user has to type next.
+      ApplicationManager.getApplication().invokeLater { terminalToolWindow.show() }
+    }
+  }
+
+  /**
+   * Returns whether [history] contains more text (output, error output or input) than the history
+   * shown before, and remembers its amount for the next call.
+   *
+   * The frontend resends the whole history after every step. It stays the same when a step adds
+   * nothing to the console and gets shorter when the user steps back, so only a larger amount means
+   * new text appeared, for example when stepping forward through the history onto a read.
+   *
+   * Example: `[output "a"]` → true, then `[output "a", input "5"]` → true,
+   * then `[output "a"]` (stepped back) → false.
+   */
+  internal fun hasNewConsoleText(history: List<ConsoleHistoryItem>): Boolean {
+    val textLength = history.sumOf { it.output.length + it.input.length + it.error.length }
+    val hasNew = textLength > shownConsoleTextLength
+    shownConsoleTextLength = textLength
+    return hasNew
   }
 
   fun changeConsoleHistory(text: String) {

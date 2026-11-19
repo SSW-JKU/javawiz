@@ -24,9 +24,6 @@ import java.io.InputStreamReader
 /** How long one wait for the next debugger event lasts before the program's input state is checked. */
 private const val EVENT_WAIT_DURATION_MS = 1000L
 
-/** How long a program may send no event, without reading input, before it is reported as unresponsive. */
-private const val UNRESPONSIVE_LIMIT_MS = 10_000L
-
 class JDIVirtualMachine(
     override val fullyQualifiedMainClassName: String,
     override val cp: String,
@@ -118,7 +115,6 @@ class JDIVirtualMachine(
             val eventSet: EventSet = when (val wait = waitForEventSet()) {
                 is EventWait.Arrived -> wait.eventSet
                 EventWait.WaitingForInput -> return StepResult(isWaitingForInput = true)
-                EventWait.Unresponsive -> return StepResult(isUnresponsive = true)
             }
 
             latestSingleStepStartTime = System.currentTimeMillis()
@@ -182,8 +178,9 @@ class JDIVirtualMachine(
      * runs a long call, such as Thread.sleep or the first String.format, which loads locale data. The input tracking
      * of `$JavaWiz` tells them apart: only a read in progress ends the wait early. Without input tracking (the
      * class or its fields are missing), every second of silence counts as an input wait, as before input tracking
-     * existed. After [UNRESPONSIVE_LIMIT_MS] without an event, the program counts as unresponsive: it may still be
-     * running, or read input in a way the tracking cannot see, such as through System.console().
+     * existed. Otherwise, the wait has no time limit: like a normal debugger, a step ends only when its target is
+     * reached, however long a call runs. A program that reads input in a way the tracking cannot see, such as through
+     * System.console(), therefore keeps the step running until the user restarts it.
      *
      * Throws [VMDisconnectedException] if the program ends or is stopped meanwhile.
      */
@@ -195,9 +192,6 @@ class JDIVirtualMachine(
                 return EventWait.WaitingForInput
             }
             val silentTime = System.currentTimeMillis() - waitStart
-            if (silentTime >= UNRESPONSIVE_LIMIT_MS) {
-                return EventWait.Unresponsive
-            }
             println("[input] no event for ${silentTime}ms, but the program is not reading input, waiting again")
         }
     }
@@ -206,7 +200,6 @@ class JDIVirtualMachine(
     private sealed interface EventWait {
         data class Arrived(val eventSet: EventSet) : EventWait
         data object WaitingForInput : EventWait
-        data object Unresponsive : EventWait
     }
 
     /**
