@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+[2.4.3] (released on 2026-11-19)
+* JW-762: Document that error reports from a sandbox IDE reach the Marketplace Exceptions tab with a delay
+* JW-765: Remove the temporary error report check from the IntelliJ plugin
+* JW-771: Add JavaWiz 2.4.2 release notes to website news
+* JW-772: Give every JavaWiz view one name, written with capital initials everywhere
+* JW-773: Write view names in bold in website news articles
+* JW-774: Rename the publish skill to jw-publish
+* JW-775: IntelliJ: Open JavaWiz I/O tool window when new output arrives or input is requested
+* JW-776: IntelliJ: In history mode, open the JavaWiz I/O window when a step changes the console text, and react to input requests only in live mode
+* JW-777: VS Code: Show the JavaWiz I/O terminal when the console text grows, as in IntelliJ
+* JW-778: Show clearly that the program is waiting for input in the IntelliJ, VS Code and browser consoles
+* JW-779: Stop the JavaWiz backend whenever IntelliJ or VS Code closes, however it is closed
+* JW-780: Make the public CI checks pass: render the frontend tests' graphs with the app's own Graphviz and stop running frontend tests in IntelliJ plugin builds
+* JW-781: Steps end early when a call runs longer than 10 seconds
+* JW-782: Frontend tests sometimes crash Node because they close Vite while its dependency scan is running
+* JW-783: Badges in README should reflect test state
+* JW-784: README: install the IntelliJ plugin from the JetBrains Marketplace
+* JW-785: Update the pinned Node.js version from 22.13.1 to the current LTS 26.13.1
+* JW-787: Publish releases to the public GitHub repository through an automatically merged pull request from branch vX.Y.Z
+
 [2.4.2] (released on 2026-11-18)
 * JW-504: History DSL: Search executed source lines by text substring
 * JW-530: History filter help: add syntax overview, nested paths, and everyday examples
@@ -57,7 +77,6 @@ All notable changes to this project will be documented in this file.
 * JW-759: Memory View: A lot of flickering occurs when stepping from one state to another
 * JW-760: Upgrade d3 to 7.9.2 and Graphviz to 16.1.0 via the lockfile (@hpcc-js/wasm 2.36.0, d3-graphviz stays 5.6.0)
 * JW-761: Remove Kiro AI files
-* JW-762: Document that error reports from a sandbox IDE do not reach the Marketplace Exceptions tab
 * JW-763: Upgrade the IntelliJ plugin's Ktor servers to Ktor 3 so they run on the IDE's own coroutines
 * JW-764: Check that IntelliJ error reports reach JetBrains Marketplace
 * JW-768: Let jw-plan check whether an existing issue's title still fits

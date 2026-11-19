@@ -3,13 +3,19 @@
 ### An educational visual / graphical debugger for Java
 
 [![Website](https://img.shields.io/badge/Website-javawiz.net-5b21b6)](https://javawiz.net/)
+
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Install%20JavaWiz-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=SSW-JKU.javawiz)
+[![JetBrains Marketplace](https://img.shields.io/badge/IntelliJ%20IDEA-Install%20JavaWiz-000000?logo=intellijidea&logoColor=white)](https://plugins.jetbrains.com/plugin/32457-javawiz)
+
 [![GitHub release](https://img.shields.io/github/v/release/SSW-JKU/javawiz)](https://github.com/SSW-JKU/javawiz/releases)
-[![Backend CI](https://img.shields.io/badge/Backend%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/backend-tests.yml)
-[![IntelliJ Plugin CI](https://img.shields.io/badge/IntelliJ%20Plugin%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/intellij-plugin-checks.yml)
-[![Frontend CI](https://img.shields.io/badge/Frontend%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/frontend-checks.yml)
-[![Shared Code CI](https://img.shields.io/badge/Shared%20Code%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/shared-checks.yml)
-[![VS Code Extension CI](https://img.shields.io/badge/VS%20Code%20Extension%20CI-Windows%20%7C%20Linux-2088FF?logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/vsc-extension-checks.yml)
+[![Latest build artifacts](https://img.shields.io/badge/Latest%20Build-Download-181717?logo=github&logoColor=white)](https://github.com/SSW-JKU/javawiz/releases/latest)
+
+[![Backend CI](https://img.shields.io/github/actions/workflow/status/SSW-JKU/javawiz/backend-tests.yml?branch=main&label=Backend%20CI&logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/backend-tests.yml)
+[![IntelliJ Plugin CI](https://img.shields.io/github/actions/workflow/status/SSW-JKU/javawiz/intellij-plugin-checks.yml?branch=main&label=IntelliJ%20Plugin%20CI&logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/intellij-plugin-checks.yml)
+[![Frontend CI](https://img.shields.io/github/actions/workflow/status/SSW-JKU/javawiz/frontend-checks.yml?branch=main&label=Frontend%20CI&logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/frontend-checks.yml)
+[![Shared Code CI](https://img.shields.io/github/actions/workflow/status/SSW-JKU/javawiz/shared-checks.yml?branch=main&label=Shared%20Code%20CI&logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/shared-checks.yml)
+[![VS Code Extension CI](https://img.shields.io/github/actions/workflow/status/SSW-JKU/javawiz/vsc-extension-checks.yml?branch=main&label=VS%20Code%20Extension%20CI&logo=githubactions&logoColor=white)](https://github.com/SSW-JKU/javawiz/actions/workflows/vsc-extension-checks.yml)
+
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE.txt)
 
 [🌐 Visit javawiz.net](https://javawiz.net/) · [📰 Read the news](https://javawiz.net/news.html) · [📋 View the changelog](https://javawiz.net/changelog.html)
@@ -69,7 +75,9 @@ Install [JavaWiz from the Visual Studio Marketplace](https://marketplace.visuals
 
 ### IntelliJ IDEA
 
-Download the latest IntelliJ plugin ZIP from [GitHub Releases](https://github.com/SSW-JKU/javawiz/releases). In IntelliJ IDEA, open **Settings → Plugins → ⚙ → Install Plugin from Disk**, then select the downloaded ZIP. JavaWiz requires **IntelliJ IDEA 2026.2.1 or newer**.
+Install [JavaWiz from the JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32457-javawiz): in IntelliJ IDEA, open **Settings → Plugins → Marketplace**, search for **JavaWiz**, and click **Install**. Then open a Java file with a `main` method and use **Debug *File* with JavaWiz** next to the `main` method or from the editor context menu. JavaWiz requires **IntelliJ IDEA 2026.2.1 or newer**.
+
+To install without the Marketplace, download the plugin ZIP from [GitHub Releases](https://github.com/SSW-JKU/javawiz/releases) and choose **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 
 > JavaWiz currently requires **JDK 25 or newer**. In Visual Studio Code, JavaWiz uses the JDK from the setting `java.jdt.ls.java.home` if it is set, and otherwise `java` and `javac` from `PATH`.
 

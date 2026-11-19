@@ -62,16 +62,6 @@ export class Notifications {
       case 'InputExpected':
         this.addNotification('info', 3, 'Program is waiting for input', debugGroup)
         break
-      case 'Unresponsive':
-        // Stays until the next step result arrives (see Debugger), because it describes the program's current state.
-        this.addNotification(
-          'warning',
-          0,
-          'The program has not responded for 10 seconds. It may still be running. Step again to keep waiting, or type input if the program expects some.',
-          NotificationGroups.unresponsive,
-          debugGroup
-        )
-        break
       case 'RuntimeError':
         this.addNotification('error', 0, `Error processing request: ${notification.reason}`, debugGroup)
         break
@@ -118,6 +108,5 @@ export const NotificationGroups = {
   debug: 'debug',
   files: 'files',
   compile: 'compile',
-  connect: 'connect',
-  unresponsive: 'unresponsive'
+  connect: 'connect'
 }

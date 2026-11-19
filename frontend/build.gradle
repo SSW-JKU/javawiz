@@ -5,7 +5,7 @@ plugins {
 }
 
 node {
-    version = '22.13.1'
+    version = '26.13.1'
     download = true
 
     // Keep the downloaded Node runtime outside the project.
@@ -65,6 +65,10 @@ tasks.named("npm_run_test") {
     // test/*.test.ts file. Tests import shared code, so its npm packages must exist.
     dependsOn(":shared:npmInstall")
 
+    // -PexcludeTests skips all tests, as the root build does for the JVM test tasks,
+    // for example in the release build step `gradlew build -PexcludeTests`.
+    enabled = !project.hasProperty('excludeTests')
+
     // Tests write no files, so Gradle has no outputs to compare and runs the task
     // every time. The inputs only document what the tests read.
     inputs.files(fileTree(projectDir) {
@@ -80,6 +84,12 @@ tasks.named("npm_run_test") {
         include "package-lock.json"
         include "tsconfig*.json"
     }).withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
+// assemble produces the production bundle in dist without running any checks. The IDE
+// integrations depend on assemble, so building or running them doesn't run the frontend tests.
+assemble {
+    dependsOn("npm_run_build")
 }
 
 build {

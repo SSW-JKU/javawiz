@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { select } from 'd3-selection'
 import { isReactive, ref, shallowRef } from 'vue'
-import { createServer } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
 test('imperative D3 handles remain raw inside shallow refs', () => {
   const selection = select(null)
@@ -13,11 +13,7 @@ test('imperative D3 handles remain raw inside shallow refs', () => {
 })
 
 test('array access detection observes later changes through its live ref', async () => {
-  const vite = await createServer({
-    server: { middlewareMode: true, hmr: false },
-    appType: 'custom',
-    optimizeDeps: { noDiscovery: true }
-  })
+  const vite = await createTestServer()
   try {
     const { detectArrayAccesses } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheArrayVisualization/preprocessing.ts')
     const { parseIndexLabelSetting } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheArrayVisualization/index-processing.ts')

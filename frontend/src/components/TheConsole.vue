@@ -19,11 +19,17 @@
         Program output is displayed here.
       </p>
       <pre v-if="compileError" style="color: red"> {{ compileError }} </pre>
-      <pre>{{ consoleText }}</pre>
+      <!-- While the program waits for input, the hint sits where the typed input will appear. -->
+      <pre>{{ consoleText }}<span v-if="isInputExpected" class="console-input-hint">{{ INPUT_HINT }}</span></pre>
     </div>
 
     <div id="console-input">
-      <input id="console-input-field" v-model="generalStore.inputValue" data-pet-target="input Console" type="text">
+      <input
+        id="console-input-field"
+        v-model="generalStore.inputValue"
+        data-pet-target="input Console"
+        type="text"
+        :placeholder="isInputExpected ? INPUT_HINT : ''">
       <button
         id="console-input-button"
         class="btn btn-sm btn-primary"
@@ -46,6 +52,7 @@ import { useGeneralStore } from '@/store/GeneralStore'
 import { CONSOLE_TEXT_WATCH_OPTIONS } from '@/components/consoleWatcherOptions'
 
 const generalStore= useGeneralStore()
+const INPUT_HINT = 'Type your input and press Enter'
 const compileError = computed(() => generalStore.debugger.getCompileErrorMessage())
 const isInputExpected = computed(() => generalStore.debugger.inputExpected)
 const isLive = computed(() => generalStore.debugger.isLive || !generalStore.debugger.compiled)
@@ -117,6 +124,11 @@ function blur () {
 
 pre {
   white-space: pre-wrap;
+}
+
+.console-input-hint {
+  color: var(--jw-medium-gray);
+  font-style: italic;
 }
 
 #console-input {

@@ -1,13 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createServer } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
 test('saved index label settings keep their expression, also from the old displayString field', async () => {
-  const vite = await createServer({
-    server: { middlewareMode: true, hmr: false },
-    appType: 'custom',
-    optimizeDeps: { noDiscovery: true }
-  })
+  const vite = await createTestServer()
   try {
     const { parseSavedIndexLabelSettings } = await vite.ssrLoadModule('/src/components/DataStructureVisualizations/TheArrayVisualization/index-processing.ts')
 

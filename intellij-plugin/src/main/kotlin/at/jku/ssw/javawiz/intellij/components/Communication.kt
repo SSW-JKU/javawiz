@@ -229,9 +229,12 @@ class Communication(project: Project) : Component(project) {
 
         Globals.Strings.MESSAGE_KIND_NOTIFICATION -> {
           if (project.service<JavaWizProjectService>().isJavaWizRunning) { // suppress disconnected error during shutdown
+            // Frontend notifications only inform. The focus follows highlightLine and consoleEnabled;
+            // moving it here would, for example, pull it away just before an input request.
             project.service<JavaWizProjectService>().showInformationMessage(
               message.type ?: return defaultResponseFailed,
-              message.message ?: return defaultResponseFailed
+              message.message ?: return defaultResponseFailed,
+              focusFrontend = false
             )
           }
         }

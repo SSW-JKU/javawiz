@@ -27,8 +27,10 @@ export function activate(context: vscode.ExtensionContext): void {
   console.log('### JavaWiz extension activated ###')
 }
 
-export function deactivate(): void {
-  Extension.endDebug()
+// VS Code waits for a returned promise before it ends the extension, but only for a few seconds.
+// If the extension ends before the backend was stopped, the backend notices that and ends by itself.
+export function deactivate(): Promise<void> {
+  return Extension.endDebug()
 }
 
 export class Extension {
@@ -95,15 +97,33 @@ export class Extension {
     }
   }
 
-  static async endDebug(focusOn?: vscode.TextDocument): Promise<void> {
-    if(Extension.state !== 'running') {
-      /*
-      endDebug() is usually called multiple times by various event listeners in the components.
-      the reason for this is that several events (like killing the debug terminal; closing the webview etc.) should trigger endDebug
-      endDebug, on the other hand, ends up triggering some of those events.
-      */
-      return
+  /** The shutdown started by the first endDebug() call; later calls return it while it runs. */
+  private static shutdown: Promise<void> = Promise.resolve()
+
+  /**
+   * Ends the running session: stops the backend, the frontend, and the communication server, and
+   * closes the JavaWiz panel and terminal.
+   *
+   * endDebug() is usually called multiple times by various event listeners in the components,
+   * because several events (like closing the JavaWiz terminal or panel) should end the session,
+   * and ending the session triggers some of those events itself. Only the first call does the work.
+   * A call made while that work runs returns the same promise, so every caller can wait until the
+   * session has really ended. This matters when VS Code closes: the terminal's close event starts
+   * the shutdown, and deactivate() must then wait for it, or VS Code ends the extension before the
+   * backend has been stopped.
+   */
+  static endDebug(focusOn?: vscode.TextDocument): Promise<void> {
+    if(Extension.state === 'shutdown') {
+      return Extension.shutdown
     }
+    if(Extension.state !== 'running') {
+      return Promise.resolve()
+    }
+    Extension.shutdown = Extension.shutDownSession(focusOn)
+    return Extension.shutdown
+  }
+
+  private static async shutDownSession(focusOn?: vscode.TextDocument): Promise<void> {
     Extension.state = 'shutdown'
     let retries = 2
     while(retries > 0) {

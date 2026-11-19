@@ -8,6 +8,8 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.TextComponentEmptyText
 import com.intellij.ui.content.ContentFactory
 import java.awt.BorderLayout
 import java.awt.Color
@@ -16,6 +18,7 @@ import java.awt.event.FocusListener
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.util.*
+import java.util.function.Predicate
 import javax.swing.*
 import javax.swing.text.SimpleAttributeSet
 import javax.swing.text.StyleConstants
@@ -29,9 +32,21 @@ class TerminalToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true
     isEditable = false
     background = JBColor.WHITE
   }
-  private val writingTextField = JTextField().apply {
+  /**
+   * The field the user types program input into. It is enabled only while the program waits for
+   * input, and then shows the hint "Type your input and press Enter" while it is empty.
+   */
+  internal val writingTextField = JBTextField().apply {
     background = JBColor.WHITE
     isEnabled = false
+    emptyText.text = "Type your input and press Enter"
+    // IntelliJ hides this placeholder text while the field has the focus, but the field always gets
+    // the focus when the program asks for input. This client property replaces that rule: show the
+    // hint whenever the field is enabled (input is expected) and empty, focused or not.
+    putClientProperty(
+      TextComponentEmptyText.STATUS_VISIBLE_FUNCTION,
+      Predicate<JBTextField> { it.isEnabled && it.text.isEmpty() },
+    )
   }
   private val sendButton = JButton("Send Input").apply {
     isEnabled = false
@@ -45,7 +60,13 @@ class TerminalToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true
       if (!value) {
         writingTextField.text = ""
       }
+      // Adds or removes the input hint at the end of the output text.
+      renderHistory()
     }
+
+  /** The console history shown in the output text; kept so that [isWritingEnabled] can redraw it. */
+  @Volatile
+  private var history: List<ConsoleHistoryItem> = emptyList()
 
   val inputListeners = mutableListOf<InputListener>()
 
@@ -97,6 +118,17 @@ class TerminalToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true
   }
 
   fun setHistory(history: List<ConsoleHistoryItem>) {
+    this.history = history
+    renderHistory()
+  }
+
+  /**
+   * Redraws the output text from [history]. While the program waits for input, it ends with the
+   * hint "Type your input and press Enter" in italic grey, where the typed input will appear.
+   */
+  private fun renderHistory() {
+    val history = history
+    val showInputHint = isWritingEnabled
     ApplicationManager.getApplication().invokeLater {
       val doc = historyTextPane.styledDocument
       doc.remove(0, doc.length)
@@ -116,6 +148,14 @@ class TerminalToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true
         if (item.input.isNotEmpty()) doc.insertString(doc.length, " ${item.input}", inputAttrs)
         if (item.error.isNotEmpty()) doc.insertString(doc.length, " ${item.error}", errorAttrs)
       }
+      if (showInputHint) {
+        val hintAttrs = SimpleAttributeSet().apply {
+          StyleConstants.setForeground(this, JBColor.GRAY)
+          StyleConstants.setItalic(this, true)
+        }
+        // A leading space, as for typed input above.
+        doc.insertString(doc.length, " Type your input and press Enter", hintAttrs)
+      }
 
       // scroll to bottom
       historyTextPane.caretPosition = doc.length
@@ -125,8 +165,12 @@ class TerminalToolWindowPanel(val project: Project) : SimpleToolWindowPanel(true
 
 class TerminalToolWindowFactory : ToolWindowFactory {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val content = ContentFactory.getInstance()
-      .createContent(TerminalToolWindowPanel(project), null, false)
+    val panel = TerminalToolWindowPanel(project)
+    val content = ContentFactory.getInstance().createContent(panel, null, false)
+    // When the tool window is activated, for example because the program waits for input, IntelliJ
+    // moves the focus to this component. Without it, the output text area would get the focus and
+    // the user would have to click into the input field before typing.
+    content.preferredFocusableComponent = panel.writingTextField
     toolWindow.contentManager.addContent(content)
   }
 }

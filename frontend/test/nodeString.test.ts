@@ -1,14 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createServer, type ViteDevServer } from 'vite'
+import { type ViteDevServer } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
 /** Loads frontend modules through Vite so their `@/` aliases resolve. */
 async function withVite<T> (run: (vite: ViteDevServer) => Promise<T>): Promise<T> {
-  const vite = await createServer({
-    server: { middlewareMode: true, hmr: false },
-    appType: 'custom',
-    optimizeDeps: { noDiscovery: true }
-  })
+  const vite = await createTestServer()
   try {
     return await run(vite)
   } finally {

@@ -19,6 +19,7 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 import kotlin.io.path.notExists
 import kotlin.io.path.outputStream
+import kotlin.system.exitProcess
 
 
 private const val DEFAULT_PORT = 51234
@@ -46,6 +47,27 @@ internal fun isTcpPortAvailable(port: Int): Boolean {
         true
     } catch (ex: BindException) {
         false
+    }
+}
+
+/**
+ * Ends the backend as soon as the process that started it ends, usually IntelliJ or VS Code.
+ *
+ * The IDEs stop the backend when they close normally, but a crashed or killed IDE runs no
+ * cleanup, and an IDE may also end before its cleanup has finished. Without this, the backend
+ * would keep running and keep its port. Ending the backend runs its shutdown hook, which also
+ * ends the program being debugged.
+ *
+ * `ProcessHandle.onExit()` also works for a process that is not our child: the JDK then checks
+ * every few seconds (at most every 5 s) whether that process still exists, and it recognizes a
+ * process id that the operating system has reused for another process.
+ */
+internal fun exitWhenParentEnds() {
+    ProcessHandle.current().parent().ifPresent { parent ->
+        parent.onExit().thenRun {
+            println("[Parent ended] the process that started the backend (pid ${parent.pid()}) has ended, stopping the backend")
+            exitProcess(0)
+        }
     }
 }
 
@@ -109,9 +131,14 @@ fun runWithWebSocket(args: Array<String>) {
             println("Start")
 
             Runtime.getRuntime().addShutdownHook(Thread {
+                // A program started for debugging keeps running when its debugger ends, so end it here.
+                // This comes first so that it also happens if stopping the server takes long.
+                println("[Shutdown Hook] ending the debugged program")
+                ProcessHandle.current().descendants().forEach { it.destroyForcibly() }
                 println("[Shutdown Hook] trying to stop websocket server")
                 websocketServer.stop()
             })
+            exitWhenParentEnds()
 
             thread {
                 // try {

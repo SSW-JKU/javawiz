@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "at.jku.ssw"
-version = "2.4.2"
+version = "2.4.3"
 
 fun htmlEscape(value: String): String =
     value
@@ -295,7 +295,10 @@ val copyBackendToIntellijPlugin by tasks.registering(Sync::class) {
 }
 
 val copyFrontendToIntellijPlugin by tasks.registering(Sync::class) {
-    dependsOn(":frontend:build")
+    // Use :frontend:assemble instead of :frontend:build to avoid running frontend lint and tests
+    // whenever the plugin is built, tested, verified, or started with runIde.
+    // assemble produces the production bundle in frontend/dist without invoking check.
+    dependsOn(":frontend:assemble")
     from("${rootDir}/frontend/dist/")
     into("${projectDir}/src/main/resources/Frontend")
     doLast {
@@ -308,16 +311,11 @@ tasks {
         // Light fixture tests reuse one application and do not exercise the execution UI.
         // Loading JWExecutor there registers its global context action twice, which Jupiter's
         // uncaught-exception extension correctly reports. Keep every other plugin extension.
-        //
-        // The tests load this copy of plugin.xml in addition to the main one. An action with a fixed
-        // ID would be registered twice and fail every test, so drop ThrowTestException here too.
-        // (DebugWithJavaWiz is not affected: its ID is a placeholder that this copy leaves unreplaced.)
         val testPluginDescriptor = layout.buildDirectory.file("resources/test/META-INF/plugin.xml")
         doLast {
             val descriptor = testPluginDescriptor.get().asFile
-            val retainedLines = descriptor.readLines().filterNot { line ->
-                "at.jku.ssw.javawiz.intellij.action.JWExecutor" in line ||
-                    "at.jku.ssw.javawiz.intellij.action.ThrowTestException" in line
+            val retainedLines = descriptor.readLines().filterNot {
+                "at.jku.ssw.javawiz.intellij.action.JWExecutor" in it
             }
             descriptor.writeText(retainedLines.joinToString(System.lineSeparator(), postfix = System.lineSeparator()))
         }

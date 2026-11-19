@@ -1,5 +1,5 @@
 import type { strict as StrictAssert } from 'node:assert'
-import { spawnSync } from 'node:child_process'
+import { runDot } from './graphviz.testSupport'
 import { createPinia, setActivePinia } from 'pinia'
 import type { LoadedClass, ProcessedHeapArray, ProcessedHeapObject, ProcessedHeapString, StackFrame, StaticVar, TraceState } from '@/dto/TraceState'
 import {
@@ -81,10 +81,7 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
     assert.match(node, /port="heap_object_header"/, name)
     assert.match(node, /id=&quot;[^&]+--header&quot;/, name)
     assert.match(node, new RegExp(`class="${expectedClass}"`), name)
-    const graphviz = spawnSync('dot', ['-Tsvg'], {
-      input: `digraph { node [shape="plaintext"] ${node} }`,
-      encoding: 'utf8'
-    })
+    const graphviz = runDot(`digraph { node [shape="plaintext"] ${node} }`, 'svg')
     assert.equal(graphviz.status, 0, `${name}: ${graphviz.stderr}`)
     assert.match(graphviz.stdout, /<svg/, name)
   }
@@ -286,7 +283,7 @@ export async function runMemoryViewReconciliationAssertions (assert: typeof Stri
 
   for (const [name, rows] of graphvizCases) {
     const dot = `digraph { node [shape="plaintext"] sample [label=<<table>${rows}</table>>]; }`
-    const graphviz = spawnSync('dot', ['-Tsvg'], { input: dot, encoding: 'utf8' })
+    const graphviz = runDot(dot, 'svg')
     assert.equal(graphviz.status, 0, `${name}: ${graphviz.stderr}`)
     assert.match(graphviz.stdout, /<svg/, name)
   }

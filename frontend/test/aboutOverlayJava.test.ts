@@ -1,16 +1,13 @@
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
 import { createPinia } from 'pinia'
-import { createServer } from 'vite'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
+import { createTestServer } from './viteTestServer.ts'
 
 // The About overlay reads the general store, which imports the Monaco editor through the debugger. Monaco only
 // runs in a browser, so this test replaces it with an empty module; the overlay does not use it.
-const vite = await createServer({
-  server: { middlewareMode: true, hmr: false },
-  appType: 'custom',
-  optimizeDeps: { noDiscovery: true },
+const vite = await createTestServer({
   // Let Vite resolve Monaco imports through the plugin below instead of loading the package in Node.
   ssr: { noExternal: ['monaco-editor'] },
   plugins: [{

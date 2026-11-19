@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
-import { createServer } from 'vite'
+import { createTestServer } from './viteTestServer.ts'
 
-const vite = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
+const vite = await createTestServer()
 after(async () => await vite.close())
 
 const support = await vite.ssrLoadModule('/test/memoryViewAllocation.testSupport.ts')

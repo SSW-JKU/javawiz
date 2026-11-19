@@ -22,10 +22,13 @@ const KEYS = {
 
 const ACTIONS = {
   DELETE_CHAR: CSI + 'P',
+  ERASE_TO_LINE_END: CSI + 'K',
+  SAVE_CURSOR: CSI + 's',
+  RESTORE_CURSOR: CSI + 'u',
+  CURSOR_BLINK_ON: CSI + '?12h',
+  CURSOR_BLINK_OFF: CSI + '?12l',
   CLEAR: CSI + '2J' + CSI + '3J' + CSI + ';H',
   NEWLINE: '\n\r',
-  //CURSOR_SLOW_BLINK: CSI + '12h', //CSI + '5m',
-  //CURSOR_NO_BLINK: CSI + '25m',
   RESET_SGR: CSI + '0m'
 }
 
@@ -40,10 +43,14 @@ const CURSOR = {
 
 const COLOR = {
   CYAN: CSI + '36m',
+  DIM: CSI + '2m',
   //BLACK: CSI + '30m',
   GREEN: CSI + '32m',
   RED: CSI + '31m'
 }
+
+const TERMINAL_NAME = 'Javawiz I/O terminal'
+const INPUT_HINT = 'Type your input and press Enter'
 
 const WELCOME_MSG = `${COLOR.CYAN}Javawiz I/O Terminal${ACTIONS.RESET_SGR}${ACTIONS.NEWLINE}${ENABLE_INSERT_MODE}`
 
@@ -51,6 +58,7 @@ export class Console {
   private static terminal: vscode.Terminal;
   private static writingEnabled = false;
   private static writeEmitter: vscode.EventEmitter<string>;
+  private static changeNameEmitter: vscode.EventEmitter<string>;
   private static existsTerminal = false;
 
   private static inputLine: string; // the part of the current line that was supplied by the user
@@ -58,10 +66,18 @@ export class Console {
 
   private static compileError = false;
 
+  // Number of characters (output, error output and input) in the console history last shown.
+  // See changeConsoleHistory.
+  private static shownTextLength = 0;
+
+  // Whether the dim input hint is shown after the cursor; the first key the user presses erases it.
+  private static hintShown = false;
+
   private static inputBuffer: InputBuffer;
 
   public static initialize(): void {
     Console.compileError = false // clear compile error flag from potential previous run
+    Console.shownTextLength = 0 // a new session starts with an empty console
     if (Console.existsTerminal) {
       return
     }
@@ -73,8 +89,11 @@ export class Console {
     Console.inputBuffer = new InputBuffer()
 
     Console.writeEmitter = new vscode.EventEmitter<string>()
+    Console.changeNameEmitter = new vscode.EventEmitter<string>()
     const pty: vscode.Pseudoterminal = {
       onDidWrite: Console.writeEmitter.event,
+      // Lets setWritingEnabled rename the terminal tab while the program waits for input.
+      onDidChangeName: Console.changeNameEmitter.event,
       open: () => {
         Console.write(WELCOME_MSG)
       },
@@ -85,6 +104,10 @@ export class Console {
       handleInput: input => {
         if (!Console.writingEnabled) {
           return
+        }
+        if (Console.hintShown) {
+          Console.write(ACTIONS.ERASE_TO_LINE_END)
+          Console.hintShown = false
         }
         switch (input) {
           case KEYS.ENTER:
@@ -139,10 +162,15 @@ export class Console {
             Console.cursorIndex++
             break
         }
+        // After the user deleted everything they typed, show the hint again, like a placeholder.
+        // Not after Enter: the input was just sent, and the next redraw decides.
+        if (input !== KEYS.ENTER && Console.inputLine === '') {
+          Console.showInputHint()
+        }
       }
     }
     Console.terminal = vscode.window.createTerminal({
-      name: 'Javawiz I/O terminal',
+      name: TERMINAL_NAME,
       pty: pty
     })
   }
@@ -151,6 +179,7 @@ export class Console {
     if(!this.compileError) {
       Console.terminal?.dispose()
       Console.writeEmitter?.dispose()
+      Console.changeNameEmitter?.dispose()
       Console.existsTerminal = false
     }
   }
@@ -158,7 +187,11 @@ export class Console {
   public static setWritingEnabled(enabled: boolean): void {
     if (!Console.writingEnabled && enabled) {
       Console.terminal.show()
-      //TODO: check if there is a way to make the cursor blink
+    }
+    if (Console.writingEnabled !== enabled) {
+      // While the program waits for input, the tab name says so and the cursor blinks.
+      Console.changeNameEmitter.fire(enabled ? `${TERMINAL_NAME} – waiting for input` : TERMINAL_NAME)
+      Console.write(enabled ? ACTIONS.CURSOR_BLINK_ON : ACTIONS.CURSOR_BLINK_OFF)
     }
     Console.writingEnabled = enabled
   }
@@ -195,6 +228,33 @@ export class Console {
     })
 
     Console.write(COLOR.GREEN) //for user input
+
+    // While the program waits for input, show the hint where the user types.
+    Console.hintShown = false
+    if (Console.writingEnabled) {
+      Console.showInputHint()
+    }
+
+    // Bring the terminal to the front when new text appeared, for example when the program printed
+    // something while the user had hidden the panel. show(true) keeps the focus where it is, so the
+    // user can keep stepping with the keyboard; input requests take the focus in setWritingEnabled.
+    // The frontend resends the whole history after every step: it stays the same when a step adds
+    // nothing and gets shorter when the user steps back, so only a longer text counts as new.
+    const textLength = newHistory.reduce((sum, line) => sum + line.output.length + line.input.length + line.error.length, 0)
+    if (textLength > Console.shownTextLength) {
+      Console.terminal.show(true)
+    }
+    Console.shownTextLength = textLength
+  }
+
+  /**
+   * Shows the dim hint "Type your input and press Enter" right after the cursor, where the user
+   * types, like a placeholder. The cursor is saved and restored around it, so typing starts at the
+   * right position; handleInput erases the hint with the next key.
+   */
+  private static showInputHint(): void {
+    Console.write(ACTIONS.SAVE_CURSOR + COLOR.DIM + INPUT_HINT + ACTIONS.RESET_SGR + COLOR.GREEN + ACTIONS.RESTORE_CURSOR)
+    Console.hintShown = true
   }
 
   public static show(): void {

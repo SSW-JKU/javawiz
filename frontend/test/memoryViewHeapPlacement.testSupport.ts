@@ -1,5 +1,5 @@
 import type { strict as StrictAssert } from 'node:assert'
-import { spawnSync } from 'node:child_process'
+import { runDot } from './graphviz.testSupport'
 import { createPinia, setActivePinia } from 'pinia'
 import type {
   LoadedClass,
@@ -31,9 +31,11 @@ interface HeapPlacement {
 
 /**
  * Largest accepted height difference between the "Stack" and "Heap" titles. Graphviz rounds cluster positions
- * to whole points, so a fraction of a point remains even when both bars are aligned.
+ * to whole points, and the WebAssembly Graphviz that the Memory View uses estimates text sizes instead of
+ * measuring fonts, so a little more than a point (about 1.1 pt, under 2 pixels) remains even when both bars
+ * are aligned.
  */
-const MAX_TITLE_OFFSET = 1
+const MAX_TITLE_OFFSET = 2
 
 const nodeClass: LoadedClass = {
   kind: 'LoadedClass',
@@ -145,7 +147,7 @@ function renderDot (state: ProcessedTraceState): string {
 
 /** Lays out the DOT with Graphviz and reads the table and Heap box edges and the y of both titles. */
 function layOut (assert: typeof StrictAssert, dot: string): HeapPlacement {
-  const json = spawnSync('dot', ['-Tjson'], { input: dot, encoding: 'utf8' })
+  const json = runDot(dot, 'json')
   assert.equal(json.status, 0, json.stderr)
   const objects: { name: string, pos?: string, width?: string, bb?: string }[] = JSON.parse(json.stdout).objects
   const roots = objects.find(object => object.name === 'roots')
@@ -154,7 +156,7 @@ function layOut (assert: typeof StrictAssert, dot: string): HeapPlacement {
   assert.ok(heap?.bb, 'Graphviz must draw the Heap box')
   const [x] = roots.pos.split(',').map(Number)
 
-  const svg = spawnSync('dot', ['-Tsvg'], { input: dot, encoding: 'utf8' })
+  const svg = runDot(dot, 'svg')
   assert.equal(svg.status, 0, svg.stderr)
   const titleY = (title: string): number => {
     const y = new RegExp(`<text[^>]* y="([-\\d.]+)"[^>]*>${title}</text>`).exec(svg.stdout)?.[1]
@@ -178,7 +180,7 @@ interface HeapObjectBox {
 
 /** Lays out the DOT with Graphviz and reads where each heap object `o_<id>` sits inside the Heap box. */
 function heapObjectBoxes (assert: typeof StrictAssert, dot: string): Map<number, HeapObjectBox> {
-  const json = spawnSync('dot', ['-Tjson'], { input: dot, encoding: 'utf8' })
+  const json = runDot(dot, 'json')
   assert.equal(json.status, 0, json.stderr)
   const objects: { name: string, pos?: string, height?: string, bb?: string }[] = JSON.parse(json.stdout).objects
   const heap = objects.find(object => object.name === 'cluster_heap')
@@ -256,7 +258,7 @@ export function runReturnedObjectBelowReferencedAssertions (assert: typeof Stric
 export function runEmptyHeapAssertions (assert: typeof StrictAssert): void {
   const dot = renderDot(traceState(mainFrame([]), []))
   assert.doesNotMatch(dot, /heap_anchor/)
-  const graphviz = spawnSync('dot', ['-Tjson'], { input: dot, encoding: 'utf8' })
+  const graphviz = runDot(dot, 'json')
   assert.equal(graphviz.status, 0, graphviz.stderr)
   const objects: { name: string, bb?: string }[] = JSON.parse(graphviz.stdout).objects
   // Graphviz still lists an empty cluster, but gives it no bounding box and does not draw it.

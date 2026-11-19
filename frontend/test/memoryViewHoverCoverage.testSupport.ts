@@ -1,5 +1,5 @@
 import type { strict as StrictAssert } from 'node:assert'
-import { spawnSync } from 'node:child_process'
+import { runDot } from './graphviz.testSupport'
 import { createPinia, setActivePinia } from 'pinia'
 import type {
   LoadedClass,
@@ -245,7 +245,7 @@ export function runHoverCoverageAssertions (assert: typeof StrictAssert, showMem
   const baseline = render([])
   const baselineCells = tableCells(baseline)
   const baselineEdges = edges(baseline)
-  const graphviz = spawnSync('dot', ['-Tsvg'], { input: baseline, encoding: 'utf8' })
+  const graphviz = runDot(baseline, 'svg')
   assert.equal(graphviz.status, 0, graphviz.stderr)
 
   // Every edge the fixture draws, so a missing edge cannot hide a missing id.

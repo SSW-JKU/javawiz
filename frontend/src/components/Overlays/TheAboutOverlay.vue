@@ -91,7 +91,7 @@ import { useGeneralStore } from '@/store/GeneralStore'
  */
 
 // releaseDateis modified by build script
-const releaseDate = '2026-11-19-00-15'
+const releaseDate = '2026-11-19-11-35'
 const overlayStore = useOverlayStore()
 const generalStore = useGeneralStore()
 
